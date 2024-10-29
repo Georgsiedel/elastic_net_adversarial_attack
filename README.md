@@ -1,3 +1,3 @@
-# adversarial-distance-calculation
+# elastic_net_adversarial_attack
 
-This research evaluates the robustness of machine learning classifiers to adversarial attacks, focusing on two metrics: Adversarial Distance and CLEVER Score. Using iterative adversarial attacks and a certification approach, the study computes the upper and lower bounds of adversarial distances for image classification models. Key findings show that the corruption-trained robust models demonstrate higher resilience compared to standard models, with the CLEVER Score serving as a lower bound and the Adversarial Distance metric as an upper bound for perturbation magnitudes. This research provides a comprehensive framework for assessing the robustness of neural network classifiers in adversarial scenarios.
+In this research, we try to compare and improve an elastic net optimization based adversarial attack.
