@@ -210,6 +210,7 @@ class ExpAttack(ElasticNet):
         upper=1.0-x_batch.copy()
         lower=0.0-x_batch.copy()
         x_adv=x_0+delta
+        self.eta=0.0
         for i_iter in range(self.max_iter):
             logger.debug("Iteration step %i out of %i", i_iter, self.max_iter)
 
@@ -241,7 +242,7 @@ class ExpAttack(ElasticNet):
     def _md(self,g,x,lower,upper):
         
         beta = 1.0 / g.size
-        eta_t=self.learning_rate*np.maximum(np.sqrt(self.eta),1)
+        eta_t=np.maximum(np.sqrt(self.eta),1)/self.learning_rate
         z=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x) - g/eta_t
         v_sgn = np.sign(z)
         a = beta
@@ -253,7 +254,7 @@ class ExpAttack(ElasticNet):
         v = np.clip(v, lower, upper)
         D=np.maximum(np.linalg.norm(x.flatten(), ord=1),np.linalg.norm((v).flatten(), ord=1))
         self.eta+=(eta_t/(D+1)*np.linalg.norm((x-v).flatten(), ord=1))**2
-        eta_t_1=np.maximum(np.sqrt(self.eta),1)
+        eta_t_1=np.maximum(np.sqrt(self.eta),1)/self.learning_rate
         return (1.0-eta_t/eta_t_1)*x+eta_t/eta_t_1*v
     
     def _gradient_of_loss(
