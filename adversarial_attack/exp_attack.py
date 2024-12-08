@@ -249,7 +249,7 @@ class ExpAttack(ElasticNet):
         z=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x) - g/eta_t
         v_sgn = np.sign(z)
         a = beta
-        b = 1.0/eta_t
+        b = 2.0/eta_t
         c = np.minimum(self.beta/eta_t- np.abs(z),0.0)
         abc=-c+np.log(a*b)+a*b
         v_val = np.where(abc>=15.0,np.log(abc)-np.log(np.log(abc))+np.log(np.log(abc))/np.log(abc), lambertw( np.exp(abc), k=0).real)/b-a
@@ -291,7 +291,8 @@ class ExpAttack(ElasticNet):
                 predictions * (1 - target) + (np.min(predictions, axis=1) - 1)[:, np.newaxis] * target,
                 axis=1,
             )
-
+        cost=i_add-i_sub
+        
         loss_gradient = self.estimator.class_gradient(x_adv, label=i_add)
         loss_gradient -= self.estimator.class_gradient(x_adv, label=i_sub)
         loss_gradient = loss_gradient.reshape(x.shape)
@@ -302,12 +303,12 @@ class ExpAttack(ElasticNet):
 
         loss_gradient *= c_mult
         #loss_gradient += 2 * (x_adv - x)
-
+        loss_gradient=loss_gradient-np.exp(-cost)/(1.0+np.exp(-cost))*loss_gradient
         # Set gradients where loss is constant to zero
-        cond = (
-            predictions[np.arange(x.shape[0]), i_add] - predictions[np.arange(x.shape[0]), i_sub] + self.confidence
-        ) < 0
-        loss_gradient[cond] = 0.0
+        #cond = (
+        #    predictions[np.arange(x.shape[0]), i_add] - predictions[np.arange(x.shape[0]), i_sub] + self.confidence
+        #) < 0
+        #loss_gradient[cond] = 0.0
 
         return loss_gradient
     
