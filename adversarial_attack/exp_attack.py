@@ -57,7 +57,7 @@ class ExpAttack(ElasticNet):
         batch_size: int = 1,
         decision_rule: str = "EN",
         verbose: bool = True,
-        smooth:float=0.0
+        smooth:float=False
     ) -> None:
         """
         Create an ElasticNet attack instance.
@@ -301,14 +301,17 @@ class ExpAttack(ElasticNet):
         for _ in range(len(x.shape) - 1):
             c_mult = c_mult[:, np.newaxis]
 
+
         loss_gradient *= c_mult
+        if self.smooth:
         #loss_gradient += 2 * (x_adv - x)
-        loss_gradient=loss_gradient-np.exp(-cost)/(1.0+np.exp(-cost))*loss_gradient
+            loss_gradient=loss_gradient-np.exp(-cost)/(1.0+np.exp(-cost))*loss_gradient
         # Set gradients where loss is constant to zero
-        #cond = (
-        #    predictions[np.arange(x.shape[0]), i_add] - predictions[np.arange(x.shape[0]), i_sub] + self.confidence
-        #) < 0
-        #loss_gradient[cond] = 0.0
+        else:
+            cond = (
+                predictions[np.arange(x.shape[0]), i_add] - predictions[np.arange(x.shape[0]), i_sub] + self.confidence
+            ) < 0
+            loss_gradient[cond] = 0.0
 
         return loss_gradient
     
