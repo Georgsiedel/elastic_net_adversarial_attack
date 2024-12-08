@@ -244,7 +244,6 @@ class ExpAttack(ElasticNet):
         return best_dist, best_label, best_attack
 
     def _md(self,g,x,lower,upper):
-        
         beta = 1.0 / g.size
         eta_t=np.maximum(np.sqrt(self.eta),1)/self.learning_rate
         z=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x) - g/eta_t
@@ -302,7 +301,7 @@ class ExpAttack(ElasticNet):
             c_mult = c_mult[:, np.newaxis]
 
         loss_gradient *= c_mult
-        loss_gradient += 2 * (x_adv - x)
+        #loss_gradient += 2 * (x_adv - x)
 
         # Set gradients where loss is constant to zero
         cond = (
