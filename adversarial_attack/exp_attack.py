@@ -57,6 +57,7 @@ class ExpAttack(ElasticNet):
         batch_size: int = 1,
         decision_rule: str = "EN",
         verbose: bool = True,
+        smooth:float=0.0
     ) -> None:
         """
         Create an ElasticNet attack instance.
@@ -89,6 +90,7 @@ class ExpAttack(ElasticNet):
         self.decision_rule = decision_rule
         self.verbose = verbose
         self.eta=0.0
+        self.smooth=smooth
         self._check_params()
 
     def generate(self, x: np.ndarray, y: np.ndarray | None = None, **kwargs) -> np.ndarray:
@@ -120,7 +122,7 @@ class ExpAttack(ElasticNet):
 
         # Compute adversarial examples with implicit batching
         nb_batches = int(np.ceil(x_adv.shape[0] / float(self.batch_size)))
-        for batch_id in trange(nb_batches, desc="EAD", disable=not self.verbose):
+        for batch_id in trange(nb_batches, desc="ExpAttack", disable=not self.verbose):
             batch_index_1, batch_index_2 = batch_id * self.batch_size, (batch_id + 1) * self.batch_size
             x_batch = x_adv[batch_index_1:batch_index_2]
             y_batch = y[batch_index_1:batch_index_2]
@@ -205,17 +207,19 @@ class ExpAttack(ElasticNet):
         best_label = [-np.inf] * x_batch.shape[0]
         best_attack = x_batch.copy()
         # Implement the algorithm 1 in the EAD paper
-        delta= x_batch.copy()*0
+        delta= np.zeros(x_batch.shape)
         x_0=x_batch.copy()
-        upper=1.0-x_batch.copy()
-        lower=0.0-x_batch.copy()
+        upper=1.0-x_0
+        lower=0.0-x_0
         x_adv=x_0+delta
         self.eta=0.0
         for i_iter in range(self.max_iter):
             logger.debug("Iteration step %i out of %i", i_iter, self.max_iter)
-
+            rnd=np.random.normal(size=x_0.shape)
+            rnd1=np.random.normal()
+            rnd=rnd/((np.linalg.norm(rnd)**2+rnd1**2)**0.5)
             # updating rule
-            grad = self._gradient_of_loss(target=y_batch, x=x_batch, x_adv=x_adv.astype(np.float32), c_weight=c_batch)
+            grad = self._gradient_of_loss(target=y_batch, x=x_batch, x_adv=x_adv.astype(np.float32)+(self.smooth*rnd).astype(np.float32), c_weight=c_batch)
             delta = self._md(grad,delta,lower,upper)
             
             x_adv=x_0+delta
