@@ -1,0 +1,38 @@
+{
+    "elastic_net": {
+        "adversarial_distance": [
+            false,
+            12
+        ],
+        "runtime": [
+            false,
+            1.9514126777648926
+        ],
+        "adversarial_accuracy": 50.0,
+        "attack_success_rate": 0.0
+    },
+    "exp_attack": {
+        "adversarial_distance": [
+            false,
+            12
+        ],
+        "runtime": [
+            false,
+            2.035229206085205
+        ],
+        "adversarial_accuracy": 50.0,
+        "attack_success_rate": 0.0
+    },
+    "exp_attack_smooth": {
+        "adversarial_distance": [
+            false,
+            12
+        ],
+        "runtime": [
+            false,
+            2.0406816005706787
+        ],
+        "adversarial_accuracy": 50.0,
+        "attack_success_rate": 0.0
+    }
+}
