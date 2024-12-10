@@ -52,7 +52,7 @@ class Experiment_class():
             kwargs = {hyperparameter: value}
 
             results_dict[hyperparameter+str(value)] = {}
-            print(f'\t\t-------------------------- Processing Attack: {attack_type} --------------------------\n')
+            print(f'\t\t-------------- Hyperparameter Sweep for Attack: {attack_type}: {hyperparameter} = {value} ----------------\n')
             _, _, results_dict[hyperparameter+str(value)]["adversarial_accuracy"], _, results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon"], results_dict[hyperparameter+str(value)]["mean_adv_distance"] = calculation(
                                                                 art_net=self.art_net,
                                                                 fb_net=self.fb_net,
@@ -198,18 +198,17 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon, eps_iter, norm, max
         _, predicted_adversarial = torch.max(torch.tensor(output_adversarial).data, 1)
 
         # Adversarial distance calculation: if no AE found, save 0.0 as distance
+        distance = torch.norm((x.cpu() - x_adversarial), p=float(norm))
+        distance_list.append(distance.item())
+
         if int(predicted_adversarial.item()) == int(y.item()):
             robust_predictions += 1
-            distance = 0.0
-            distance_list.append(distance)
             if verbose:
                 print(f'Image {i}: No adversarial example found.')
         else:
-            distance = torch.norm((x.cpu() - x_adversarial), p=float(norm))
             robust_predictions += (round(distance.item(), 2) > epsilon) 
             attack_successes_in_epsilon += (round(distance.item(), 2) <= epsilon) 
             attack_successes += 1
-            distance_list.append(distance.item())
 
         if verbose:
             print(f'Image {i}\t\tAdversarial_distance: {distance:.5f}\t\tRuntime: {runtime:5f} seconds')
