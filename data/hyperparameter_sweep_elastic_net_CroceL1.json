@@ -1,0 +1,47 @@
+{
+    "learning_rate0.005": {
+        "adversarial_accuracy": 60.0,
+        "attack_success_rate_in_epsilon": 18.181818181818183,
+        "mean_adv_distance": 35.933076815171674
+    },
+    "learning_rate0.01": {
+        "adversarial_accuracy": 60.0,
+        "attack_success_rate_in_epsilon": 18.181818181818183,
+        "mean_adv_distance": 36.20329514416781
+    },
+    "learning_rate0.02": {
+        "adversarial_accuracy": 60.0,
+        "attack_success_rate_in_epsilon": 18.181818181818183,
+        "mean_adv_distance": 34.56432663310658
+    },
+    "learning_rate0.05": {
+        "adversarial_accuracy": 66.66666666666666,
+        "attack_success_rate_in_epsilon": 9.090909090909092,
+        "mean_adv_distance": 35.684705170718104
+    },
+    "learning_rate0.1": {
+        "adversarial_accuracy": 60.0,
+        "attack_success_rate_in_epsilon": 18.181818181818183,
+        "mean_adv_distance": 34.405572327700526
+    },
+    "learning_rate0.2": {
+        "adversarial_accuracy": 60.0,
+        "attack_success_rate_in_epsilon": 18.181818181818183,
+        "mean_adv_distance": 36.04990595037287
+    },
+    "learning_rate0.5": {
+        "adversarial_accuracy": 60.0,
+        "attack_success_rate_in_epsilon": 18.181818181818183,
+        "mean_adv_distance": 41.010663986206055
+    },
+    "learning_rate1.0": {
+        "adversarial_accuracy": 66.66666666666666,
+        "attack_success_rate_in_epsilon": 9.090909090909092,
+        "mean_adv_distance": 65.4116979078813
+    },
+    "learning_rate2.0": {
+        "adversarial_accuracy": 66.66666666666666,
+        "attack_success_rate_in_epsilon": 9.090909090909092,
+        "mean_adv_distance": 74.22074734080921
+    }
+}

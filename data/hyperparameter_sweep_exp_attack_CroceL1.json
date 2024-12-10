@@ -1,0 +1,57 @@
+{
+    "learning_rate0.005": {
+        "adversarial_accuracy": 81.6,
+        "attack_success_rate_in_epsilon": 5.990783410138248,
+        "mean_adv_distance": 0.31059745132648453
+    },
+    "learning_rate0.01": {
+        "adversarial_accuracy": 79.60000000000001,
+        "attack_success_rate_in_epsilon": 8.294930875576037,
+        "mean_adv_distance": 0.8015437972161078
+    },
+    "learning_rate0.02": {
+        "adversarial_accuracy": 82.8,
+        "attack_success_rate_in_epsilon": 4.6082949308755765,
+        "mean_adv_distance": 11.824682467956148
+    },
+    "learning_rate0.05": {
+        "adversarial_accuracy": 75.0,
+        "attack_success_rate_in_epsilon": 13.594470046082948,
+        "mean_adv_distance": 63.23459559843837
+    },
+    "learning_rate0.1": {
+        "adversarial_accuracy": 75.8,
+        "attack_success_rate_in_epsilon": 12.672811059907835,
+        "mean_adv_distance": 47.305076428410096
+    },
+    "learning_rate0.2": {
+        "adversarial_accuracy": 74.8,
+        "attack_success_rate_in_epsilon": 13.82488479262673,
+        "mean_adv_distance": 64.80027459651095
+    },
+    "learning_rate0.5": {
+        "adversarial_accuracy": 70.6,
+        "attack_success_rate_in_epsilon": 18.663594470046082,
+        "mean_adv_distance": 36.96547210340126
+    },
+    "learning_rate1.0": {
+        "adversarial_accuracy": 72.2,
+        "attack_success_rate_in_epsilon": 16.82027649769585,
+        "mean_adv_distance": 35.65842411993286
+    },
+    "learning_rate2.0": {
+        "adversarial_accuracy": 72.2,
+        "attack_success_rate_in_epsilon": 16.82027649769585,
+        "mean_adv_distance": 39.02745665053618
+    },
+    "learning_rate5.0": {
+        "adversarial_accuracy": 72.39999999999999,
+        "attack_success_rate_in_epsilon": 16.589861751152075,
+        "mean_adv_distance": 38.89446552448009
+    },
+    "learning_rate10.0": {
+        "adversarial_accuracy": 74.0,
+        "attack_success_rate_in_epsilon": 14.746543778801843,
+        "mean_adv_distance": 38.846633231172916
+    }
+}
