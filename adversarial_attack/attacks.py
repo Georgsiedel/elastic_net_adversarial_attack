@@ -19,7 +19,14 @@ class AdversarialAttacks:
     self.max_iterations_fast_attacks = max_iterations_fast_attacks
     self.max_iterations_slow_attacks = max_iterations_slow_attacks
     self.net = net
-  def init_attacker(self, attack_type, **kwargs):
+  def init_attacker(self, attack_type, lr=None, beta=None, verbose=False):
+
+    kwargs = {'verbose': verbose}
+    if lr is not None:
+        kwargs['learning_rate'] = lr
+    if beta is not None:
+        kwargs['beta'] = beta
+
     if attack_type=='fast_gradient_method':
         return FastGradientMethod(self.art_net,
                                 eps=self.epsilon,
@@ -71,26 +78,28 @@ class AdversarialAttacks:
     elif attack_type=='elastic_net':
         return ElasticNet(self.art_net,
                       max_iter=self.max_iterations_slow_attacks,
-                      learning_rate=0.01)
+                      **kwargs)
     elif attack_type=='elastic_net_L1_rule':
         return ElasticNet(self.art_net,
                       max_iter=self.max_iterations_slow_attacks,
                       decision_rule='L1',
-                      learning_rate=0.01)
+                      **kwargs)
     elif attack_type=='elastic_net_L1_rule_higher_beta':
         return ElasticNet(self.art_net,
                       max_iter=self.max_iterations_slow_attacks,
                       decision_rule='L1',
                       beta=0.01,
-                      learning_rate=0.01)
+                      **kwargs)
     elif attack_type=='exp_attack':
         return ExpAttack(self.art_net,
                       max_iter=self.max_iterations_slow_attacks,
-                      learning_rate=1.0)
+                    #learning_rate=1.0,
+                      **kwargs)
     elif attack_type=='exp_attack_smooth':
         return ExpAttack(self.art_net,
                       max_iter=self.max_iterations_slow_attacks,
-                      learning_rate=1.0,
-                      smooth=True)
+                    #learning_rate=1.0,
+                      smooth=True,
+                      **kwargs)
     else:
         raise ValueError(f'Attack type "{attack_type}" not supported!')

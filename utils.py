@@ -57,6 +57,7 @@ def get_model(modelname, norm=None):
         net.load_state_dict(ckpt)
     else: #robustbench models
         net = load_model(model_name=modelname, dataset='cifar10', threat_model=norm) #'Wang2023Better_WRN-28-10'
+        modelname = modelname + '_' + norm
         
 
     net = torch.nn.DataParallel(net)
@@ -79,7 +80,7 @@ def get_model(modelname, norm=None):
 
     art_net.model.to(device)
 
-    return net, art_net, fb_net
+    return net, art_net, fb_net, modelname
 
 
 
