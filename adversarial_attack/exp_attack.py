@@ -149,10 +149,6 @@ class ExpAttack(ElasticNet):
         :param y_batch: A batch of targets (0-1 hot).
         :return: A batch of adversarial examples.
         """
-        # Initialize cliping
-        
-        #self.left=self.estimator.clip_values[0]-x_batch
-        #self.right=self.estimator.clip_values[1]-x_batch
 
 
         # Initialize binary search:
