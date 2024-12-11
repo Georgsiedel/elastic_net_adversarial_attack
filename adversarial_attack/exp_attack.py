@@ -171,7 +171,7 @@ class ExpAttack(ElasticNet):
 
             # Run with 1 specific binary search step
             best_dist, best_label, best_attack = self._generate_bss(x_batch, y_batch, c_current)
-
+            #print(f"current {c_current} with best dist {best_dist}")
             # Update best results so far
             o_best_attack[best_dist < o_best_dist] = best_attack[best_dist < o_best_dist]
             o_best_dist[best_dist < o_best_dist] = best_dist[best_dist < o_best_dist]
@@ -241,7 +241,11 @@ class ExpAttack(ElasticNet):
 
     def _md(self,g,x,lower,upper):
         beta = 1.0 / g.size
-        eta_t=np.maximum(np.sqrt(self.eta),1)/self.learning_rate
+        init=False
+        if self.eta==0.0:
+            init=True
+            self.eta+=(np.linalg.norm((g).flatten(), ord=inf)**2)
+        eta_t=np.sqrt(self.eta)/self.learning_rate
         z=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x) - g/eta_t
         v_sgn = np.sign(z)
         a = beta
@@ -251,10 +255,14 @@ class ExpAttack(ElasticNet):
         v_val = np.where(abc>=15.0,np.log(abc)-np.log(np.log(abc))+np.log(np.log(abc))/np.log(abc), lambertw( np.exp(abc), k=0).real)/b-a
         v = v_sgn * v_val
         v = np.clip(v, lower, upper)
-        D=np.maximum(np.linalg.norm(x.flatten(), ord=1),np.linalg.norm((v).flatten(), ord=1))
-        self.eta+=(eta_t/(D+1)*np.linalg.norm((x-v).flatten(), ord=1))**2
-        eta_t_1=np.maximum(np.sqrt(self.eta),1)/self.learning_rate
-        return (1.0-eta_t/eta_t_1)*x+eta_t/eta_t_1*v
+
+        
+        if not init:
+            D=np.maximum(np.linalg.norm(x.flatten(), ord=1),np.linalg.norm((v).flatten(), ord=1))
+            self.eta+=(eta_t/(D+1)*np.linalg.norm((x-v).flatten(), ord=1))**2
+            eta_t_1=np.sqrt(self.eta)/self.learning_rate
+            v=(1.0-eta_t/eta_t_1)*x+eta_t/eta_t_1*v
+        return v
     
     def _gradient_of_loss(
         self,
