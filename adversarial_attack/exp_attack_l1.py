@@ -226,14 +226,24 @@ class ExpAttackL1(ElasticNet):
 
     def _md(self,g,x,lower,upper):
         beta = 1.0 / g.size
-        eta_t=np.maximum(np.sqrt(self.eta),1)/self.learning_rate
+        init=False
+        if self.eta==0.0:
+            init=True
+            self.eta+=(np.linalg.norm((g).flatten(), ord=inf)**2)
+        eta_t=np.sqrt(self.eta)/self.learning_rate
         z=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x) - g/eta_t
         y_sgn=np.sign(z)
         y_val=beta*np.exp(np.abs(z))-beta
-        x=self._project(y_sgn,y_val,beta,self.beta,lower,upper)
-        return x
+        v=self._project(y_sgn,y_val,beta,self.beta,lower,upper)
+        if not init:
+            D=np.maximum(np.linalg.norm(x.flatten(), ord=1),np.linalg.norm((v).flatten(), ord=1))
+            self.eta+=(eta_t/(D+1)*np.linalg.norm((x-v).flatten(), ord=1))**2
+            eta_t_1=np.sqrt(self.eta)/self.learning_rate
+            v=(1.0-eta_t/eta_t_1)*x+eta_t/eta_t_1*v
+        return v
     
     def _project(self, y_sgn,y_val, beta, D,l,u):
+       
         if np.sum(y_val)<=D:
             return np.clip(y_sgn*y_val, l, u)
         c=np.where(y_sgn<=0,np.abs(l),u)
