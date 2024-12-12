@@ -100,7 +100,7 @@ class Experiment_class():
                                                                 attack_type=attack_type,
                                                                 verbose=self.verbose)
             
-            print(f'\nTotal runtime: {sum(results_dict[attack_type]["runtime"]): .5f} seconds\n')
+            print(f'\nTotal runtime: {sum(results_dict[attack_type]["runtime"]): .4f} seconds\n')
             print('attack success rate in epsilon (L1 / L2): ', results_dict[attack_type]["attack_success_rate_in_epsilon_l1"], ' / ', results_dict[attack_type]["attack_success_rate_in_epsilon_l2"])
             print('mean adv. distance (L1 / L2): ', results_dict[attack_type]["mean_adv_distance_l1"], ' / ', results_dict[attack_type]["mean_adv_distance_l2"])
         
@@ -220,7 +220,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
             attack_successes += 1
 
         if verbose:
-            print(f'Image {i}\t\tAdversarial_distance (L1 / L2): {distance_l1:.5f} / {distance_l2:.5f}\t\tRuntime: {runtime:5f} seconds')
+            print(f'Image {i}\t\tAdversarial_distance (L1 / L2): {distance_l1:.4f} / {distance_l2:.5f}\t\tRuntime: {runtime:5f} seconds')
         if (i + 1) % 20 == 0:
             print(f'{i+1} images done. Current Adversarial Accuracy (L1 / L2): {robust_predictions_l1*100/(i+1)} / {robust_predictions_l2*100/(i+1)}%')
 
@@ -233,6 +233,6 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
     mean_adv_distance_l2 = (sum(distance_list_l2) / clean_correct)
 
 
-    print(f'\nAdversarial accuracy (L1 / L2): {adversarial_accuracy_l1} / {adversarial_accuracy_l2}%\n')
+    print(f'\nAdversarial accuracy (L1 / L2): {adversarial_accuracy_l1:.4f} / {adversarial_accuracy_l2:.4f}%\n')
 
     return distance_list_l1, distance_list_l2, runtime_list, adversarial_accuracy_l1, adversarial_accuracy_l2, attack_success_rate, attack_success_rate_in_epsilon_l1, attack_success_rate_in_epsilon_l2, mean_adv_distance_l1, mean_adv_distance_l2

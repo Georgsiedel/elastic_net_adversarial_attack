@@ -7,6 +7,7 @@ from art.attacks.evasion import (FastGradientMethod,
                                  DeepFool,
                                  ElasticNet)
 from adversarial_attack.exp_attack import ExpAttack
+from adversarial_attack.exp_attack_l1 import ExpAttackL1
 #from adversarial_attack.acc_exp_attack import AccExpAttack
 from autoattack import AutoAttack as original_AutoAttack
 
@@ -98,7 +99,14 @@ class AdversarialAttacks:
     elif attack_type=='exp_attack':
         return ExpAttack(self.art_net,
                       max_iter=self.max_iterations_slow_attacks,
-                    #learning_rate=0.5,
+                      beta=1.0,
+                       learning_rate=1.0,
+                      **kwargs)
+    elif attack_type=='exp_attack_l1':
+        return ExpAttackL1(self.art_net,
+                      max_iter=self.max_iterations_slow_attacks,
+                      beta=12.0,
+                       learning_rate=1.0,
                       **kwargs)
     elif attack_type=='exp_attack_smooth':
         return ExpAttack(self.art_net,
