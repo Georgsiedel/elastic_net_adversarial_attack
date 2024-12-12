@@ -62,7 +62,6 @@ def get_model(modelname, norm=None):
 
     net = torch.nn.DataParallel(net)
     net.eval()
-    net.to(device)
 
     # Define loss function and optimizer
     criterion = nn.CrossEntropyLoss()
@@ -78,7 +77,7 @@ def get_model(modelname, norm=None):
                                clip_values=(0.0, 1.0))
     fb_net = fb.PyTorchModel(net, bounds=(0.0, 1.0), device=device)
 
-    art_net.model.to(device)
+    net.to(device)
 
     return net, art_net, fb_net, modelname
 
@@ -91,14 +90,15 @@ def test_accuracy(model, xtest, ytest):
 
     with torch.no_grad():
         for i in range(0, len(xtest), batch_size):
-            x_batch = xtest[i:i + batch_size].to(device)
-            y_batch = ytest[i:i + batch_size].to(device)
-
+            x_batch = xtest[i:i + batch_size].to('cuda')
+            y_batch = ytest[i:i + batch_size].to('cuda')
             outputs = model(x_batch)
             _, predicted = torch.max(outputs, 1)
 
             total += y_batch.size(0)
             correct += (predicted == y_batch).sum().item()
+    
+    model.to(device)
 
     accuracy = (correct / total) * 100
     print(f'\nAccuracy of the test set is: {accuracy:.3f}%\n')

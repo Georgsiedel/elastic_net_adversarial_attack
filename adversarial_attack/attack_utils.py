@@ -7,7 +7,7 @@ import json
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class Experiment_class():
-    def __init__(self, art_net, fb_net, net, xtest, ytest, alias, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations_fast_attacks, max_iterations_slow_attacks, verbose):
+    def __init__(self, art_net, fb_net, net, xtest, ytest, alias, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations, verbose):
         self.art_net = art_net
         self.fb_net=fb_net
         self.net = net
@@ -18,8 +18,7 @@ class Experiment_class():
         self.epsilon_l2=epsilon_l2
         self.eps_iter=eps_iter
         self.norm=norm
-        self.max_iterations_fast_attacks=max_iterations_fast_attacks
-        self.max_iterations_slow_attacks=max_iterations_slow_attacks
+        self.max_iterations=max_iterations
         self.verbose=verbose
 
     def hyperparameter_sweep(self, hyperparameter, range, attack_type):
@@ -63,15 +62,20 @@ class Experiment_class():
                                                                 epsilon_l2=self.epsilon_l2,
                                                                 eps_iter=self.eps_iter,
                                                                 norm=self.norm,
-                                                                max_iterations_fast_attacks=self.max_iterations_fast_attacks,
-                                                                max_iterations_slow_attacks=self.max_iterations_slow_attacks,
+                                                                max_iterations=self.max_iterations,
                                                                 attack_type=attack_type,
                                                                 verbose=self.verbose,
                                                                 **kwargs)
             
-            print(hyperparameter+str(value), ' attack success rate in epsilon (L1 / L2): ', results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l1"], ' / ', results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l2"])
-            print(hyperparameter+str(value), ' mean adv. distance (L1 / L2): ', results_dict[hyperparameter+str(value)]["mean_adv_distance_l1"], ' / ', results_dict[hyperparameter+str(value)]["mean_adv_distance_l2"])
-        
+            print(hyperparameter+str(value), 'attack success rate in epsilon (L1 / L2): ',
+                round(results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l1"], 4),
+                ' / ',
+                round(results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l2"], 4))           
+            print('mean adv. distance (L1 / L2): ', 
+                   round(results_dict[hyperparameter+str(value)]["mean_adv_distance_l1"], 4), 
+                   ' / ', 
+                   round(results_dict[hyperparameter+str(value)]["mean_adv_distance_l2"], 4))
+            
         json_file_path = f'./data/hyperparameter_sweep_{attack_type}_{self.alias}.json'
         with open(json_file_path, 'w') as f:
             json.dump(results_dict, f, indent=4)
@@ -95,14 +99,19 @@ class Experiment_class():
                                                                 epsilon_l2=self.epsilon_l2,
                                                                 eps_iter=self.eps_iter,
                                                                 norm=self.norm,
-                                                                max_iterations_fast_attacks=self.max_iterations_fast_attacks,
-                                                                max_iterations_slow_attacks=self.max_iterations_slow_attacks,
+                                                                max_iterations=self.max_iterations,
                                                                 attack_type=attack_type,
                                                                 verbose=self.verbose)
             
             print(f'\nTotal runtime: {sum(results_dict[attack_type]["runtime"]): .4f} seconds\n')
-            print('attack success rate in epsilon (L1 / L2): ', results_dict[attack_type]["attack_success_rate_in_epsilon_l1"], ' / ', results_dict[attack_type]["attack_success_rate_in_epsilon_l2"])
-            print('mean adv. distance (L1 / L2): ', results_dict[attack_type]["mean_adv_distance_l1"], ' / ', results_dict[attack_type]["mean_adv_distance_l2"])
+            print('attack success rate in epsilon (L1 / L2): ',
+                round(results_dict[attack_type]["attack_success_rate_in_epsilon_l1"], 4),
+                ' / ',
+                round(results_dict[attack_type]["attack_success_rate_in_epsilon_l2"], 4))           
+            print('mean adv. distance (L1 / L2): ', 
+                   round(results_dict[attack_type]["mean_adv_distance_l1"], 4), 
+                   ' / ', 
+                   round(results_dict[attack_type]["mean_adv_distance_l2"], 4))
         
         json_file_path = f'./data/attack_comparison_{self.alias}.json'
         with open(json_file_path, 'w') as f:
@@ -116,7 +125,7 @@ def attack_with_early_stopping(art_net, x, y, PGD_iterations, attacker):
     label_flipped = False
 
     for j in range(PGD_iterations):
-        adv_inputs = attacker.generate(x, y.numpy(), verbose=False)
+        adv_inputs = attacker.generate(x, y, verbose=False)
 
         outputs = art_net.predict(adv_inputs)
         _, predicted = torch.max(torch.tensor(outputs).data, 1)
@@ -130,7 +139,7 @@ def attack_with_early_stopping(art_net, x, y, PGD_iterations, attacker):
             
     return adv_inputs
 
-def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations_slow_attacks, max_iterations_fast_attacks, attack_type, learning_rate = None, beta = None, verbose: bool = False):
+def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations, attack_type, learning_rate = None, beta = None, verbose: bool = False):
 
     distance_list_l1, distance_list_l2, runtime_list = [], [], []
     
@@ -142,8 +151,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
                           epsilon=epsilon_l1,
                           eps_iter=eps_iter,
                           norm=norm,
-                          max_iterations_fast_attacks=max_iterations_fast_attacks,
-                          max_iterations_slow_attacks=max_iterations_slow_attacks)
+                          max_iterations=max_iterations)
     attacker = attacks.init_attacker(attack_type,
                           lr=learning_rate,
                           beta=beta,
@@ -167,6 +175,9 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
         if int(clean_predicted.item()) != int(y.item()):
             if verbose:
                 print('Misclassified input. Not attacking.')
+                if (i + 1) % 20 == 0:
+                    print(f'{i+1} images done. Current Adversarial Accuracy (L1 / L2): {robust_predictions_l1*100/(i+1)} / {robust_predictions_l2*100/(i+1)}%')
+
             distance_list_l1.append(False)
             distance_list_l2.append(False)
             runtime_list.append(False)
@@ -177,18 +188,19 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
         start_time = time.time()
 
         if attack_type == 'pgd_early_stopping':
+            print(art_net.device)
             x_adversarial = attack_with_early_stopping(art_net=art_net,
-                                                                x=x.numpy(),
-                                                                y=y,
-                                                                PGD_iterations=max_iterations_fast_attacks,
+                                                                x=x.cpu().numpy(),
+                                                                y=y.cpu().numpy(),
+                                                                PGD_iterations=max_iterations,
                                                                 attacker=attacker)
             x_adversarial = torch.from_numpy(x_adversarial)
         elif attack_type == 'brendel_bethge':
             _, x_adversarial, _ = attacker(fb_net, x, y, epsilons=[epsilon_l1])
-            x_adversarial = x_adversarial[0]
+            x_adversarial = x_adversarial[0].cpu()
         elif attack_type == 'original_AutoAttack':
             x_adversarial = attacker.run_standard_evaluation(x, y)
-            x_adversarial = x_adversarial
+            x_adversarial = x_adversarial.cpu()
         else:             
             x_adversarial = attacker.generate(x.cpu().numpy(), y.cpu().numpy())
             x_adversarial = torch.from_numpy(x_adversarial)

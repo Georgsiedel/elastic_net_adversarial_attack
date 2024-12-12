@@ -1,6 +1,7 @@
 import torch
+import foolbox as fb
 from art.attacks.evasion import (FastGradientMethod,
-                                 ProjectedGradientDescentPyTorch,
+                                 ProjectedGradientDescentNumpy,
                                  AutoProjectedGradientDescent,
                                  AutoAttack,
                                  CarliniL2Method,
@@ -14,13 +15,12 @@ from autoattack import AutoAttack as original_AutoAttack
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class AdversarialAttacks:
-  def __init__(self, art_net, net, epsilon, eps_iter, norm, max_iterations_fast_attacks, max_iterations_slow_attacks):
+  def __init__(self, art_net, net, epsilon, eps_iter, norm, max_iterations):
     self.art_net = art_net
     self.epsilon = epsilon
     self.eps_iter = eps_iter
     self.norm = norm
-    self.max_iterations_fast_attacks = max_iterations_fast_attacks
-    self.max_iterations_slow_attacks = max_iterations_slow_attacks
+    self.max_iterations = max_iterations
     self.net = net
   def init_attacker(self, attack_type, lr=None, beta=None, verbose=False):
 
@@ -34,17 +34,16 @@ class AdversarialAttacks:
         return FastGradientMethod(self.art_net,
                                 eps=self.epsilon,
                                 eps_step=self.epsilon,
-                                norm=self.norm,
-                                **kwargs)
+                                norm=self.norm)
     elif attack_type=='projected_gradient_descent':
-        return ProjectedGradientDescentPyTorch(self.art_net,
+        return ProjectedGradientDescentNumpy(self.art_net,
                                              eps=self.epsilon,
                                              eps_step=self.eps_iter,
-                                             max_iter=self.max_iterations_fast_attacks,
+                                             max_iter=self.max_iterations,
                                              norm=self.norm,
                                              **kwargs)
     elif attack_type=='pgd_early_stopping':
-        return ProjectedGradientDescentPyTorch(self.art_net,
+        return ProjectedGradientDescentNumpy(self.art_net,
                                              eps=self.epsilon,
                                              eps_step=self.eps_iter,
                                              max_iter=1,
@@ -68,49 +67,49 @@ class AdversarialAttacks:
                                           eps=self.epsilon,
                                           eps_step=self.eps_iter,
                                           norm=self.norm,
-                                          max_iter=self.max_iterations_fast_attacks,
+                                          max_iter=self.max_iterations,
                                           **kwargs)
     elif attack_type=='brendel_bethge':
-        return fb.attacks.L1BrendelBethgeAttack(steps=self.max_iterations_fast_attacks)
+        return fb.attacks.L1BrendelBethgeAttack(steps=self.max_iterations)
     elif attack_type=='carlini_wagner_l2':
         return CarliniL2Method(self.art_net,
-                               max_iter=self.max_iterations_slow_attacks,
+                               max_iter=self.max_iterations,
                                **kwargs)
     elif attack_type=='deep_fool':
         return DeepFool(self.art_net,
-                      max_iter=self.max_iterations_fast_attacks,
+                      max_iter=self.max_iterations,
                       epsilon=self.eps_iter,
                       **kwargs)
     elif attack_type=='elastic_net':
         return ElasticNet(self.art_net,
-                      max_iter=self.max_iterations_slow_attacks,
+                      max_iter=self.max_iterations,
                       **kwargs)
     elif attack_type=='elastic_net_L1_rule':
         return ElasticNet(self.art_net,
-                      max_iter=self.max_iterations_slow_attacks,
+                      max_iter=self.max_iterations,
                       decision_rule='L1',
                       **kwargs)
     elif attack_type=='elastic_net_L1_rule_higher_beta':
         return ElasticNet(self.art_net,
-                      max_iter=self.max_iterations_slow_attacks,
+                      max_iter=self.max_iterations,
                       decision_rule='L1',
                       beta=0.01,
                       **kwargs)
     elif attack_type=='exp_attack':
         return ExpAttack(self.art_net,
-                      max_iter=self.max_iterations_slow_attacks,
+                      max_iter=self.max_iterations,
                       beta=1.0,
                        learning_rate=1.0,
                       **kwargs)
     elif attack_type=='exp_attack_l1':
         return ExpAttackL1(self.art_net,
-                      max_iter=self.max_iterations_slow_attacks,
+                      max_iter=self.max_iterations,
                       beta=12.0,
                        learning_rate=1.0,
                       **kwargs)
     elif attack_type=='exp_attack_smooth':
         return ExpAttack(self.art_net,
-                      max_iter=self.max_iterations_slow_attacks,
+                      max_iter=self.max_iterations,
                     #learning_rate=1.0,
                       smooth=True,
                       **kwargs)
