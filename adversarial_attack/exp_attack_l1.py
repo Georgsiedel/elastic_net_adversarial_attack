@@ -253,12 +253,22 @@ class ExpAttackL1(ElasticNet):
         radius_l=0.0
         radius_u=1.0    
         min_y= np.min(y_val[np.nonzero(y_val)])
-        while np.abs(radius_u-radius_l)>min_y:
+        phi_u=np.maximum(np.minimum(radius_u*(y_val+beta)-beta,c),0.0)
+        phi_l=np.maximum(np.minimum(radius_l*(y_val+beta)-beta,c),0.0)
+        
+        active_index_l=np.logical_and(phi>0.0, phi_l<c)
+        active_index_u=np.logical_and(phi>0.0, phi_u<c)
+        while np.any(active_index_l!=active_index_u):
             if radius>D:
                 radius_u=normaliser
             
             else:
                 radius_l=normaliser
+            
+            phi_u=np.maximum(np.minimum(radius_u*(y_val+beta)-beta,c),0.0)
+            phi_l=np.maximum(np.minimum(radius_l*(y_val+beta)-beta,c),0.0)
+            active_index_l=np.logical_and(phi>0.0, phi_l<c)
+            active_index_u=np.logical_and(phi>0.0, phi_u<c)
             normaliser= 0.5*(radius_l+radius_u) 
             phi=np.maximum(np.minimum(normaliser*(y_val+beta)-beta,c),0.0)
             radius=np.sum(phi)
