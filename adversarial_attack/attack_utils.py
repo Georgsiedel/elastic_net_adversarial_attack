@@ -121,7 +121,7 @@ class Experiment_class():
         return results_dict
 
 
-def attack_with_early_stopping(art_net, x, y, PGD_iterations, attacker):
+def attack_with_early_stopping(art_net, x, y, PGD_iterations, attacker, verbose=False):
     label_flipped = False
 
     for j in range(PGD_iterations):
@@ -132,7 +132,8 @@ def attack_with_early_stopping(art_net, x, y, PGD_iterations, attacker):
         label_flipped = bool(predicted.item() != int(y.item()))
 
         if label_flipped:
-            print(f'\tIterations for successful iterative attack: {j+1}')
+            if verbose:
+                print(f'\tIterations for successful iterative attack: {j+1}')
             break
         
         x = adv_inputs.copy()
@@ -175,8 +176,8 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
         if int(clean_predicted.item()) != int(y.item()):
             if verbose:
                 print('Misclassified input. Not attacking.')
-                if (i + 1) % 20 == 0:
-                    print(f'{i+1} images done. Current Adversarial Accuracy (L1 / L2): {robust_predictions_l1*100/(i+1)} / {robust_predictions_l2*100/(i+1)}%')
+            if (i + 1) % 20 == 0:
+                print(f'{i+1} images done. Current Adversarial Accuracy (L1 / L2): {robust_predictions_l1*100/(i+1)} / {robust_predictions_l2*100/(i+1)}%')
 
             distance_list_l1.append(False)
             distance_list_l2.append(False)
@@ -188,12 +189,12 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
         start_time = time.time()
 
         if attack_type == 'pgd_early_stopping':
-            print(art_net.device)
             x_adversarial = attack_with_early_stopping(art_net=art_net,
                                                                 x=x.cpu().numpy(),
                                                                 y=y.cpu().numpy(),
                                                                 PGD_iterations=max_iterations,
-                                                                attacker=attacker)
+                                                                attacker=attacker,
+                                                                verbose = verbose)
             x_adversarial = torch.from_numpy(x_adversarial)
         elif attack_type == 'brendel_bethge':
             _, x_adversarial, _ = attacker(fb_net, x, y, epsilons=[epsilon_l1])

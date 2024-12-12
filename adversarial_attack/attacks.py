@@ -59,6 +59,13 @@ class AdversarialAttacks:
                                    norm='L1', 
                                    eps=self.epsilon,
                                    device=device,
+                                   version='standard',
+                                   **kwargs)
+    elif attack_type=='original_AutoAttack_apgd-only':
+        return original_AutoAttack(self.net, 
+                                   norm='L1', 
+                                   eps=self.epsilon,
+                                   device=device,
                                    version='custom',
                                    attacks_to_run=['apgd-ce'],
                                    **kwargs)
@@ -98,14 +105,10 @@ class AdversarialAttacks:
     elif attack_type=='exp_attack':
         return ExpAttack(self.art_net,
                       max_iter=self.max_iterations,
-                      beta=1.0,
-                       learning_rate=1.0,
                       **kwargs)
     elif attack_type=='exp_attack_l1':
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
-                      beta=12.0,
-                       learning_rate=1.0,
                       **kwargs)
     elif attack_type=='exp_attack_smooth':
         return ExpAttack(self.art_net,
