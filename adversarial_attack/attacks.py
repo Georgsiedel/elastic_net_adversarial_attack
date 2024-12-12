@@ -1,3 +1,4 @@
+import torch
 from art.attacks.evasion import (FastGradientMethod,
                                  ProjectedGradientDescentPyTorch,
                                  AutoProjectedGradientDescent,
@@ -9,6 +10,7 @@ from adversarial_attack.exp_attack import ExpAttack
 #from adversarial_attack.acc_exp_attack import AccExpAttack
 from autoattack import AutoAttack as original_AutoAttack
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class AdversarialAttacks:
   def __init__(self, art_net, net, epsilon, eps_iter, norm, max_iterations_fast_attacks, max_iterations_slow_attacks):
@@ -56,7 +58,10 @@ class AdversarialAttacks:
         return original_AutoAttack(self.net, 
                                    norm='L1', 
                                    eps=self.epsilon,
-                                   device=device)
+                                   device=device,
+                                   version='custom',
+                                   attacks_to_run=['apgd-ce'],
+                                   **kwargs)
     elif attack_type=='auto_projected_gradient_descent':
         return AutoProjectedGradientDescent(estimator=self.art_net,
                                           eps=self.epsilon,
@@ -93,7 +98,7 @@ class AdversarialAttacks:
     elif attack_type=='exp_attack':
         return ExpAttack(self.art_net,
                       max_iter=self.max_iterations_slow_attacks,
-                    #learning_rate=1.0,
+                    #learning_rate=0.5,
                       **kwargs)
     elif attack_type=='exp_attack_smooth':
         return ExpAttack(self.art_net,
