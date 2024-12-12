@@ -142,7 +142,7 @@ def attack_with_early_stopping(art_net, x, y, PGD_iterations, attacker, verbose=
 
 def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations, attack_type, learning_rate = None, beta = None, verbose: bool = False):
 
-    distance_list_l1, distance_list_l2, runtime_list = [], [], []
+    sparsity_list,distance_list_l1, distance_list_l2, runtime_list = [], [], [], []
     
     xtest = xtest.to(device)
     ytest = ytest.to(device)
@@ -161,7 +161,9 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
     robust_predictions_l1 = 0
     attack_successes_in_epsilon_l1 = 0
     robust_predictions_l2 = 0
+    robust_predictions_en = 0
     attack_successes_in_epsilon_l2 = 0
+    attack_successes_in_en = 0
     attack_successes = 0
     clean_correct = 0
 
@@ -215,37 +217,47 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
         _, predicted_adversarial = torch.max(torch.tensor(output_adversarial).data, 1)
 
         # Adversarial distance calculation: if no AE found, save 0.0 as distance
-        distance_l1 = torch.norm((x.cpu() - x_adversarial), p=float(1))
-        distance_l2 = torch.norm((x.cpu() - x_adversarial), p=float(2))
+        delta=x.cpu() - x_adversarial
+        distance_l1 = torch.norm(delta, p=float(1))
+        distance_l2 = torch.norm(delta, p=float(2))
         distance_list_l1.append(distance_l1.item())
         distance_list_l2.append(distance_l2.item())
 
         if int(predicted_adversarial.item()) == int(y.item()):
             robust_predictions_l1 += 1
             robust_predictions_l2 += 1
+            robust_predictions_en+=1
             if verbose:
                 print(f'Image {i}: No adversarial example found.')
         else:
             robust_predictions_l1 += (round(distance_l1.item(), 2) > epsilon_l1) 
             robust_predictions_l2 += (round(distance_l2.item(), 2) > epsilon_l2) 
+            robust_predictions_en += (round(distance_l2.item(), 2) > epsilon_l2) or  (round(distance_l1.item(), 2) > epsilon_l1) 
             attack_successes_in_epsilon_l1 += (round(distance_l1.item(), 3) <= epsilon_l1)
             attack_successes_in_epsilon_l2 += (round(distance_l2.item(), 3) <= epsilon_l2) 
+            attack_successes_in_en += ((round(distance_l2.item(), 3) <= epsilon_l2) and (round(distance_l1.item(), 3) <= epsilon_l1)) 
             attack_successes += 1
+            dim=torch.numel(delta)
+            sparsity = (dim-torch.count_nonzero(delta).item())/dim
+            sparsity_list.append(sparsity)
 
         if verbose:
             print(f'Image {i}\t\tAdversarial_distance (L1 / L2): {distance_l1:.4f} / {distance_l2:.5f}\t\tRuntime: {runtime:5f} seconds')
         if (i + 1) % 20 == 0:
-            print(f'{i+1} images done. Current Adversarial Accuracy (L1 / L2): {robust_predictions_l1*100/(i+1)} / {robust_predictions_l2*100/(i+1)}%')
+            print(f'{i+1} images done. Current Adversarial Accuracy (L1 / L2/ EN): {robust_predictions_l1*100/(i+1)} / {robust_predictions_l2*100/(i+1)}/{robust_predictions_en*100/(i+1)}%')
 
     adversarial_accuracy_l1 = (robust_predictions_l1 / len(xtest)) * 100
     adversarial_accuracy_l2 = (robust_predictions_l2 / len(xtest)) * 100
+    adversarial_accuracy_en = (robust_predictions_en / len(xtest)) * 100
     attack_success_rate = (attack_successes / clean_correct) * 100
     attack_success_rate_in_epsilon_l1 = (attack_successes_in_epsilon_l1 / clean_correct) * 100
     attack_success_rate_in_epsilon_l2 = (attack_successes_in_epsilon_l2 / clean_correct) * 100
+    attack_success_rate_in_epsilon_en = (attack_successes_in_en / clean_correct) * 100
     mean_adv_distance_l1 = (sum(distance_list_l1) / clean_correct)
     mean_adv_distance_l2 = (sum(distance_list_l2) / clean_correct)
+    mean_sparsity=sum(sparsity_list)/attack_successes
 
-
-    print(f'\nAdversarial accuracy (L1 / L2): {adversarial_accuracy_l1:.4f} / {adversarial_accuracy_l2:.4f}%\n')
+    print(f'\nAdversarial accuracy (L1 / L2/ EN): {adversarial_accuracy_l1:.4f} / {adversarial_accuracy_l2:.4f}/ {adversarial_accuracy_en:.4f}%\n')
+    print(f'\naverage sparsity: {mean_sparsity:.4f}%\n')
 
     return distance_list_l1, distance_list_l2, runtime_list, adversarial_accuracy_l1, adversarial_accuracy_l2, attack_success_rate, attack_success_rate_in_epsilon_l1, attack_success_rate_in_epsilon_l2, mean_adv_distance_l1, mean_adv_distance_l2
