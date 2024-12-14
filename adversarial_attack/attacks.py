@@ -62,13 +62,15 @@ class AdversarialAttacks:
                                    version='standard',
                                    **kwargs)
     elif attack_type=='original_AutoAttack_apgd-only':
-        return original_AutoAttack(self.net, 
+        attack= original_AutoAttack(self.net, 
                                    norm='L1', 
                                    eps=self.epsilon,
                                    device=device,
                                    version='custom',
                                    attacks_to_run=['apgd-ce'],
                                    **kwargs)
+        attack.apgd.n_restarts=1
+        return attack
     elif attack_type=='auto_projected_gradient_descent':
         return AutoProjectedGradientDescent(estimator=self.art_net,
                                           eps=self.epsilon,
@@ -109,6 +111,7 @@ class AdversarialAttacks:
     elif attack_type=='exp_attack_l1':
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
+                      beta=self.epsilon,
                       **kwargs)
     elif attack_type=='exp_attack_smooth':
         return ExpAttack(self.art_net,
