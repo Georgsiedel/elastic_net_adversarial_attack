@@ -12,6 +12,11 @@ import numpy as np
 import six
 from tqdm.auto import trange
 
+from art.estimators.estimator import BaseEstimator, LossGradientsMixin
+from art.estimators.classification.classifier import ClassifierMixin
+from art.estimators.classification import  PyTorchClassifier
+
+
 from art.config import ART_NUMPY_DTYPE
 from art.attacks.attack import EvasionAttack
 from art.estimators.estimator import BaseEstimator
@@ -20,15 +25,16 @@ from art.utils import (
     compute_success,
     get_labels_np_array,
     check_and_transform_label_format,
+    is_probability
 )
 
 if TYPE_CHECKING:
-    from art.utils import CLASSIFIER_CLASS_LOSS_GRADIENTS_TYPE
+    from art.utils import CLASSIFIER_LOSS_GRADIENTS_TYPE
 
 logger = logging.getLogger(__name__)
 
 
-class ExpAttackL1(ElasticNet):
+class ExpAttackL1(EvasionAttack):
     attack_params = EvasionAttack.attack_params + [
         "confidence",
         "targeted",
@@ -41,12 +47,12 @@ class ExpAttackL1(ElasticNet):
         "decision_rule",
         "verbose",
     ]
-
-    _estimator_requirements = (BaseEstimator, ClassGradientsMixin)
+    _estimator_requirements = (BaseEstimator, LossGradientsMixin, ClassifierMixin)
+    _predefined_losses = [None, "cross_entropy", "difference_logits_ratio"]
         
     def __init__(
         self,
-        classifier: "CLASSIFIER_CLASS_LOSS_GRADIENTS_TYPE",
+        estimator: "CLASSIFIER_LOSS_GRADIENTS_TYPE",
         confidence: float = 0.0,
         targeted: bool = False,
         learning_rate: float =1.0,
@@ -54,6 +60,7 @@ class ExpAttackL1(ElasticNet):
         beta: float =12,
         batch_size: int = 1,
         verbose: bool = True,
+        loss_type= "cross_entropy",
         smooth:float=False
     ) -> None:
         """
@@ -75,7 +82,146 @@ class ExpAttackL1(ElasticNet):
         :param decision_rule: Decision rule. 'EN' means Elastic Net rule, 'L1' means L1 rule, 'L2' means L2 rule.
         :param verbose: Show progress bars.
         """
-        EvasionAttack.__init__(self,estimator=classifier)
+
+        import torch
+
+        if loss_type == "cross_entropy":
+            if is_probability(
+                estimator.predict(x=np.ones(shape=(1, *estimator.input_shape), dtype=np.float32))
+            ):
+                raise ValueError(  # pragma: no cover
+                    "The provided estimator seems to predict probabilities. If loss_type='cross_entropy' "
+                    "the estimator has to to predict logits."
+                )
+
+            # modification for image-wise stepsize update
+            class CrossEntropyLossTorch(torch.nn.modules.loss._Loss):
+                """Class defining cross entropy loss with reduction options."""
+
+                def __init__(self, reduction="mean"):
+                    super().__init__()
+                    self.ce_loss = torch.nn.CrossEntropyLoss(reduction="none")
+                    self.reduction = reduction
+
+                def __call__(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+                    if self.reduction == "mean":
+                        return self.ce_loss(y_pred, y_true).mean()
+                    if self.reduction == "sum":
+                        return self.ce_loss(y_pred, y_true).sum()
+                    if self.reduction == "none":
+                        return self.ce_loss(y_pred, y_true)
+                    raise NotImplementedError()
+
+                def forward(
+                    self, input: torch.Tensor, target: torch.Tensor  # pylint: disable=redefined-builtin
+                ) -> torch.Tensor:
+                    """
+                    Forward method.
+
+                    :param input: Predicted labels of shape (nb_samples, nb_classes).
+                    :param target: Target labels of shape (nb_samples, nb_classes).
+                    :return: Difference Logits Ratio Loss.
+                    """
+                    return self.__call__(y_pred=input, y_true=target)
+
+            _loss_object_pt: torch.nn.modules.loss._Loss = CrossEntropyLossTorch(reduction="mean")
+
+            reduce_labels = True
+            int_labels = True
+            probability_labels = True
+
+        elif loss_type == "difference_logits_ratio":
+            if is_probability(
+                estimator.predict(x=np.ones(shape=(1, *estimator.input_shape), dtype=ART_NUMPY_DTYPE))
+            ):
+                raise ValueError(  # pragma: no cover
+                    "The provided estimator seems to predict probabilities. "
+                    "If loss_type='difference_logits_ratio' the estimator has to to predict logits."
+                )
+
+            class DifferenceLogitsRatioPyTorch(torch.nn.modules.loss._Loss):
+                """
+                Callable class for Difference Logits Ratio loss in PyTorch.
+                """
+
+                def __init__(self):
+                    super().__init__()
+                    self.reduction = "mean"
+
+                def __call__(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+                    if isinstance(y_true, np.ndarray):
+                        y_true = torch.from_numpy(y_true)
+                    if isinstance(y_pred, np.ndarray):
+                        y_pred = torch.from_numpy(y_pred)
+
+                    y_true = y_true.float()
+
+                    i_y_true = torch.argmax(y_true, dim=1)
+                    i_y_pred_arg = torch.argsort(y_pred, dim=1)
+                    i_z_i_list = []
+
+                    for i in range(y_true.shape[0]):
+                        if i_y_pred_arg[i, -1] != i_y_true[i]:
+                            i_z_i_list.append(i_y_pred_arg[i, -1])
+                        else:
+                            i_z_i_list.append(i_y_pred_arg[i, -2])
+
+                    i_z_i = torch.stack(i_z_i_list)
+
+                    z_1 = y_pred[:, i_y_pred_arg[:, -1]]
+                    z_3 = y_pred[:, i_y_pred_arg[:, -3]]
+                    z_i = y_pred[:, i_z_i]
+                    z_y = y_pred[:, i_y_true]
+
+                    z_1 = torch.diagonal(z_1)
+                    z_3 = torch.diagonal(z_3)
+                    z_i = torch.diagonal(z_i)
+                    z_y = torch.diagonal(z_y)
+
+                    # modification for image-wise stepsize update
+                    dlr = (-(z_y - z_i) / (z_1 - z_3)).float()
+                    if self.reduction == "mean":
+                        return dlr.mean()
+                    if self.reduction == "sum":
+                        return dlr.sum()
+                    if self.reduction == "none":
+                        return dlr
+                    raise NotImplementedError()
+
+                def forward(
+                    self, input: torch.Tensor, target: torch.Tensor  # pylint: disable=redefined-builtin
+                ) -> torch.Tensor:
+                    """
+                    Forward method.
+
+                    :param input: Predicted labels of shape (nb_samples, nb_classes).
+                    :param target: Target labels of shape (nb_samples, nb_classes).
+                    :return: Difference Logits Ratio Loss.
+                    """
+                    return self.__call__(y_true=target, y_pred=input)
+
+            _loss_object_pt = DifferenceLogitsRatioPyTorch()
+
+            reduce_labels = False
+            int_labels = False
+            probability_labels = False
+        else:
+            raise NotImplementedError()
+
+        estimator_apgd = PyTorchClassifier(
+            model=estimator.model,
+            loss=_loss_object_pt,
+            input_shape=estimator.input_shape,
+            nb_classes=estimator.nb_classes,
+            optimizer=None,
+            channels_first=estimator.channels_first,
+            clip_values=estimator.clip_values,
+            preprocessing_defences=estimator.preprocessing_defences,
+            postprocessing_defences=estimator.postprocessing_defences,
+            preprocessing=estimator.preprocessing,
+            device_type=str(estimator._device),
+        )
+        super().__init__(estimator=estimator_apgd)
         self.confidence = confidence
         self._targeted = targeted
         self.learning_rate = learning_rate
@@ -89,6 +235,9 @@ class ExpAttackL1(ElasticNet):
         self.eta=0.0
         self.smooth=smooth
         self._check_params()
+        self.loss_type=loss_type
+
+
 
     def generate(self, x: np.ndarray, y: np.ndarray | None = None, **kwargs) -> np.ndarray:
         """
@@ -196,11 +345,8 @@ class ExpAttackL1(ElasticNet):
         self.eta=0.0
         for i_iter in range(self.max_iter):
             logger.debug("Iteration step %i out of %i", i_iter, self.max_iter)
-            rnd=np.random.normal(size=x_0.shape)
-            rnd1=np.random.normal()
-            rnd=rnd/((np.linalg.norm(rnd)**2+rnd1**2)**0.5)
-            # updating rule
-            grad = self._gradient_of_loss(target=y_batch, x=x_batch, x_adv=x_adv.astype(np.float32)+(self.smooth*rnd).astype(np.float32), c_weight=c_batch)
+            #get gradient
+            grad = -self.estimator.loss_gradient(x_adv.astype(np.float32), y_batch) * (1 - 2 * int(self.targeted))
             delta = self._md(grad,delta,lower,upper)
             
             x_adv=x_0+delta
@@ -252,7 +398,6 @@ class ExpAttackL1(ElasticNet):
         radius=np.sum(phi)
         radius_l=0.0
         radius_u=1.0    
-        min_y= np.min(y_val[np.nonzero(y_val)])
         phi_u=np.maximum(np.minimum(radius_u*(y_val+beta)-beta,c),0.0)
         phi_l=np.maximum(np.minimum(radius_l*(y_val+beta)-beta,c),0.0)
         
@@ -278,60 +423,6 @@ class ExpAttackL1(ElasticNet):
         normaliser=(D-np.sum(y_bound)+beta*num_active)/(np.sum(y_val[active_index]+beta))
         return np.maximum(np.minimum(normaliser*(y_val+beta)-beta,c),0.0)*y_sgn
 
-    def _gradient_of_loss(
-        self,
-        target: np.ndarray,
-        x: np.ndarray,
-        x_adv: np.ndarray,
-        c_weight: np.ndarray,
-    ) -> np.ndarray:
-        """
-        Compute the gradient of the loss function.
-
-        :param target: An array with the target class (one-hot encoded).
-        :param x: An array with the original input.
-        :param x_adv: An array with the adversarial input.
-        :param c_weight: Weight of the loss term aiming for classification as target.
-        :return: An array with the gradient of the loss function.
-        """
-        # Compute the current predictions
-        predictions = self.estimator.predict(np.array(x_adv, dtype=ART_NUMPY_DTYPE), batch_size=self.batch_size)
-
-        if self.targeted:
-            i_sub = np.argmax(target, axis=1)
-            i_add = np.argmax(
-                predictions * (1 - target) + (np.min(predictions, axis=1) - 1)[:, np.newaxis] * target,
-                axis=1,
-            )
-        else:
-            i_add = np.argmax(target, axis=1)
-            i_sub = np.argmax(
-                predictions * (1 - target) + (np.min(predictions, axis=1) - 1)[:, np.newaxis] * target,
-                axis=1,
-            )
-        cost=i_add-i_sub
-        
-        loss_gradient = self.estimator.class_gradient(x_adv, label=i_add)
-        loss_gradient -= self.estimator.class_gradient(x_adv, label=i_sub)
-        loss_gradient = loss_gradient.reshape(x.shape)
-
-        c_mult = c_weight
-        for _ in range(len(x.shape) - 1):
-            c_mult = c_mult[:, np.newaxis]
-
-
-        loss_gradient *= c_mult
-        if self.smooth:
-        #loss_gradient += 2 * (x_adv - x)
-            loss_gradient=loss_gradient-np.exp(-cost)/(1.0+np.exp(-cost))*loss_gradient
-        # Set gradients where loss is constant to zero
-        else:
-            cond = (
-                predictions[np.arange(x.shape[0]), i_add] - predictions[np.arange(x.shape[0]), i_sub] + self.confidence
-            ) < 0
-            loss_gradient[cond] = 0.0
-
-        return loss_gradient
     
     def _loss(self, x: np.ndarray, x_adv: np.ndarray) -> tuple:
         """

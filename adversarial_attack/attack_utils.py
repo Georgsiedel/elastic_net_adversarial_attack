@@ -204,6 +204,9 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
         elif attack_type == 'original_AutoAttack':
             x_adversarial = attacker.run_standard_evaluation(x, y)
             x_adversarial = x_adversarial.cpu()
+        elif attack_type == 'original_AutoAttack_apgd-only':
+            x_adversarial = attacker.run_standard_evaluation(x, y,bs=1)
+            x_adversarial = x_adversarial.cpu()
         else:             
             x_adversarial = attacker.generate(x.cpu().numpy(), y.cpu().numpy())
             x_adversarial = torch.from_numpy(x_adversarial)
@@ -255,7 +258,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
     attack_success_rate_in_epsilon_en = (attack_successes_in_en / clean_correct) * 100
     mean_adv_distance_l1 = (sum(distance_list_l1) / clean_correct)
     mean_adv_distance_l2 = (sum(distance_list_l2) / clean_correct)
-    mean_sparsity=sum(sparsity_list)/attack_successes
+    mean_sparsity=sum(sparsity_list)/attack_successes if attack_successes else 1.0
 
     print(f'\nAdversarial accuracy (L1 / L2/ EN): {adversarial_accuracy_l1:.4f} / {adversarial_accuracy_l2:.4f}/ {adversarial_accuracy_en:.4f}%\n')
     print(f'\naverage sparsity: {mean_sparsity:.4f}%\n')
