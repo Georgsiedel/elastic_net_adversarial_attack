@@ -41,10 +41,13 @@ class ExpAttackL1(EvasionAttack):
         "learning_rate",
         "max_iter",
         "beta",
+        "epsilon",
         "binary_search_steps",
         "initial_const",
         "batch_size",
         "decision_rule",
+        "sparsity_init",
+        "sparsity_dec",
         "verbose",
     ]
     _estimator_requirements = (BaseEstimator, LossGradientsMixin, ClassifierMixin)
@@ -57,11 +60,15 @@ class ExpAttackL1(EvasionAttack):
         targeted: bool = False,
         learning_rate: float =1.0,
         max_iter: int = 100,
-        beta: float =12,
+        beta: float =1e-3,
         batch_size: int = 1,
         verbose: bool = True,
+        smooth:bool=False,
+        epsilon:float=12,
         loss_type= "cross_entropy",
-        smooth:float=False
+        sparsity_init=0.9,
+        sparsity_dec=100
+
     ) -> None:
         """
         Create an ElasticNet attack instance.
@@ -234,10 +241,11 @@ class ExpAttackL1(EvasionAttack):
         self.verbose = verbose
         self.eta=0.0
         self.smooth=smooth
+        self.epsilon=epsilon
         self._check_params()
         self.loss_type=loss_type
-
-
+        self.sparsity_init=sparsity_init
+        self.sparsity_dec=sparsity_dec
 
     def generate(self, x: np.ndarray, y: np.ndarray | None = None, **kwargs) -> np.ndarray:
         """
@@ -295,29 +303,12 @@ class ExpAttackL1(EvasionAttack):
         :param y_batch: A batch of targets (0-1 hot).
         :return: A batch of adversarial examples.
         """
-
-
-        # Initialize binary search:
-        c_current = self.initial_const * np.ones(x_batch.shape[0])
-        c_lower_bound = np.zeros(x_batch.shape[0])
-        c_upper_bound = 10e10 * np.ones(x_batch.shape[0])
-
-        # Initialize the best distortions and best attacks globally
-        o_best_dist = np.inf * np.ones(x_batch.shape[0])
-        o_best_attack = x_batch.copy()
-
-
-
         # Run with 1 specific binary search step
-        best_dist, best_label, best_attack = self._generate_bss(x_batch, y_batch, c_current)
+        best_attack = self._generate_bss(x_batch, y_batch)
 
-        # Update best results so far
-        o_best_attack[best_dist < o_best_dist] = best_attack[best_dist < o_best_dist]
-        o_best_dist[best_dist < o_best_dist] = best_dist[best_dist < o_best_dist]
-
-        return o_best_attack
+        return best_attack
     
-    def _generate_bss(self, x_batch: np.ndarray, y_batch: np.ndarray, c_batch: np.ndarray) -> tuple:
+    def _generate_bss(self, x_batch: np.ndarray, y_batch: np.ndarray) -> tuple:
         """
         Generate adversarial examples for a batch of inputs with a specific batch of constants.
 
@@ -336,9 +327,8 @@ class ExpAttackL1(EvasionAttack):
         best_dist = np.inf * np.ones(x_batch.shape[0])
         best_label = [-np.inf] * x_batch.shape[0]
         best_attack = x_batch.copy()
-        # Implement the algorithm 1 in the EAD paper
-        delta= np.zeros(x_batch.shape)
         x_0=x_batch.copy()
+        delta=np.zeros(x_0.shape)
         upper=1.0-x_0
         lower=0.0-x_0
         x_adv=x_0+delta
@@ -346,21 +336,19 @@ class ExpAttackL1(EvasionAttack):
         for i_iter in range(self.max_iter):
             logger.debug("Iteration step %i out of %i", i_iter, self.max_iter)
             #get gradient
+            
             grad = -self.estimator.loss_gradient(x_adv.astype(np.float32), y_batch) * (1 - 2 * int(self.targeted))
+            grad_val=np.abs(grad)
+            quantile=self.sparsity_init/(i_iter/self.sparsity_dec+1)
+            tol=np.quantile(grad_val,quantile)
+            grad[grad_val<tol]=0
             delta = self._md(grad,delta,lower,upper)
             
             x_adv=x_0+delta
             # Adjust the best result
-            (logits, l1dist, l2dist, endist) = self._loss(x=x_batch, x_adv=x_adv.astype(np.float32))
+            (logits, l1dist) = self._loss(x=x_batch, x_adv=x_adv.astype(np.float32))
 
-            if self.decision_rule == "EN":
-                zip_set = zip(endist, logits)
-            elif self.decision_rule == "L1":
-                zip_set = zip(l1dist, logits)
-            elif self.decision_rule == "L2":
-                zip_set = zip(l2dist, logits)
-            else:  # pragma: no cover
-                raise ValueError("The decision rule only supports `EN`, `L1`, `L2`.")
+            zip_set = zip(l1dist, logits)
 
             for j, (distance, label) in enumerate(zip_set):
                 if distance < best_dist[j] and compare(label, np.argmax(y_batch[j])):
@@ -368,62 +356,79 @@ class ExpAttackL1(EvasionAttack):
                     best_attack[j] = x_adv[j]
                     best_label[j] = label
 
-        return best_dist, best_label, best_attack
+        return best_attack
 
     def _md(self,g,x,lower,upper):
-        beta = 1.0 / g.size
-        init=False
-        if self.eta==0.0:
-            init=True
-            self.eta+=(np.linalg.norm((g).flatten(), ord=inf)**2)
-        eta_t=np.sqrt(self.eta)/self.learning_rate
-        z=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x) - g/eta_t
+    
+        beta = self.epsilon / g.size
+        #beta=self.beta
+        eta_t=np.maximum(np.sqrt(self.eta),np.linalg.norm((g).flatten(), ord=inf))/self.learning_rate
+        dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
+        descent=g/eta_t
+        z=dual_x -descent
         y_sgn=np.sign(z)
         y_val=beta*np.exp(np.abs(z))-beta
-        v=self._project(y_sgn,y_val,beta,self.beta,lower,upper)
-        if not init:
-            D=np.maximum(np.linalg.norm(x.flatten(), ord=1),np.linalg.norm((v).flatten(), ord=1))
-            self.eta+=(eta_t/(D+1)*np.linalg.norm((x-v).flatten(), ord=1))**2
-            eta_t_1=np.sqrt(self.eta)/self.learning_rate
-            v=(1.0-eta_t/eta_t_1)*x+eta_t/eta_t_1*v
+        v=self._project(y_sgn,y_val,beta,self.epsilon,lower,upper)
+        self.eta+=(eta_t/(2*self.epsilon)*np.linalg.norm((x-v).flatten(), ord=1))**2
+        eta_t_1=np.maximum(np.sqrt(self.eta),np.linalg.norm((g).flatten(), ord=inf))/self.learning_rate
+        v=(1.0-eta_t/eta_t_1)*x+eta_t/eta_t_1*v
         return v
     
+
+
     def _project(self, y_sgn,y_val, beta, D,l,u):
-       
         if np.sum(y_val)<=D:
             return np.clip(y_sgn*y_val, l, u)
         c=np.where(y_sgn<=0,np.abs(l),u)
-        normaliser=0.5
-        phi=np.maximum(np.minimum(normaliser*(y_val+beta)-beta,c),0.0)
-        radius=np.sum(phi)
-        radius_l=0.0
-        radius_u=1.0    
-        phi_u=np.maximum(np.minimum(radius_u*(y_val+beta)-beta,c),0.0)
-        phi_l=np.maximum(np.minimum(radius_l*(y_val+beta)-beta,c),0.0)
-        
-        active_index_l=np.logical_and(phi>0.0, phi_l<c)
-        active_index_u=np.logical_and(phi>0.0, phi_u<c)
-        while np.any(active_index_l!=active_index_u):
-            if radius>D:
-                radius_u=normaliser
-            
-            else:
-                radius_l=normaliser
-            
-            phi_u=np.maximum(np.minimum(radius_u*(y_val+beta)-beta,c),0.0)
-            phi_l=np.maximum(np.minimum(radius_l*(y_val+beta)-beta,c),0.0)
-            active_index_l=np.logical_and(phi>0.0, phi_l<c)
-            active_index_u=np.logical_and(phi>0.0, phi_u<c)
-            normaliser= 0.5*(radius_l+radius_u) 
+        lam_l=beta/(y_val+beta)
+        lam_u=(c+beta)/(y_val+beta)
+        lam=np.stack((lam_l,lam_u))
+        lam=lam.reshape(-1)
+        sort_idx=np.argsort(lam)
+        idx_l=0
+        idx_u=sort_idx.size-1
+        while idx_u-idx_l>1:
+            idx=(idx_u+idx_l)//2
+            normaliser=lam[sort_idx[idx]]
             phi=np.maximum(np.minimum(normaliser*(y_val+beta)-beta,c),0.0)
             radius=np.sum(phi)
-        y_bound=np.sum(phi[phi==c])
-        active_index=np.logical_and(phi>0.0, phi<c)
-        num_active=np.count_nonzero(active_index)
-        normaliser=(D-np.sum(y_bound)+beta*num_active)/(np.sum(y_val[active_index]+beta))
-        return np.maximum(np.minimum(normaliser*(y_val+beta)-beta,c),0.0)*y_sgn
+            if radius>D:
+                idx_u=idx
+            elif radius<D:
+                idx_l=idx
+            else:
+                idx_u=idx
+                idx_l=idx
 
+        phi[lam_l>=lam[sort_idx[idx_u]]]=0
+        phi[lam_u<=lam[sort_idx[idx_l]]]=c[lam_u<=lam[sort_idx[idx_l]]]
+        active_index=np.logical_and(lam_l<lam[sort_idx[idx_u]] ,lam_u>lam[sort_idx[idx_l]])
+        num_active=np.count_nonzero(active_index)
+        y_bound=np.sum(c[lam_u<=lam[sort_idx[idx_l]]])
+        if num_active!=0:
+            normaliser=(D-y_bound+beta*num_active)/(np.sum(y_val[active_index]+beta))
+            phi[active_index]=normaliser*(y_val[active_index]+beta)-beta
+            
+            #phi_l=np.maximum(np.minimum(lam[sort_idx[idx_l]]*(y_val+beta)-beta,c),0.0)*y_sgn
+            #phi_u=np.maximum(np.minimum(lam[sort_idx[idx_u]]*(y_val+beta)-beta,c),0.0)*y_sgn
+            
+            #if(np.abs(np.sum(np.abs(phi))-self.epsilon)>1e-3):
+                #print(f"with active index radius {np.sum(np.abs(phi))}")
+                #print(f"with active index radius_l {np.sum(np.abs(phi_l))}")
+                #print(f"with active index radius_u {np.sum(np.abs(phi_u))}")
+                #print(f"with active index normaliser {normaliser}")
+                #print(f"with active index found upper {lam[sort_idx[idx_u]]}")
+                #print(f"with active index found lower {lam[sort_idx[idx_l]]}")
+ #       if np.abs(np.sum(np.abs(phi))-self.epsilon)>1e-3:
+ #           print(f"not normalised before {np.sum(np.abs(phi))}")
+ #       phi=phi/np.sum(phi)*self.epsilon        
+        phi=phi*y_sgn
+            #if(np.sum(np.abs(phi))!=self.epsilon):
+                #print(f"without active index {np.sum(np.abs(phi))}")
+        return phi
     
+
+
     def _loss(self, x: np.ndarray, x_adv: np.ndarray) -> tuple:
         """
         Compute the loss function values.
@@ -434,8 +439,5 @@ class ExpAttackL1(EvasionAttack):
                  l2 distance and elastic net loss.
         """
         l1dist = np.sum(np.abs(x - x_adv).reshape(x.shape[0], -1), axis=1)
-        l2dist = np.sum(np.square(x - x_adv).reshape(x.shape[0], -1), axis=1)
-        endist =  l1dist + l2dist
         predictions = self.estimator.predict(np.array(x_adv, dtype=ART_NUMPY_DTYPE), batch_size=self.batch_size)
-
-        return np.argmax(predictions, axis=1), l1dist, l2dist, endist
+        return np.argmax(predictions, axis=1), l1dist
