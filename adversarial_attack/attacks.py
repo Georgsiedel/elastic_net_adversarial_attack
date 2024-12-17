@@ -11,7 +11,6 @@ from adversarial_attack.exp_attack import ExpAttack
 from adversarial_attack.exp_attack_l1 import ExpAttackL1
 #from adversarial_attack.acc_exp_attack import AccExpAttack
 from autoattack import AutoAttack as original_AutoAttack
-
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class AdversarialAttacks:
@@ -70,6 +69,8 @@ class AdversarialAttacks:
                                    attacks_to_run=['apgd-ce'],
                                    **kwargs)
         attack.apgd.n_restarts=1
+        attack.apgd.n_iter=self.max_iterations
+        attack.apgd.verbose=False
         return attack
     elif attack_type=='auto_projected_gradient_descent':
         return AutoProjectedGradientDescent(estimator=self.art_net,
@@ -111,7 +112,7 @@ class AdversarialAttacks:
     elif attack_type=='exp_attack_l1':
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
-                      beta=self.epsilon,
+                      epsilon=self.epsilon,
                       **kwargs)
     elif attack_type=='exp_attack_smooth':
         return ExpAttack(self.art_net,

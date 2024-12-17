@@ -64,9 +64,10 @@ class ExpAttackL1(EvasionAttack):
         batch_size: int = 1,
         verbose: bool = True,
         smooth:bool=False,
+        initial_const = -1,
         epsilon:float=12,
         loss_type= "cross_entropy",
-        sparsity_init=0.9,
+        sparsity_init=0.999,
         sparsity_dec=100
 
     ) -> None:
@@ -235,7 +236,7 @@ class ExpAttackL1(EvasionAttack):
         self.binary_search_steps = 1
         self.max_iter = max_iter
         self.beta = beta
-        self.initial_const = 1.0
+        self.initial_const = initial_const
         self.batch_size = batch_size
         self.decision_rule = 'L1'
         self.verbose = verbose
@@ -328,9 +329,14 @@ class ExpAttackL1(EvasionAttack):
         best_label = [-np.inf] * x_batch.shape[0]
         best_attack = x_batch.copy()
         x_0=x_batch.copy()
+        #delta=np.random.laplace(size=x_0.shape)
+        #delta_1=np.random.laplace()
+        #deno=np.sum(np.abs(delta))+np.abs(delta_1)
+        #delta=delta/deno*self.epsilon
         delta=np.zeros(x_0.shape)
         upper=1.0-x_0
         lower=0.0-x_0
+        scale=self.initial_const
         x_adv=x_0+delta
         self.eta=0.0
         for i_iter in range(self.max_iter):
@@ -338,7 +344,13 @@ class ExpAttackL1(EvasionAttack):
             #get gradient
             
             grad = -self.estimator.loss_gradient(x_adv.astype(np.float32), y_batch) * (1 - 2 * int(self.targeted))
+            grad = grad + delta
             grad_val=np.abs(grad)
+            if scale<=0:
+                scale=1.0/np.maximum(np.max(grad_val),1e-6)
+
+            grad*=scale
+            grad_val*=scale
             quantile=self.sparsity_init/(i_iter/self.sparsity_dec+1)
             tol=np.quantile(grad_val,quantile)
             grad[grad_val<tol]=0
@@ -348,6 +360,7 @@ class ExpAttackL1(EvasionAttack):
             # Adjust the best result
             (logits, l1dist) = self._loss(x=x_batch, x_adv=x_adv.astype(np.float32))
 
+            #print(f"iteration {i_iter}: loss: {self.estimator.compute_loss(x_adv.astype(np.float32), y_batch)}" )
             zip_set = zip(l1dist, logits)
 
             for j, (distance, label) in enumerate(zip_set):
@@ -362,16 +375,20 @@ class ExpAttackL1(EvasionAttack):
     
         beta = self.epsilon / g.size
         #beta=self.beta
-        eta_t=np.maximum(np.sqrt(self.eta),np.linalg.norm((g).flatten(), ord=inf))/self.learning_rate
+        if self.eta==0.0:
+            self.eta+=(np.linalg.norm(g.flatten(),ord=inf)**2)
+        eta_t=np.sqrt(self.eta)/self.learning_rate
+        #print(f"stepsize {np.sqrt(self.eta)}")
         dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
         descent=g/eta_t
         z=dual_x -descent
         y_sgn=np.sign(z)
         y_val=beta*np.exp(np.abs(z))-beta
         v=self._project(y_sgn,y_val,beta,self.epsilon,lower,upper)
-        self.eta+=(eta_t/(2*self.epsilon)*np.linalg.norm((x-v).flatten(), ord=1))**2
-        eta_t_1=np.maximum(np.sqrt(self.eta),np.linalg.norm((g).flatten(), ord=inf))/self.learning_rate
-        v=(1.0-eta_t/eta_t_1)*x+eta_t/eta_t_1*v
+        self.eta+=(eta_t/self.epsilon*np.linalg.norm((x-v).flatten(), ord=1))**2
+        #self.eta+=(eta_t*np.linalg.norm((x-v).flatten(), ord=1))**2
+        eta_t_1=np.sqrt(self.eta)/self.learning_rate
+        #v=(1.0-eta_t/eta_t_1)*x+eta_t/eta_t_1*v
         return v
     
 
@@ -408,23 +425,8 @@ class ExpAttackL1(EvasionAttack):
         if num_active!=0:
             normaliser=(D-y_bound+beta*num_active)/(np.sum(y_val[active_index]+beta))
             phi[active_index]=normaliser*(y_val[active_index]+beta)-beta
-            
-            #phi_l=np.maximum(np.minimum(lam[sort_idx[idx_l]]*(y_val+beta)-beta,c),0.0)*y_sgn
-            #phi_u=np.maximum(np.minimum(lam[sort_idx[idx_u]]*(y_val+beta)-beta,c),0.0)*y_sgn
-            
-            #if(np.abs(np.sum(np.abs(phi))-self.epsilon)>1e-3):
-                #print(f"with active index radius {np.sum(np.abs(phi))}")
-                #print(f"with active index radius_l {np.sum(np.abs(phi_l))}")
-                #print(f"with active index radius_u {np.sum(np.abs(phi_u))}")
-                #print(f"with active index normaliser {normaliser}")
-                #print(f"with active index found upper {lam[sort_idx[idx_u]]}")
-                #print(f"with active index found lower {lam[sort_idx[idx_l]]}")
- #       if np.abs(np.sum(np.abs(phi))-self.epsilon)>1e-3:
- #           print(f"not normalised before {np.sum(np.abs(phi))}")
- #       phi=phi/np.sum(phi)*self.epsilon        
+     
         phi=phi*y_sgn
-            #if(np.sum(np.abs(phi))!=self.epsilon):
-                #print(f"without active index {np.sum(np.abs(phi))}")
         return phi
     
 

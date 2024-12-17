@@ -223,8 +223,6 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
         delta=x.cpu() - x_adversarial
         distance_l1 = torch.norm(delta, p=float(1))
         distance_l2 = torch.norm(delta, p=float(2))
-        distance_list_l1.append(distance_l1.item())
-        distance_list_l2.append(distance_l2.item())
 
         if int(predicted_adversarial.item()) == int(y.item()):
             robust_predictions_l1 += 1
@@ -233,6 +231,8 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
             if verbose:
                 print(f'Image {i}: No adversarial example found.')
         else:
+            distance_list_l1.append(distance_l1.item())
+            distance_list_l2.append(distance_l2.item())
             robust_predictions_l1 += (round(distance_l1.item(), 2) > epsilon_l1) 
             robust_predictions_l2 += (round(distance_l2.item(), 2) > epsilon_l2) 
             robust_predictions_en += (round(distance_l2.item(), 2) > epsilon_l2) or  (round(distance_l1.item(), 2) > epsilon_l1) 
@@ -256,8 +256,8 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
     attack_success_rate_in_epsilon_l1 = (attack_successes_in_epsilon_l1 / clean_correct) * 100
     attack_success_rate_in_epsilon_l2 = (attack_successes_in_epsilon_l2 / clean_correct) * 100
     attack_success_rate_in_epsilon_en = (attack_successes_in_en / clean_correct) * 100
-    mean_adv_distance_l1 = (sum(distance_list_l1) / clean_correct)
-    mean_adv_distance_l2 = (sum(distance_list_l2) / clean_correct)
+    mean_adv_distance_l1 = (sum(distance_list_l1) / attack_successes) if attack_successes else 12
+    mean_adv_distance_l2 = (sum(distance_list_l2) / attack_successes) if attack_successes else 5
     mean_sparsity=sum(sparsity_list)/attack_successes if attack_successes else 1.0
 
     print(f'\nAdversarial accuracy (L1 / L2/ EN): {adversarial_accuracy_l1:.4f} / {adversarial_accuracy_l2:.4f}/ {adversarial_accuracy_en:.4f}%\n')
