@@ -9,13 +9,29 @@ import foolbox as fb
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 cuda = True if torch.cuda.is_available() else False
 
-def load_dataset(dataset_split):
-    # Load CIFAR-10 dataset using torchvision
-    transform = transforms.Compose([
-      transforms.ToTensor(),
-                                 ])
-    testset = datasets.CIFAR10(root='./data/cifar', train=False, download=True, transform=transform)
+def load_dataset(dataset, dataset_split):
 
+    if dataset== 'imagenet':
+
+        transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Resize(256, antialias=True),
+        transforms.CenterCrop(224)
+                                    ])
+        
+        testset = datasets.ImageFolder(root=f'../data/ImageNet/val', transform=transform)
+        
+    elif dataset == 'cifar10':
+
+        transform = transforms.Compose([
+        transforms.ToTensor(),
+                                    ])
+        
+        testset = datasets.CIFAR10(root='./data/cifar', train=False, download=True, transform=transform)
+
+    else: 
+        raise KeyError("Dataset not implemented.")
+    
     # Truncated testset for experiments and ablations
     if isinstance(dataset_split, int):
         testset, _ = torch.utils.data.random_split(testset,
@@ -28,8 +44,8 @@ def load_dataset(dataset_split):
 
     return xtest, ytest
 
-def get_model(modelname, norm=None):
-    if modelname=='CroceL1': 
+def get_model(dataset, modelname, norm=None):
+    if modelname=='CroceL1' and dataset=='cifar10': 
         '''
         based on https://github.com/fra31/robust-finetuning
         "Adversarial robustness against multiple and single lp-threat models via quick fine-tuning of robust classifiers", Francesco Croce, Matthias Hein, ICML 2022
@@ -37,9 +53,9 @@ def get_model(modelname, norm=None):
         '''
         from models import fast_models
         net = fast_models.PreActResNet18(10, activation='softplus1', cuda=cuda)
-        ckpt = torch.load('./models/pretrained_models/CroceL1.pth')
+        ckpt = torch.load('./models/pretrained_models/CroceL1.pth', map_location=device)
         net.load_state_dict(ckpt)
-    elif modelname=='MainiMSD': 
+    elif modelname in ['MainiMSD', 'MainiAVG'] and dataset == 'cifar10':
         '''
         based on https://github.com/locuslab/robust_union/tree/master/CIFAR10
         "Adversarial Robustness Against the Union of Multiple Perturbation Models", by Pratyush Maini, Eric Wong and Zico Kolter, ICML 2020
@@ -47,32 +63,34 @@ def get_model(modelname, norm=None):
         '''
         from models import preact_resnet
         net = preact_resnet.PreActResNet18()
-        ckpt = torch.load('./models/pretrained_models/MainiMSD.pt', map_location=device)
-        net.load_state_dict(ckpt)
-    elif modelname=='MainiAVG':
-        print(modelname)
-        from models import preact_resnet
-        net = preact_resnet.PreActResNet18()
-        ckpt = torch.load('./models/pretrained_models/MainiAVG.pt', map_location=device)
+        ckpt = torch.load(f'./models/pretrained_models/{modelname}.pt', map_location=device)
         net.load_state_dict(ckpt)
     else: #robustbench models
-        net = load_model(model_name=modelname, dataset='cifar10', threat_model=norm) #'Wang2023Better_WRN-28-10'
+        net = load_model(model_name=modelname, dataset=dataset, threat_model=norm) #'Wang2023Better_WRN-28-10'
         modelname = modelname + '_' + norm
         
-
-    net = torch.nn.DataParallel(net)
+    #net = torch.nn.DataParallel(net)
     net.eval()
 
     # Define loss function and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(net.parameters(), lr=0.01)
 
+    if dataset == 'imagenet':
+        nb_classes = 1000 
+        input_shape=(3, 224, 224)
+    elif dataset == 'cifar10':
+        nb_classes = 10
+        input_shape=(3, 32, 32)
+    else: 
+        raise KeyError("Dataset not implemented.")
+
     # Initialize wrappers for ART toolbox and foolbox
     art_net = PyTorchClassifier(model=net,
                                loss=criterion,
                                optimizer=optimizer,
-                               input_shape=(3, 32, 32),
-                               nb_classes=10,
+                               input_shape=input_shape,
+                               nb_classes=nb_classes,
                                device_type=device,
                                clip_values=(0.0, 1.0))
     fb_net = fb.PyTorchModel(net, bounds=(0.0, 1.0), device=device)
@@ -90,8 +108,8 @@ def test_accuracy(model, xtest, ytest):
 
     with torch.no_grad():
         for i in range(0, len(xtest), batch_size):
-            x_batch = xtest[i:i + batch_size].to('cuda')
-            y_batch = ytest[i:i + batch_size].to('cuda')
+            x_batch = xtest[i:i + batch_size].to(device)
+            y_batch = ytest[i:i + batch_size].to(device)
             outputs = model(x_batch)
             _, predicted = torch.max(outputs, 1)
 
