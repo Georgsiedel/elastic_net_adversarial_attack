@@ -64,10 +64,10 @@ class ExpAttackL1(EvasionAttack):
         batch_size: int = 1,
         verbose: bool = True,
         smooth:bool=False,
-        initial_const = -1,
+        initial_const = -1.0,
         epsilon:float=12,
         loss_type= "cross_entropy",
-        sparsity_init=0.999,
+        sparsity_init=0.0,
         sparsity_dec=100
 
     ) -> None:
@@ -235,7 +235,7 @@ class ExpAttackL1(EvasionAttack):
         self.learning_rate = learning_rate
         self.binary_search_steps = 1
         self.max_iter = max_iter
-        self.beta = beta
+        self.beta = 1e-1
         self.initial_const = initial_const
         self.batch_size = batch_size
         self.decision_rule = 'L1'
@@ -343,8 +343,14 @@ class ExpAttackL1(EvasionAttack):
             logger.debug("Iteration step %i out of %i", i_iter, self.max_iter)
             #get gradient
             
+            #rnd=np.random.laplace(size=x_0.shape)
+            #rnd_1=np.random.laplace()
+            #deno=np.sum(np.abs(rnd))+np.abs(rnd_1)
+            #rnd=rnd/deno*0.1
+            #grad=np.zeros(x_0.shape)
+            #
             grad = -self.estimator.loss_gradient(x_adv.astype(np.float32), y_batch) * (1 - 2 * int(self.targeted))
-            grad = grad + delta
+            #grad/=5
             grad_val=np.abs(grad)
             if scale<=0:
                 scale=1.0/np.maximum(np.max(grad_val),1e-6)
@@ -372,33 +378,38 @@ class ExpAttackL1(EvasionAttack):
         return best_attack
 
     def _md(self,g,x,lower,upper):
-    
-        beta = self.epsilon / g.size
-        #beta=self.beta
-        if self.eta==0.0:
-            self.eta+=(np.linalg.norm(g.flatten(),ord=inf)**2)
-        eta_t=np.sqrt(self.eta)/self.learning_rate
-        #print(f"stepsize {np.sqrt(self.eta)}")
+        #beta = self.epsilon / g.size
+        beta=self.beta
+        #if self.eta==0.0:
+        #    self.eta+=(np.linalg.norm(g.flatten(),ord=inf)**2)
+        eta_t=np.maximum(np.sqrt(self.eta),1.0)/self.learning_rate
         dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
         descent=g/eta_t
         z=dual_x -descent
-        y_sgn=np.sign(z)
-        y_val=beta*np.exp(np.abs(z))-beta
-        v=self._project(y_sgn,y_val,beta,self.epsilon,lower,upper)
+        z_sgn=np.sign(z)
+        z_val=np.abs(z)
+        v=self._project(z_sgn,z_val,beta,self.epsilon,lower,upper)
         self.eta+=(eta_t/self.epsilon*np.linalg.norm((x-v).flatten(), ord=1))**2
-        #self.eta+=(eta_t*np.linalg.norm((x-v).flatten(), ord=1))**2
-        eta_t_1=np.sqrt(self.eta)/self.learning_rate
-        #v=(1.0-eta_t/eta_t_1)*x+eta_t/eta_t_1*v
+        eta_t_1=np.maximum(np.sqrt(self.eta),1.0)/self.learning_rate
+        v=(1.0-eta_t/eta_t_1)*x+eta_t/eta_t_1*v
         return v
     
 
 
     def _project(self, y_sgn,y_val, beta, D,l,u):
-        if np.sum(y_val)<=D:
-            return np.clip(y_sgn*y_val, l, u)
+        log_beta=np.log(beta)
+        y_val_max= np.max(y_val)
+        dim=y_val.size*beta
+        if np.log(np.sum(np.exp(y_val+log_beta-y_val_max)))+y_val_max<=np.log(D+dim*beta):
+            return np.clip(y_sgn*(np.exp(y_val+log_beta)-beta), l, u)
+        phi=np.clip(y_sgn*(beta*np.exp(y_val)-beta),l,u)
+        if np.sum(np.abs(phi))<= D:
+            return phi
         c=np.where(y_sgn<=0,np.abs(l),u)
-        lam_l=beta/(y_val+beta)
-        lam_u=(c+beta)/(y_val+beta)
+        log_c_beta=np.log(c+beta)
+        lam_l=-y_val
+        lam_u=np.minimum(0,-y_val-log_beta+log_c_beta)
+    
         lam=np.stack((lam_l,lam_u))
         lam=lam.reshape(-1)
         sort_idx=np.argsort(lam)
@@ -407,7 +418,7 @@ class ExpAttackL1(EvasionAttack):
         while idx_u-idx_l>1:
             idx=(idx_u+idx_l)//2
             normaliser=lam[sort_idx[idx]]
-            phi=np.maximum(np.minimum(normaliser*(y_val+beta)-beta,c),0.0)
+            phi=np.exp(np.maximum(np.minimum(y_val+log_beta+normaliser,log_c_beta),log_beta))-beta
             radius=np.sum(phi)
             if radius>D:
                 idx_u=idx
@@ -422,9 +433,12 @@ class ExpAttackL1(EvasionAttack):
         active_index=np.logical_and(lam_l<lam[sort_idx[idx_u]] ,lam_u>lam[sort_idx[idx_l]])
         num_active=np.count_nonzero(active_index)
         y_bound=np.sum(c[lam_u<=lam[sort_idx[idx_l]]])
+        if(y_bound>D):
+            assert(y_bound<=D)
         if num_active!=0:
-            normaliser=(D-y_bound+beta*num_active)/(np.sum(y_val[active_index]+beta))
-            phi[active_index]=normaliser*(y_val[active_index]+beta)-beta
+            y_max_active=np.max(y_val[active_index])
+            normaliser=np.log(np.sum(np.exp(y_val[active_index]-y_max_active+log_beta)))-np.log(D-y_bound+num_active*beta)+y_max_active
+            phi[active_index]=np.exp(y_val[active_index]+np.log(beta)-normaliser)-beta
      
         phi=phi*y_sgn
         return phi
