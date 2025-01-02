@@ -31,17 +31,16 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class ExpAttackL1(EvasionAttack):
+class ExpAttackL1Ada(EvasionAttack):
     attack_params = EvasionAttack.attack_params + [
         "targeted",
         "learning_rate",
         "max_iter",
         "beta",
         "epsilon",
-        "batch_size",
         "decision_rule",
-        "verbose",
-        "quantile"
+        "quantile",
+        "verbose"
     ]
     _estimator_requirements = (BaseEstimator, LossGradientsMixin, ClassifierMixin)
     _predefined_losses = [None, "cross_entropy", "difference_logits_ratio"]
@@ -52,10 +51,8 @@ class ExpAttackL1(EvasionAttack):
         targeted: bool = False,
         learning_rate: float =1.0,
         max_iter: int = 100,
-        beta: float =15,
-        batch_size: int = 1,
+        beta: float =2,
         verbose: bool = True,
-        smooth:float=-1.0,
         epsilon:float=12,
         quantile:float=0.0,
         loss_type= "cross_entropy"
@@ -219,14 +216,12 @@ class ExpAttackL1(EvasionAttack):
         self.learning_rate = learning_rate
         self.max_iter = max_iter
         self.beta = beta
-        self.batch_size = batch_size
         self.verbose = verbose
         self.eta=0.0
-        self.quantile=quantile
-        self.smooth=smooth
         self.epsilon=epsilon
         self._check_params()
         self.loss_type=loss_type
+        self.quantile=quantile
 
     def generate(self, x: np.ndarray, y: np.ndarray | None = None, **kwargs) -> np.ndarray:
         """
@@ -240,7 +235,7 @@ class ExpAttackL1(EvasionAttack):
         """
         if y is not None:
             y = check_and_transform_label_format(y, nb_classes=self.estimator.nb_classes)
-        x_adv = x.astype(ART_NUMPY_DTYPE)
+        x_batch = x.astype(ART_NUMPY_DTYPE)
 
         # Assert that, if attack is targeted, y is provided:
         if self.targeted and y is None:  # pragma: no cover
@@ -256,22 +251,15 @@ class ExpAttackL1(EvasionAttack):
             )
 
         # Compute adversarial examples with implicit batching
-        nb_batches = int(np.ceil(x_adv.shape[0] / float(self.batch_size)))
-        for batch_id in trange(nb_batches, desc="ExpAttackL1", disable=not self.verbose):
-            batch_index_1, batch_index_2 = batch_id * self.batch_size, (batch_id + 1) * self.batch_size
-            x_batch = x_adv[batch_index_1:batch_index_2]
-            y_batch = y[batch_index_1:batch_index_2]
-            x_adv[batch_index_1:batch_index_2] = self._generate_bss(x_batch, y_batch)
-
+        for batch_id in trange( x_batch.shape[0], desc="ExpAttackL1Ada", disable=not self.verbose):
+            x_i = x_batch[batch_id]
+            y_i= y[batch_id]
+            x_adv,success = self._generate_bss(x_i,y_i)
         # Apply clip
+        
         if self.estimator.clip_values is not None:
             x_adv = np.clip(x_adv, self.estimator.clip_values[0], self.estimator.clip_values[1])
 
-        # Compute success rate of the EAD attack
-        logger.info(
-            "Success rate of EAD attack: %.2f%%",
-            100 * compute_success(self.estimator, x, y, x_adv, self.targeted, batch_size=self.batch_size),
-        )
         return x_adv
 
 
@@ -292,75 +280,46 @@ class ExpAttackL1(EvasionAttack):
             return o_1 != o_2
 
         # Initialize the best distortions and best changed labels and best attacks
-        best_dist = np.inf * np.ones(x_batch.shape[0])
-        best_label = [-np.inf] * x_batch.shape[0]
+        best_dist = np.inf 
         best_attack = x_batch.copy()
         x_0=x_batch.copy()
         upper=1.0-x_0
         lower=0.0-x_0
         delta=np.zeros(x_0.shape)
-        #delta=np.random.uniform(low=0,high=1,size=x_0.shape)
-        #dual_delta=self._reg_prim(delta,self.beta)
-        #delta=self._project(np.abs(dual_delta),np.abs(dual_delta),self.beta,self.epsilon,lower,upper)
         x_adv=x_0+delta
-        #self.beta=self.epsilon/x_0.size
-        #print(f"initial loss {self.estimator.compute_loss(x_adv.astype(ART_NUMPY_DTYPE),y_batch)}")
+        success=[]
+
         for i_iter in range(self.max_iter):
 
             grad = -self.estimator.loss_gradient(x_adv.astype(ART_NUMPY_DTYPE), y_batch) * (1 - 2 * int(self.targeted))
             
           
-            #print(np.count_nonzero(grad))        
             grad_val=np.abs(grad)
             topk_val=np.quantile(grad_val,self.quantile)
             grad[grad_val<topk_val]=0.0             
             
             delta = self._md(grad,delta, lower,upper)
-            #prob=(abs(delta)+self.beta)/np.sum(np.abs(delta)+self.beta)
             
 
             logger.debug("Iteration step %i out of %i", i_iter, self.max_iter)
             x_adv=x_0+delta
-            (logits, l1dist) = self._loss(x=x_batch, x_adv=x_adv.astype(ART_NUMPY_DTYPE))
-            zip_set = zip(l1dist, logits)
-            for j, (distance, label) in enumerate(zip_set):
-                if distance < best_dist[j] and compare(label, np.argmax(y_batch[j])):
-                    best_dist[j] = distance
-                    best_attack[j] = x_adv[j]
-                    best_label[j] = label
-        return best_attack
+            logits, l1dist = self._loss(x=x_batch, x_adv=x_adv.astype(ART_NUMPY_DTYPE))
+            if l1dist < best_dist and compare(logits, np.argmax(y_batch)):
+                best_dist = logits
+                best_attack = x_adv
+            success.append(compare(logits, np.argmax(y_batch[j])))
+        return best_attack, np.array(success)
 
     def _md(self,g,x,lower,upper):
         beta=self.beta
         dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
-        dim=g.size
-        #first step try 
-        if self.eta==0.0:
-            eta_t=np.max(np.abs(g))/self.learning_rate
-            v=self._md_const(g,x,lower,upper,eta_t)
-            dual_v= (np.log(np.abs(v) / beta + 1.0)) * np.sign(v)
-            dist=(eta_t**2)*np.vdot(x-v,dual_x-dual_v)
-            eta_t=np.sqrt(dist)   
-        else:
-            eta_t=np.sqrt(self.eta)/self.learning_rate
-        #print(f"eta {eta_t}")
+        self.eta+=(np.max(np.abs(g))**2)
+        eta_t=np.sqrt(self.eta)/self.learning_rate
         descent=g/eta_t
         z=dual_x -descent
         z_sgn=np.sign(z)
         z_val=np.abs(z)
         v=self._project(z_sgn,z_val,beta,self.epsilon,lower,upper)
-        dual_v= (np.log(np.abs(v) / beta + 1.0)) * np.sign(v)
-        dist=(eta_t**2)*np.vdot(x-v,dual_x-dual_v)
-        #print(f"gradient: {np.max(np.abs(g))}")
-        #print(f"generalised gradient: {(dist*(eta_t**2))}")
-        
-        #print(f"descent: {np.sum(np.abs(v-x))}")
-        #print(f"step {dist_prod}")
-        self.eta+=dist
-        #print(f"eta {np.max(np.abs(self.eta))}")
-        eta_t_1=np.sqrt(self.eta)/self.learning_rate
-        if eta_t_1>eta_t:
-            v=(1.0-eta_t/eta_t_1)*x+eta_t/eta_t_1*v 
         return v
 
     def _reg(self,x,beta):
@@ -369,21 +328,6 @@ class ExpAttackL1(EvasionAttack):
         return np.log(np.abs(x)/beta+1.0)*np.sign(x)
 
 
-    def _md_const(self,g,x,lower,upper,eta):
-        dim=g.size
-        beta=self.beta
-        dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
-        descent=g/eta/(self.epsilon+self.beta*dim)
-        z=dual_x -descent
-        z_sgn=np.sign(z)
-        z_val=np.abs(z)
-        v=self._project(z_sgn,z_val,beta,self.epsilon,lower,upper)
-        
-        #dual_v= (np.log(np.abs(v) / beta + 1.0)) * np.sign(v)
-        #dist_prod=np.vdot(v-x,dual_v-dual_x)
-        
-        #print(f"generalised gradient {(eta**2)*dist_prod}")
-        return v
 
     def _project(self, y_sgn,y_val, beta, D,l,u):
         log_beta=np.log(beta)
@@ -450,6 +394,6 @@ class ExpAttackL1(EvasionAttack):
         :return: A tuple of shape `(np.ndarray, float, float, float)` holding the current predictions, l1 distance,
                  l2 distance and elastic net loss.
         """
-        l1dist = np.sum(np.abs(x - x_adv).reshape(x.shape[0], -1), axis=1)
-        predictions = self.estimator.predict(np.array(x_adv, dtype=ART_NUMPY_DTYPE), batch_size=self.batch_size)
-        return np.argmax(predictions, axis=1), l1dist
+        l1dist = np.sum(np.abs(x - x_adv))
+        predictions = self.estimator.predict(np.array(x_adv, dtype=ART_NUMPY_DTYPE))
+        return np.argmax(predictions), l1dist

@@ -5,10 +5,12 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from art.estimators.classification import PyTorchClassifier
 import foolbox as fb
-
+import torch.nn.functional as F
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 cuda = True if torch.cuda.is_available() else False
-
+import torch
+import torchvision
+import torchvision.transforms as transforms
 def load_dataset(dataset, dataset_split):
 
     if dataset== 'imagenet':
@@ -19,7 +21,7 @@ def load_dataset(dataset, dataset_split):
         transforms.CenterCrop(224)
                                     ])
         
-        testset = datasets.ImageFolder(root=f'../data/ImageNet/val', transform=transform)
+        testset = datasets.ImageFolder(root=f'../datasets/ImageNet/val', transform=transform)
         
     elif dataset == 'cifar10':
 
@@ -98,7 +100,6 @@ def get_model(dataset, modelname, norm=None):
     net.to(device)
 
     return net, art_net, fb_net, modelname
-
 
 
 def test_accuracy(model, xtest, ytest):

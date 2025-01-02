@@ -11,6 +11,8 @@ from adversarial_attack.exp_attack import ExpAttack
 from adversarial_attack.exp_attack_l1 import ExpAttackL1
 #from adversarial_attack.acc_exp_attack import AccExpAttack
 from autoattack import AutoAttack as original_AutoAttack
+from adversarial_attack.auto_attack.autoattack_custom import AutoAttack_Custom
+from adversarial_attack.exp_attack_l1_ada import ExpAttackL1Ada
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class AdversarialAttacks:
@@ -71,6 +73,7 @@ class AdversarialAttacks:
         attack.apgd.n_restarts=1
         attack.apgd.n_iter=self.max_iterations
         attack.apgd.verbose=False
+        attack.apgd.use_largereps=False
         return attack
     elif attack_type=='auto_projected_gradient_descent':
         return AutoProjectedGradientDescent(estimator=self.art_net,
@@ -114,11 +117,24 @@ class AdversarialAttacks:
                       max_iter=self.max_iterations,
                       epsilon=self.epsilon,
                       **kwargs)
-    elif attack_type=='exp_attack_smooth':
-        return ExpAttack(self.art_net,
-                      max_iter=self.max_iterations,
-                    #learning_rate=1.0,
-                      smooth=True,
-                      **kwargs)
+    elif attack_type=='exp_attack_l1_ada':
+        return ExpAttackL1Ada(self.art_net,
+                        max_iter=self.max_iterations,
+                        epsilon=12,
+                        **kwargs)
+    elif attack_type=='custom_apgd':
+        attack= AutoAttack_Custom(self.net, 
+                                   norm='L1', 
+                                   eps=self.epsilon,
+                                   device=device,
+                                   version='custom',
+                                   attacks_to_run=['apgd-ce'],
+                                   **kwargs)
+        attack.apgd.n_restarts=1
+        attack.apgd.n_iter=self.max_iterations
+        attack.apgd.verbose=False
+        attack.apgd.use_largereps=False
+        attack.apgd.eot_iter=1
+        return attack
     else:
         raise ValueError(f'Attack type "{attack_type}" not supported!')
