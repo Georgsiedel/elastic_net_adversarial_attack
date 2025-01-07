@@ -21,7 +21,7 @@ def load_dataset(dataset, dataset_split):
         transforms.CenterCrop(224)
                                     ])
         
-        testset = datasets.ImageFolder(root=f'../datasets/ImageNet/val', transform=transform)
+        testset = datasets.ImageFolder(root=f'../data/ImageNet/val', transform=transform)
         
     elif dataset == 'cifar10':
 
@@ -47,6 +47,7 @@ def load_dataset(dataset, dataset_split):
     return xtest, ytest
 
 def get_model(dataset, modelname, norm=None):
+    
     if modelname=='CroceL1' and dataset=='cifar10': 
         '''
         based on https://github.com/fra31/robust-finetuning
@@ -67,6 +68,21 @@ def get_model(dataset, modelname, norm=None):
         net = preact_resnet.PreActResNet18()
         ckpt = torch.load(f'./models/pretrained_models/{modelname}.pt', map_location=device)
         net.load_state_dict(ckpt)
+    elif modelname in ['standard', 'corruption_robust'] and dataset == 'cifar10':
+        from models import wideresnet
+        
+        if modelname == 'standard':
+            net = wideresnet.WideResNet_28_4(10, 'CIFAR10', normalized=True, block=wideresnet.WideBasic, activation_function='relu')
+        elif modelname == 'corruption_robust':
+            #self trained with massive random data augmentation and JSD consistency loss, but no adversarial objective
+            net = wideresnet.WideResNet_28_4(10, 'CIFAR10', normalized=True, block=wideresnet.WideBasic, activation_function='silu')
+        model = torch.load(f'./models/pretrained_models/{modelname}.pth', map_location=device)
+        state_dict = model["model_state_dict"]
+        new_state_dict = {key.replace("module.", ""): value for key, value in state_dict.items()}
+        net.load_state_dict(new_state_dict, strict=True)
+    elif modelname == 'standard_resnet50' and dataset == 'imagenet':
+        from torchvision.models import resnet50, ResNet50_Weights
+        net = resnet50(weights=ResNet50_Weights.DEFAULT).to(device)
     else: #robustbench models
         net = load_model(model_name=modelname, dataset=dataset, threat_model=norm) #'Wang2023Better_WRN-28-10'
         modelname = modelname + '_' + norm
