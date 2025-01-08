@@ -155,7 +155,6 @@ class WideResNet(CtModel):
         return nn.Sequential(*layers)
 
     def forward(self, x, targets=None):
-
         out = super(WideResNet, self).forward_normalize(x)
         out, mixed_targets = super(WideResNet, self).forward_noise_mixup(out, targets)
         out = self.activation_function(self.bn1(out))
