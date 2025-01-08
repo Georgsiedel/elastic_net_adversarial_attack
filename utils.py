@@ -11,7 +11,7 @@ cuda = True if torch.cuda.is_available() else False
 import torch
 import torchvision
 import torchvision.transforms as transforms
-def load_dataset(dataset, dataset_split):
+def load_dataset(dataset, dataset_split, root='../data'):
 
     if dataset== 'imagenet':
 
@@ -21,7 +21,7 @@ def load_dataset(dataset, dataset_split):
         transforms.CenterCrop(224)
                                     ])
         
-        testset = datasets.ImageFolder(root=f'../data/ImageNet/val', transform=transform)
+        testset = datasets.ImageFolder(root=root+'/ImageNet/val', transform=transform)
         
     elif dataset == 'cifar10':
 
@@ -29,7 +29,7 @@ def load_dataset(dataset, dataset_split):
         transforms.ToTensor(),
                                     ])
         
-        testset = datasets.CIFAR10(root='./data/cifar', train=False, download=True, transform=transform)
+        testset = datasets.CIFAR10(root=root+'/cifar', train=False, download=True, transform=transform)
 
     else: 
         raise KeyError("Dataset not implemented.")
