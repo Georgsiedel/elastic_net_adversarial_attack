@@ -143,7 +143,7 @@ def attack_with_early_stopping(art_net, x, y, PGD_iterations, attacker, verbose=
             
     return adv_inputs
 
-def calculation(art_net, fb_net, net ,xtest, ytest, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations, attack_type, learning_rate = None, beta = None, verbose: bool = False):
+def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations, attack_type, learning_rate = None, beta = None, verbose: bool = False):
 
     sparsity_list,distance_list_l1, distance_list_l2, runtime_list = [], [], [], []
     
@@ -160,7 +160,6 @@ def calculation(art_net, fb_net, net ,xtest, ytest, epsilon_l1, epsilon_l2, eps_
                           lr=learning_rate,
                           beta=beta,
                           verbose=verbose)
-
     robust_predictions_l1 = 0
     attack_successes_in_epsilon_l1 = 0
     robust_predictions_l2 = 0
@@ -169,7 +168,6 @@ def calculation(art_net, fb_net, net ,xtest, ytest, epsilon_l1, epsilon_l2, eps_
     attack_successes_in_en = 0
     attack_successes = 0
     clean_correct = 0
-
     for i, x in enumerate(xtest):
 
         x = x.unsqueeze(0)
@@ -197,6 +195,12 @@ def calculation(art_net, fb_net, net ,xtest, ytest, epsilon_l1, epsilon_l2, eps_
         elif attack_type == 'brendel_bethge':
             _, x_adversarial, _ = attacker(fb_net, x, y, epsilons=[epsilon_l1])
             x_adversarial = x_adversarial[0].cpu()
+        elif attack_type == 'pointwise_blackbox':
+            _, x_adversarial, _ = attacker(fb_net, x, y)
+            x_adversarial = x_adversarial[0].cpu()    
+        elif attack_type == 'sparse_rs_blackbox':
+            _, x_adversarial = attacker.perturb(x, y)
+            x_adversarial = x_adversarial[0].cpu()        
         elif attack_type == 'original_AutoAttack':
             x_adversarial = attacker.run_standard_evaluation(x, y)
             x_adversarial = x_adversarial.cpu()

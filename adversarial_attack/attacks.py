@@ -7,6 +7,8 @@ from art.attacks.evasion import (FastGradientMethod,
                                  CarliniL2Method,
                                  DeepFool,
                                  ElasticNet)
+from adversarial_attack.geometric_decision_based_attack import GeoDA
+from adversarial_attack.rs_attacks import RSAttack
 from adversarial_attack.exp_attack import ExpAttack
 from adversarial_attack.exp_attack_l1 import ExpAttackL1
 #from adversarial_attack.acc_exp_attack import AccExpAttack
@@ -82,8 +84,27 @@ class AdversarialAttacks:
                                           norm=self.norm,
                                           max_iter=self.max_iterations,
                                           **kwargs)
+    elif attack_type=='pointwise_blackbox':
+        #https://openreview.net/pdf?id=S1EHOsC9tX
+        return fb.attacks.pointwise.PointwiseAttack()
+    elif attack_type=='sparse_rs_blackbox':
+        #https://ojs.aaai.org/index.php/AAAI/article/view/20595/20354
+        assert self.norm == 1, "only norm=1 translates correctly into sparse_rs attack budget"
+        return RSAttack(predict=self.net,
+                        norm='L0',
+                        eps=self.epsilon*10,
+                        device=device
+                        )
     elif attack_type=='brendel_bethge':
         return fb.attacks.L1BrendelBethgeAttack(steps=self.max_iterations)
+    elif attack_type=='geoda_blackbox':
+        #this is the ART implementation, but without adeprecated np function
+        #https://openaccess.thecvf.com/content_CVPR_2020/papers/Rahmati_GeoDA_A_Geometric_Framework_for_Black-Box_Adversarial_Attacks_CVPR_2020_paper.pdf
+        return GeoDA(self.art_net,
+                        batch_size=1,
+                        norm=self.norm,
+                        max_iter=4000,
+                        **kwargs)
     elif attack_type=='carlini_wagner_l2':
         return CarliniL2Method(self.art_net,
                                max_iter=self.max_iterations,

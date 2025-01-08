@@ -3,5 +3,6 @@ models/__pycache__
 .venv
 /__pycache__
 /adversarial_attack/__pycache__
-/models/cifar10/Linf
-/models/cifar10/L2
+/models/cifar10
+/models/imagenet
+/adversarial_attack/auto_attack/__pycache__
