@@ -52,12 +52,12 @@ class ExpAttackL1(EvasionAttack):
         targeted: bool = False,
         learning_rate: float =1.0,
         max_iter: int = 100,
-        beta: float =15,
+        beta: float =1.0,
         batch_size: int = 1,
         verbose: bool = True,
         smooth:float=-1.0,
         epsilon:float=12,
-        quantile:float=0.0,
+        quantile:float=0.90,
         loss_type= "cross_entropy"
     ) -> None:
         """
@@ -303,6 +303,7 @@ class ExpAttackL1(EvasionAttack):
         #dual_delta=self._reg_prim(delta,self.beta)
         #delta=self._project(np.abs(dual_delta),np.abs(dual_delta),self.beta,self.epsilon,lower,upper)
         x_adv=x_0+delta
+        self.eta=0.0
         #self.beta=self.epsilon/x_0.size
         #print(f"initial loss {self.estimator.compute_loss(x_adv.astype(ART_NUMPY_DTYPE),y_batch)}")
         for i_iter in range(self.max_iter):
@@ -317,7 +318,6 @@ class ExpAttackL1(EvasionAttack):
             
             delta = self._md(grad,delta, lower,upper)
             #prob=(abs(delta)+self.beta)/np.sum(np.abs(delta)+self.beta)
-            
 
             logger.debug("Iteration step %i out of %i", i_iter, self.max_iter)
             x_adv=x_0+delta
