@@ -1,0 +1,92 @@
+{
+    "brendel_bethge": {
+        "adversarial_distance_l1": [
+            0.9183652400970459,
+            2.834897994995117,
+            1.5573139190673828,
+            0.444801926612854,
+            2.4336557388305664
+        ],
+        "adversarial_distance_l2": [
+            0.3821999728679657,
+            0.7765853404998779,
+            0.39267614483833313,
+            0.2153398096561432,
+            0.7894340753555298
+        ],
+        "runtime": [
+            92.74948191642761,
+            24.77470111846924,
+            24.520703077316284,
+            29.912038564682007,
+            23.05681037902832
+        ],
+        "adversarial_accuracy_l1": 0.0,
+        "adversarial_accuracy_l2": 40.0,
+        "attack_success_rate": 100.0,
+        "attack_success_rate_in_epsilon_l1": 100.0,
+        "attack_success_rate_in_epsilon_l2": 60.0,
+        "mean_adv_distance_l1": 1.6378069639205932,
+        "mean_adv_distance_l2": 0.51124706864357
+    },
+    "exp_attack_l1": {
+        "adversarial_distance_l1": [
+            7.7009429931640625,
+            11.17509651184082,
+            11.330315589904785,
+            5.130202770233154,
+            11.159989356994629
+        ],
+        "adversarial_distance_l2": [
+            1.1990407705307007,
+            1.1923006772994995,
+            1.2144182920455933,
+            1.1391619443893433,
+            1.2681105136871338
+        ],
+        "runtime": [
+            25.0435950756073,
+            26.916071891784668,
+            27.833011150360107,
+            27.35631561279297,
+            29.243632078170776
+        ],
+        "adversarial_accuracy_l1": 0.0,
+        "adversarial_accuracy_l2": 100.0,
+        "attack_success_rate": 100.0,
+        "attack_success_rate_in_epsilon_l1": 100.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 9.29930944442749,
+        "mean_adv_distance_l2": 1.202606439590454
+    },
+    "custom_apgd": {
+        "adversarial_distance_l1": [
+            11.999993324279785,
+            12.000048637390137,
+            12.000012397766113,
+            12.000004768371582,
+            12.000009536743164
+        ],
+        "adversarial_distance_l2": [
+            0.9722138047218323,
+            0.9729872345924377,
+            0.8625652194023132,
+            1.3707958459854126,
+            0.8014829158782959
+        ],
+        "runtime": [
+            20.84171199798584,
+            15.224482774734497,
+            18.13020968437195,
+            17.20474934577942,
+            15.5050208568573
+        ],
+        "adversarial_accuracy_l1": 0.0,
+        "adversarial_accuracy_l2": 100.0,
+        "attack_success_rate": 100.0,
+        "attack_success_rate_in_epsilon_l1": 100.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 12.000013732910157,
+        "mean_adv_distance_l2": 0.9960090041160583
+    }
+}

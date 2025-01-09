@@ -115,7 +115,9 @@ def get_model(dataset, modelname, norm=None):
 
     net.to(device)
 
-    return net, art_net, fb_net, modelname
+    alias = modelname + '_' + dataset
+
+    return net, art_net, fb_net, alias
 
 
 def test_accuracy(model, xtest, ytest):
