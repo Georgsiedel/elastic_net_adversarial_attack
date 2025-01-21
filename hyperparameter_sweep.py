@@ -2,16 +2,21 @@ import argparse
 import utils
 import adversarial_attack.attack_utils as attack_utils
 import json
+import torch
 
-def main(dataset, splitsize, dataset_root, model, model_norm, hyperparameter, hyperparameter_range, 
+def main(dataset, samplesize_accuracy, samplesize_attack, dataset_root, model, model_norm, hyperparameter, hyperparameter_range, 
          attack_type, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations, save_images, verbose):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Load dataset
-    xtest, ytest = utils.load_dataset(dataset=dataset, dataset_split=splitsize, root=dataset_root)
+    xtest, ytest = utils.load_dataset(dataset=dataset, dataset_split=samplesize_accuracy, root=dataset_root)
 
     # Load model
     net, art_net, fb_net, alias = utils.get_model(dataset=dataset, modelname=model, norm=model_norm)
-    utils.test_accuracy(net, xtest, ytest)
+
+    # calculate accuracy, select a subset from the correctly classified images
+    correct_map = utils.test_accuracy(net, xtest, ytest)
+    xtest, ytest = utils.subset(correct_map, xtest, ytest, attack_samples=samplesize_attack)
 
     # Experiment setup
     Experiment = attack_utils.Experiment_class(
@@ -42,7 +47,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hyperparameter Sweep Script")
     parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'imagenet'],
                         help="Dataset to use")
-    parser.add_argument('--splitsize', type=int, default=100, help="Split size for dataset")
+    parser.add_argument('--samplesize_accuracy', type=int, default=1000, help="Split size for test accuracy evaluation")
+    parser.add_argument('--samplesize_attack', type=int, default=20, help="Split size for attack evaluation")
     parser.add_argument('--dataset_root', type=str, default='../data', help="data folder relative root")
     parser.add_argument('--model', type=str, default='standard',
                         help="Model name (e.g., standard, MainiAVG, etc.)")
@@ -64,6 +70,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     main(
-        args.dataset, args.splitsize, args.dataset_root, args.model, args.model_norm, args.attack_types,
-        args.epsilon_l1, args.epsilon_l2, args.eps_iter, args.attack_norm, args.max_iterations, args.save_images, args.verbose
+        args.dataset, args.samplesize_accuracy, args.samplesize_attack, args.dataset_root, args.model, args.model_norm, args.hyperparameter, 
+        args.hyperparameter_range,  args.attack_type, args.epsilon_l1, args.epsilon_l2, args.eps_iter, args.attack_norm, args.max_iterations, 
+        args.save_images, args.verbose
     )

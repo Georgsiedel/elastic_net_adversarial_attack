@@ -32,21 +32,6 @@ class Experiment_class():
         '''
         hyperparameter sweep. Pick only one model.
         hyperparameter = 'learning_rate', 'beta' 
-        attack_type= 
-            #'fast_gradient_method',
-            #'projected_gradient_descent', 
-            #'pgd_early_stopping', #not-bounded
-            #'auto_projected_gradient_descent', #bounded-full
-            #'deep_fool', #not-bounded
-            #'brendel_bethge', #bounded-min
-            #'carlini_wagner_l2', #not-bounded
-            #'elastic_net', #not-bounded
-            #'exp_attack',
-            #'exp_attack_smooth',
-            #'elastic_net_L1_rule', #not-bounded
-            #'elastic_net_L1_rule_higher_beta', #not-bounded
-            #'ART_AutoAttack', #bounded-full
-            #'original_AutoAttack', #bounded-full
         hyperparameter_range: iterable
 
         '''

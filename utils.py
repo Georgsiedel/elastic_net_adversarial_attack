@@ -182,15 +182,15 @@ def test_accuracy(model, xtest, ytest, batch_size=100):
             correct_list.append((predicted == y_batch).cpu())
 
     # Concatenate all boolean tensors into a single tensor
-    correct_tensor = torch.cat(correct_list)
+    correct_map = torch.cat(correct_list)
 
     # Calculate and print the overall accuracy
-    accuracy = (correct_tensor.sum().item() / len(correct_tensor)) * 100
+    accuracy = (correct_map.sum().item() / len(correct_map)) * 100
     print(f'\nAccuracy of the test set is: {accuracy:.3f}%\n')
 
-    return correct_tensor
+    return correct_map
 
-def subset(correct_tensor, xtest, attack_samples=100):
+def subset(correct_tensor, xtest, ytest, attack_samples=100):
     """
     Selects n samples from xtest where the classification was correct.
 
@@ -212,4 +212,4 @@ def subset(correct_tensor, xtest, attack_samples=100):
     selected_indices = correct_indices[:attack_samples]
 
     # Return the selected samples from xtest
-    return xtest[selected_indices]
+    return xtest[selected_indices], ytest[selected_indices]
