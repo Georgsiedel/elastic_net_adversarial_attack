@@ -4,16 +4,19 @@ import adversarial_attack.attack_utils as attack_utils
 import json
 import torch
 
-def main(dataset, splitsize, dataset_root, model, model_norm, attack_types, epsilon_l1, epsilon_l2, 
+def main(dataset, samplesize_accuracy, samplesize_attack, dataset_root, model, model_norm, attack_types, epsilon_l1, epsilon_l2, 
          eps_iter, norm, max_iterations, save_images, verbose):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Load dataset
-    xtest, ytest = utils.load_dataset(dataset=dataset, dataset_split=splitsize, root=dataset_root)
+    xtest, ytest = utils.load_dataset(dataset=dataset, dataset_split=samplesize_accuracy, root=dataset_root)
 
     # Load model
     net, art_net, fb_net, alias = utils.get_model(dataset=dataset, modelname=model, norm=model_norm)
-    utils.test_accuracy(net, xtest, ytest)
+
+    # calculate accuracy, select a subset from the correctly classified images
+    correct_map = utils.test_accuracy(net, xtest, ytest)
+    xtest, ytest = utils.subset(correct_map, xtest, ytest, attack_samples=samplesize_attack)
 
     # Experiment setup
     Experiment = attack_utils.Experiment_class(
@@ -40,14 +43,35 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hyperparameter Sweep Script")
     parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'imagenet'],
                         help="Dataset to use")
-    parser.add_argument('--splitsize', type=int, default=100, help="Split size for dataset")
+    parser.add_argument('--samplesize_accuracy', type=int, default=1000, help="Split size for test accuracy evaluation")
+    parser.add_argument('--samplesize_attack', type=int, default=20, help="Split size for attack evaluation")
     parser.add_argument('--dataset_root', type=str, default='../data', help="data folder relative root")
     parser.add_argument('--model', type=str, default='standard',
                         help="Model name (e.g., standard, MainiAVG, etc.)")
     parser.add_argument('--model_norm', type=str, default='L2',
                         help="Attack Norm the selected model was trained with. Only necessary if you load robustbench models")
     parser.add_argument('--attack_types', type=str, nargs='+',
-                        default=['brendel_bethge', 'exp_attack_l1', 'custom_apgd'], choices=
+                        default=['exp_attack_l1', 'custom_apgd'], 
+                        choices=[['fast_gradient_method',
+                                'projected_gradient_descent',
+                                'pgd_early_stopping',
+                                'deep_fool',
+                                'brendel_bethge',
+                                'pointwise_blackbox',
+                                'geoda_blackbox',
+                                'sparse_rs_blackbox',
+                                'carlini_wagner_l2',
+                                'elastic_net',
+                                'exp_attack',
+                                'exp_attack_smooth',
+                                'exp_attack_l1_l2',
+                                'auto_projected_gradient_descent',
+                                'elastic_net_L1_rule',
+                                'elastic_net_L1_rule_higher_beta',
+                                'ART_AutoAttack',
+                                'original_AutoAttack',
+                                'exp_attack_l1',
+                                'custom_apgd']], 
                         help="List of attack types for comparison (space-separated). ")
     parser.add_argument('--epsilon_l1', type=float, default=12, help="L1 norm epsilon (default: 12 for CIFAR10, 75 otherwise)")
     parser.add_argument('--epsilon_l2', type=float, default=0.5, help="L2 norm epsilon")
@@ -60,6 +84,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     main(
-        args.dataset, args.splitsize, args.dataset_root, args.model, args.model_norm, args.attack_types,
+        args.dataset, args.samplesize_accuracy, args.samplesize_attack, args.dataset_root, args.model, args.model_norm, args.attack_types,
         args.epsilon_l1, args.epsilon_l2, args.eps_iter, args.attack_norm, args.max_iterations, args.save_images, args.verbose
     )
