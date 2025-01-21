@@ -11,6 +11,7 @@ cuda = True if torch.cuda.is_available() else False
 import torch
 import torchvision
 import torchvision.transforms as transforms
+
 def load_dataset(dataset, dataset_split, root='../data'):
 
     if dataset== 'imagenet':
@@ -45,6 +46,39 @@ def load_dataset(dataset, dataset_split, root='../data'):
     ytest = torch.tensor([data[1] for data in testset])
 
     return xtest, ytest
+
+def load_dataset(dataset, dataset_split, root='../data'):
+
+    if dataset== 'imagenet':
+
+        transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Resize(256, antialias=True),
+        transforms.CenterCrop(224)
+                                    ])
+        
+        testset = datasets.ImageFolder(root=root+'/ImageNet/val', transform=transform)
+        
+    elif dataset == 'cifar10':
+
+        transform = transforms.Compose([
+        transforms.ToTensor(),
+                                    ])
+        
+        testset = datasets.CIFAR10(root=root+'/cifar', train=False, download=True, transform=transform)
+
+    else: 
+        raise KeyError("Dataset not implemented.")
+    
+    # Truncated testset for experiments and ablations
+    if isinstance(dataset_split, int):
+        testset, _ = torch.utils.data.random_split(testset,
+                                                          [dataset_split, len(testset) - dataset_split],
+                                                          generator=torch.Generator().manual_seed(42))
+    
+    # Extract data and labels from torchvision dataset
+    xtest, ytest = zip(*[(data[0], data[1]) for data in testset])
+    return torch.stack(xtest), torch.tensor(ytest)
 
 def get_model(dataset, modelname, norm=None):
     
@@ -119,11 +153,23 @@ def get_model(dataset, modelname, norm=None):
 
     return net, art_net, fb_net, alias
 
+def test_accuracy(model, xtest, ytest, batch_size=100):
+    """
+    Tests the accuracy of the model and returns a tensor indicating whether each test sample
+    was classified correctly or not.
 
-def test_accuracy(model, xtest, ytest):
+    Args:
+        model: The trained model to test.
+        xtest: Test dataset features (as a torch tensor).
+        ytest: True labels for the test dataset.
+        batch_size: Number of samples per batch for evaluation.
+
+    Returns:
+        A tensor of booleans where each element corresponds to whether the classification
+        of the respective test sample was correct or not.
+    """
     model.eval()
-    correct, total = 0, 0
-    batch_size = 100
+    correct_list = []  # To store correctness of each sample
 
     with torch.no_grad():
         for i in range(0, len(xtest), batch_size):
@@ -132,10 +178,38 @@ def test_accuracy(model, xtest, ytest):
             outputs = model(x_batch)
             _, predicted = torch.max(outputs, 1)
 
-            total += y_batch.size(0)
-            correct += (predicted == y_batch).sum().item()
-    
-    model.to(device)
+            # Append the boolean tensor correctness values
+            correct_list.append((predicted == y_batch).cpu())
 
-    accuracy = (correct / total) * 100
+    # Concatenate all boolean tensors into a single tensor
+    correct_tensor = torch.cat(correct_list)
+
+    # Calculate and print the overall accuracy
+    accuracy = (correct_tensor.sum().item() / len(correct_tensor)) * 100
     print(f'\nAccuracy of the test set is: {accuracy:.3f}%\n')
+
+    return correct_tensor
+
+def subset(correct_tensor, xtest, attack_samples=100):
+    """
+    Selects n samples from xtest where the classification was correct.
+
+    Args:
+        correct_tensor: Tensor of booleans indicating correctness of classification.
+        xtest: Test dataset features (as a torch tensor).
+        n: Number of samples to select.
+
+    Returns:
+        A subset of xtest containing n correctly classified samples.
+    """
+    if attack_samples > correct_tensor.sum().item():
+        raise ValueError("n cannot be greater than the number of correctly classified samples.")
+
+    # Get indices of correctly classified samples
+    correct_indices = torch.nonzero(correct_tensor, as_tuple=True)[0]
+
+    # Select the first n correctly classified samples
+    selected_indices = correct_indices[:attack_samples]
+
+    # Return the selected samples from xtest
+    return xtest[selected_indices]
