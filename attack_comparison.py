@@ -44,20 +44,25 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'imagenet'],
                         help="Dataset to use")
     parser.add_argument('--samplesize_accuracy', type=int, default=1000, help="Split size for test accuracy evaluation")
-    parser.add_argument('--samplesize_attack', type=int, default=20, help="Split size for attack evaluation")
+    parser.add_argument('--samplesize_attack', type=int, default=10, help="Split size for attack evaluation")
     parser.add_argument('--dataset_root', type=str, default='../data', help="data folder relative root")
     parser.add_argument('--model', type=str, default='standard',
                         help="Model name (e.g., standard, MainiAVG, etc.)")
     parser.add_argument('--model_norm', type=str, default='L2',
                         help="Attack Norm the selected model was trained with. Only necessary if you load robustbench models")
     parser.add_argument('--attack_types', type=str, nargs='+',
-                        default=['exp_attack_l1', 'custom_apgd'], 
+                        default=['pointwise_blackbox+hopskipjump',
+                                 'pointwise_blackbox',
+                                'pointwise_blackbox+boundary',
+                                'sparse_rs_blackbox'], 
                         choices=[['fast_gradient_method',
                                 'projected_gradient_descent',
                                 'pgd_early_stopping',
                                 'deep_fool',
                                 'brendel_bethge',
                                 'pointwise_blackbox',
+                                'pointwise_blackbox+boundary',
+                                'pointwise_blackbox+hopskipjump',
                                 'geoda_blackbox',
                                 'sparse_rs_blackbox',
                                 'carlini_wagner_l2',
@@ -73,14 +78,14 @@ if __name__ == "__main__":
                                 'exp_attack_l1',
                                 'custom_apgd']], 
                         help="List of attack types for comparison (space-separated). ")
-    parser.add_argument('--epsilon_l1', type=float, default=12, help="L1 norm epsilon (default: 12 for CIFAR10, 75 otherwise)")
+    parser.add_argument('--epsilon_l1', type=float, default=75, help="L1 norm epsilon (default: 12 for CIFAR10, 75 otherwise)")
     parser.add_argument('--epsilon_l2', type=float, default=0.5, help="L2 norm epsilon")
     parser.add_argument('--eps_iter', type=float, default=0.1, help="Step size for manual iterative attacks")
     parser.add_argument('--attack_norm', type=int, default=1, choices=[1, 2, float('inf')],
                         help="Attack norm type (1, 2, float('inf'))")
     parser.add_argument('--max_iterations', type=int, default=300, help="Maximum iterations for attacks")
     parser.add_argument('--save_images', type=int, default=1, help="Integer > 0: number of saved images per attack, 0: do not save)")
-    parser.add_argument('--verbose', type=bool, default=False, help="Verbose output")
+    parser.add_argument('--verbose', type=bool, default=True, help="Verbose output")
 
     args = parser.parse_args()
     main(

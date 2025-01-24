@@ -16,6 +16,9 @@ import math
 import torch.nn.functional as F
 
 import numpy as np
+import copy
+import sys
+import os
 
 class Logger():
     def __init__(self, log_path):
@@ -27,6 +30,8 @@ class Logger():
             with open(self.log_path, 'a') as f:
                 f.write(str_to_log + '\n')
                 f.flush()
+
+
 
 class RSAttack():
     """
@@ -59,6 +64,7 @@ class RSAttack():
             norm='L0',
             n_queries=5000,
             eps=None,
+            eps_L1=None,
             p_init=.8,
             n_restarts=1,
             seed=0,
@@ -81,6 +87,7 @@ class RSAttack():
         self.norm = norm
         self.n_queries = n_queries
         self.eps = eps
+        self.eps_L1 = eps_L1
         self.p_init = p_init
         self.n_restarts = n_restarts
         self.seed = seed
@@ -118,7 +125,7 @@ class RSAttack():
             return y_others - y_corr, xent
 
     def init_hyperparam(self, x):
-        assert self.norm in ['L0', 'patches', 'frames',
+        assert self.norm in ['L0+L1', 'L0', 'patches', 'frames',
             'patches_universal', 'frames_universal']
         assert not self.eps is None
         assert self.loss in ['ce', 'margin']
@@ -272,20 +279,25 @@ class RSAttack():
             c, h, w = x.shape[1:]
             n_features = c * h * w
             n_ex_total = x.shape[0]
-            
-            if self.norm == 'L0':
+
+            if self.norm == 'L0+L1':
                 eps = self.eps
                 
                 x_best = x.clone()
                 n_pixels = h * w
-                b_all, be_all = torch.zeros([x.shape[0], eps]).long(), torch.zeros([x.shape[0], n_pixels - eps]).long()
-                #for img in range(x.shape[0]):
-                #    ind_all = torch.randperm(n_pixels)
-                #    ind_p = ind_all[:eps]
-                #    ind_np = ind_all[eps:]
-                #    x_best[img, :, ind_p // w, ind_p % w] = self.random_choice([c, eps]).clamp(0., 1.)
-                #    b_all[img] = ind_p.clone()
-                #    be_all[img] = ind_np.clone()
+                b_all, be_all = torch.zeros([x.shape[0], eps]).long().to(self.device), torch.zeros([x.shape[0], n_pixels - eps]).long().to(self.device)
+                for img in range(x.shape[0]):
+                    ind_all = torch.randperm(n_pixels)
+                    ind_p = ind_all[:eps]
+                    ind_np = ind_all[eps:]
+                    x_best[img, :, ind_p // w, ind_p % w] = self.random_choice([c, eps]).clamp(0., 1.)
+
+                    if torch.norm(x_best[img] - x[img], p=float(1)) > self.eps_L1:
+                        x_best[img] = x[img] #if over L1 budget, reject the change
+
+                    b_all[img] = ind_p.clone()
+                    be_all[img] = ind_np.clone()
+                    
                 margin_min, loss_min = self.margin_and_loss(x_best, y)
                 n_queries = torch.ones(x.shape[0]).to(self.device)
                 
@@ -293,8 +305,9 @@ class RSAttack():
                     # check points still to fool
                     idx_to_fool = (margin_min > 0.).nonzero().squeeze()
                     x_curr = self.check_shape(x[idx_to_fool])
+                    if x_curr.shape[0] == 0: #make sure this also works for single images which are immediately flipped (unrobust models)
+                        break
                     x_best_curr = self.check_shape(x_best[idx_to_fool])
-
                     y_curr = y[idx_to_fool]
                     margin_min_curr = margin_min[idx_to_fool]
                     loss_min_curr = loss_min[idx_to_fool]
@@ -306,6 +319,118 @@ class RSAttack():
                         b_curr.unsqueeze_(0)
                         be_curr.unsqueeze_(0)
                         idx_to_fool.unsqueeze_(0)
+                    
+                    # build new candidate
+                    x_new = x_best_curr.clone()
+                    eps_it = max(int(self.p_selection(it) * eps), 1)
+                    ind_p = torch.randperm(eps)[:eps_it]
+                    ind_np = torch.randperm(n_pixels - eps)[:eps_it]
+                    
+                    for img in range(x_new.shape[0]):
+                        p_set = b_curr[img, ind_p]
+                        np_set = be_curr[img, ind_np]
+                        x_new[img, :, p_set // w, p_set % w] = x_curr[img, :, p_set // w, p_set % w].clone()
+                        x_new_img_clone = x_new[img].clone()
+                        if eps_it > 1:
+                            x_new[img, :, np_set // w, np_set % w] = self.random_choice([c, eps_it]).clamp(0., 1.)
+                        else:
+                            # if update is 1x1 make sure the sampled color is different from the current one
+                            old_clr = x_new[img, :, np_set // w, np_set % w].clone()
+                            assert old_clr.shape == (c, 1), print(old_clr)
+                            new_clr = old_clr.clone()
+                            while (new_clr == old_clr).all().item():
+                                new_clr = self.random_choice([c, 1]).clone().clamp(0., 1.)
+                            x_new[img, :, np_set // w, np_set % w] = new_clr.clone()
+
+                        if torch.norm(x_new[img] - x_curr[img], p=float(1)) > self.eps_L1:
+                            x_new[img] = x_new_img_clone #if over L1 budget, reject the change
+                        
+                    # compute loss of the new candidates
+                    margin, loss = self.margin_and_loss(x_new, y_curr)
+                    n_queries[idx_to_fool] += 1
+                    
+                    # update best solution
+                    idx_improved = (loss < loss_min_curr).float()
+                    idx_to_update = (idx_improved > 0.).nonzero().squeeze()
+                    loss_min[idx_to_fool[idx_to_update]] = loss[idx_to_update]
+        
+                    idx_miscl = (margin < -1e-6).float()
+                    idx_improved = torch.max(idx_improved, idx_miscl)
+                    nimpr = idx_improved.sum().item()
+                    if nimpr > 0.:
+                        idx_improved = (idx_improved.view(-1) > 0).nonzero().squeeze()
+                        margin_min[idx_to_fool[idx_improved]] = margin[idx_improved].clone()
+                        x_best[idx_to_fool[idx_improved]] = x_new[idx_improved].clone()
+                        t = b_curr[idx_improved].clone()
+                        te = be_curr[idx_improved].clone()
+                        
+                        if nimpr > 1:
+                            t[:, ind_p] = be_curr[idx_improved][:, ind_np] + 0
+                            te[:, ind_np] = b_curr[idx_improved][:, ind_p] + 0
+                        else:
+                            t[ind_p] = be_curr[idx_improved][ind_np] + 0
+                            te[ind_np] = b_curr[idx_improved][ind_p] + 0
+                        
+                        b_all[idx_to_fool[idx_improved]] = t.clone()
+                        be_all[idx_to_fool[idx_improved]] = te.clone()
+                    
+                    # log results current iteration
+                    ind_succ = (margin_min <= 0.).nonzero().squeeze()
+                    if self.verbose and ind_succ.numel() != 0:
+                        self.logger.log(' '.join(['{}'.format(it + 1),
+                            '- success rate={}/{} ({:.2%})'.format(
+                            ind_succ.numel(), n_ex_total,
+                            float(ind_succ.numel()) / n_ex_total),
+                            '- avg # queries={:.1f}'.format(
+                            n_queries[ind_succ].mean().item()),
+                            '- med # queries={:.1f}'.format(
+                            n_queries[ind_succ].median().item()),
+                            '- loss={:.3f}'.format(loss_min.mean()),
+                            '- max pert={:.0f}'.format(((x_new - x_curr).abs() > 0
+                            ).max(1)[0].view(x_new.shape[0], -1).sum(-1).max()),
+                            '- epsit={:.0f}'.format(eps_it),
+                            ]))
+                    
+                    if ind_succ.numel() == n_ex_total:
+                        break
+              
+            if self.norm == 'L0':
+                eps = self.eps
+                
+                x_best = x.clone()
+                n_pixels = h * w
+                b_all, be_all = torch.zeros([x.shape[0], eps]).long().to(self.device), torch.zeros([x.shape[0], n_pixels - eps]).long().to(self.device)
+                for img in range(x.shape[0]):
+                    ind_all = torch.randperm(n_pixels)
+                    ind_p = ind_all[:eps]
+                    ind_np = ind_all[eps:]
+                    x_best[img, :, ind_p // w, ind_p % w] = self.random_choice([c, eps]).clamp(0., 1.)
+
+                    b_all[img] = ind_p.clone()
+                    be_all[img] = ind_np.clone()
+                    
+                margin_min, loss_min = self.margin_and_loss(x_best, y)
+                n_queries = torch.ones(x.shape[0]).to(self.device)
+                
+                for it in range(1, self.n_queries):
+                    # check points still to fool
+                    idx_to_fool = (margin_min > 0.).nonzero().squeeze()
+                    x_curr = self.check_shape(x[idx_to_fool])
+                    if x_curr.shape[0] == 0: #make sure this also works for single images which are immediately flipped (unrobust models)
+                        break
+                    x_best_curr = self.check_shape(x_best[idx_to_fool])
+                    y_curr = y[idx_to_fool]
+                    margin_min_curr = margin_min[idx_to_fool]
+                    loss_min_curr = loss_min[idx_to_fool]
+                    b_curr, be_curr = b_all[idx_to_fool], be_all[idx_to_fool]
+                    if len(y_curr.shape) == 0:
+                        y_curr.unsqueeze_(0)
+                        margin_min_curr.unsqueeze_(0)
+                        loss_min_curr.unsqueeze_(0)
+                        b_curr.unsqueeze_(0)
+                        be_curr.unsqueeze_(0)
+                        idx_to_fool.unsqueeze_(0)
+                    
                     # build new candidate
                     x_new = x_best_curr.clone()
                     eps_it = max(int(self.p_selection(it) * eps), 1)
@@ -326,7 +451,7 @@ class RSAttack():
                             while (new_clr == old_clr).all().item():
                                 new_clr = self.random_choice([c, 1]).clone().clamp(0., 1.)
                             x_new[img, :, np_set // w, np_set % w] = new_clr.clone()
-                    
+                        
                     # compute loss of the new candidates
                     margin, loss = self.margin_and_loss(x_new, y_curr)
                     n_queries[idx_to_fool] += 1
@@ -955,4 +1080,3 @@ class RSAttack():
                         time.time() - startt))
 
         return qr, adv
-
