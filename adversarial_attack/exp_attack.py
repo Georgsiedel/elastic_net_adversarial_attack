@@ -57,6 +57,7 @@ class ExpAttack(ElasticNet):
         batch_size: int = 1,
         decision_rule: str = "EN",
         verbose: bool = True,
+        quantile:float =0.9,
         smooth:float=False
     ) -> None:
         """
@@ -91,6 +92,7 @@ class ExpAttack(ElasticNet):
         self.verbose = verbose
         self.eta=0.0
         self.smooth=smooth
+        self.quantile=quantile
         self._check_params()
 
     def generate(self, x: np.ndarray, y: np.ndarray | None = None, **kwargs) -> np.ndarray:
@@ -216,6 +218,10 @@ class ExpAttack(ElasticNet):
             rnd=rnd/((np.linalg.norm(rnd)**2+rnd1**2)**0.5)
             # updating rule
             grad = self._gradient_of_loss(target=y_batch, x=x_batch, x_adv=x_adv.astype(np.float32)+(self.smooth*rnd).astype(np.float32), c_weight=c_batch)
+            
+            grad_val=np.abs(grad)
+            topk_val=np.quantile(grad_val,self.quantile)
+            grad[grad_val<topk_val]=0.0             
             delta = self._md(grad,delta,lower,upper)
             
             x_adv=x_0+delta
