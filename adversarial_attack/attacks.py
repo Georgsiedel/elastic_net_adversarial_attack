@@ -37,7 +37,8 @@ class AdversarialAttacks:
         return FastGradientMethod(self.art_net,
                                 eps=self.epsilon,
                                 eps_step=self.epsilon,
-                                norm=self.norm)
+                                norm=self.norm,
+                                **kwargs)
     elif attack_type=='projected_gradient_descent':
         return ProjectedGradientDescentNumpy(self.art_net,
                                              eps=self.epsilon,
@@ -56,7 +57,8 @@ class AdversarialAttacks:
         return AutoAttack(estimator=self.art_net,
                         eps=self.epsilon,
                         eps_step=self.eps_iter,
-                        norm=self.norm)
+                        norm=self.norm,
+                        **kwargs)
     elif attack_type=='original_AutoAttack':
         return original_AutoAttack(self.net, 
                                    norm='L1', 
@@ -86,24 +88,40 @@ class AdversarialAttacks:
                                           **kwargs)
     elif attack_type=='pointwise_blackbox':
         #https://openreview.net/pdf?id=S1EHOsC9tX
-        return fb.attacks.pointwise.PointwiseAttack()
+        att = fb.attacks.pointwise.PointwiseAttack()
+        att._distance = fb.distances.l1
+        return att
+    elif attack_type=='pointwise_blackbox+boundary':
+        #https://openreview.net/pdf?id=S1EHOsC9tX
+        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.boundary_attack.BoundaryAttack(steps=1000))
+        att._distance = fb.distances.l1
+        return att
+    elif attack_type=='pointwise_blackbox+hopskipjump':
+        #https://openreview.net/pdf?id=S1EHOsC9tX
+        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.hop_skip_jump.HopSkipJumpAttack(steps=10, max_gradient_eval_steps=500))
+        att._distance = fb.distances.l1
+        return att
     elif attack_type=='sparse_rs_blackbox':
         #https://ojs.aaai.org/index.php/AAAI/article/view/20595/20354
         assert self.norm == 1, "only norm=1 translates correctly into sparse_rs attack budget"
         return RSAttack(predict=self.net,
-                        norm='L0',
-                        eps=self.epsilon*10,
-                        device=device
+                        norm='L0+L1', #'L0+L1' to reject L0 perturbations that are larger than the L1 epsilon. Combine with sensible eps parameter below, otherwise you will reject everything
+                        eps=int(self.epsilon/3*2), # approximating the L0 epsilon that corresponds to the L1 epsilon on 3 channels
+                        eps_L1=self.epsilon,
+                        device=device,
+                        **kwargs
                         )
     elif attack_type=='brendel_bethge':
         return fb.attacks.L1BrendelBethgeAttack(steps=self.max_iterations)
     elif attack_type=='geoda_blackbox':
-        #this is the ART implementation, but without adeprecated np function
+        #this is the ART implementation, but without a deprecated np function
         #https://openaccess.thecvf.com/content_CVPR_2020/papers/Rahmati_GeoDA_A_Geometric_Framework_for_Black-Box_Adversarial_Attacks_CVPR_2020_paper.pdf
+        fb.attacks.sparse_l1_descent_attack.SparseL1DescentAttack
         return GeoDA(self.art_net,
                         batch_size=1,
                         norm=self.norm,
                         max_iter=4000,
+                        lambda_param=0.6,
                         **kwargs)
     elif attack_type=='carlini_wagner_l2':
         return CarliniL2Method(self.art_net,
@@ -141,7 +159,7 @@ class AdversarialAttacks:
     elif attack_type=='exp_attack_l1_ada':
         return ExpAttackL1Ada(self.art_net,
                         max_iter=self.max_iterations,
-                        epsilon=12,
+                        epsilon=self.epsilon,
                         **kwargs)
     elif attack_type=='custom_apgd':
         attack= AutoAttack_Custom(self.net, 
