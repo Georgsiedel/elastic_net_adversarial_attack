@@ -43,7 +43,7 @@ class Experiment_class():
 
             results_dict[hyperparameter+str(value)] = {}
             print(f'\t\t-------------- Hyperparameter Sweep for Attack: {attack_type}: {hyperparameter} = {value} ----------------\n')
-            _, _, _, results_dict[hyperparameter+str(value)]["adversarial_accuracy_l1"], results_dict[hyperparameter+str(value)]["adversarial_accuracy_l2"], _, results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l1"], results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l2"], results_dict[hyperparameter+str(value)]["mean_adv_distance_l1"], results_dict[hyperparameter+str(value)]["mean_adv_distance_l2"], adv_images = calculation(
+            _, _, _, _, results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l1"], results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l2"], results_dict[hyperparameter+str(value)]["mean_adv_distance_l1"], results_dict[hyperparameter+str(value)]["mean_adv_distance_l2"], adv_images = calculation(
                                                                 art_net=self.art_net,
                                                                 fb_net=self.fb_net,
                                                                 net = self.net,
@@ -84,11 +84,6 @@ class Experiment_class():
                     if i % 3 == 2:
                         img.save(os.path.join(image_dir, f'{hyperparameter}={value}_{i}_delta.png'))
 
-        json_file_path = f'./data/hyperparameter_sweep_{attack_type}_{self.alias}.json'
-        with open(json_file_path, 'w') as f:
-            json.dump(results_dict, f, indent=4)
-        print(f'Evaluation results are saved under "{json_file_path}".')
-
         return results_dict
 
     def attack_comparison(self, attack_types):
@@ -97,7 +92,7 @@ class Experiment_class():
         for attack_type in attack_types:
             results_dict[attack_type] = {}
             print(f'\t\t-------------------------- Processing Attack: {attack_type} --------------------------\n')
-            results_dict[attack_type]["adversarial_distance_l1"], results_dict[attack_type]["adversarial_distance_l2"], results_dict[attack_type]["runtime"], results_dict[attack_type]["adversarial_accuracy_l1"], results_dict[attack_type]["adversarial_accuracy_l2"], results_dict[attack_type]["attack_success_rate"], results_dict[attack_type]["attack_success_rate_in_epsilon_l1"], results_dict[attack_type]["attack_success_rate_in_epsilon_l2"], results_dict[attack_type]["mean_adv_distance_l1"], results_dict[attack_type]["mean_adv_distance_l2"], adv_images = calculation(
+            results_dict[attack_type]["adversarial_distance_l1"], results_dict[attack_type]["adversarial_distance_l2"], results_dict[attack_type]["runtime"], results_dict[attack_type]["attack_success_rate"], results_dict[attack_type]["attack_success_rate_in_epsilon_l1"], results_dict[attack_type]["attack_success_rate_in_epsilon_l2"], results_dict[attack_type]["mean_adv_distance_l1"], results_dict[attack_type]["mean_adv_distance_l2"], adv_images = calculation(
                                                                 art_net=self.art_net,
                                                                 fb_net=self.fb_net,
                                                                 net = self.net,
@@ -137,11 +132,6 @@ class Experiment_class():
                         img.save(os.path.join(image_dir, f'{attack_type}_{i}_adversarial.png'))
                     if i % 3 == 2:
                         img.save(os.path.join(image_dir, f'{attack_type}_{i}_delta.png'))
-        
-        json_file_path = f'./data/attack_comparison_{self.alias}.json'
-        with open(json_file_path, 'w') as f:
-            json.dump(results_dict, f, indent=4)
-        print(f'Evaluation results are saved under "{json_file_path}".')
         
         return results_dict
 
@@ -184,28 +174,27 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
                           lr=learning_rate,
                           beta=beta,
                           verbose=verbose)
-    robust_predictions_l1 = 0
+    #robust_predictions_l1 = 0
+    #robust_predictions_l2 = 0
+    #robust_predictions_en = 0
     attack_successes_in_epsilon_l1 = 0
-    robust_predictions_l2 = 0
-    robust_predictions_en = 0
     attack_successes_in_epsilon_l2 = 0
     attack_successes_in_en = 0
     attack_successes = 0
     clean_correct = 0
 
-
     for i, x in enumerate(xtest):
 
-        x = x.unsqueeze(0)
+        x = x.unsqueeze(0).clamp(0, 1)
         y = ytest[i].unsqueeze(0)
-        outputs = art_net.predict(x.cpu())
         
-        _, clean_predicted = torch.max(torch.tensor(outputs).data, 1)
-            
-        if int(clean_predicted.item()) != int(y.item()):
-            if verbose:
-                print('Misclassified input. Not attacking.')
-            continue        
+        #outputs = art_net.predict(x.cpu())
+        #_, clean_predicted = torch.max(torch.tensor(outputs).data, 1)
+        #    
+        #if int(clean_predicted.item()) != int(y.item()):
+        #    if verbose:
+        #        print('Misclassified input. Not attacking.')
+        #    continue        
 
         clean_correct += 1
         start_time = time.time()
@@ -219,14 +208,14 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
                                                                 verbose = verbose)
             x_adversarial = torch.from_numpy(x_adversarial)
         elif attack_type == 'brendel_bethge':
-            _, x_adversarial, _ = attacker(fb_net, x, y, epsilons=[epsilon_l1])
+            _, x_adversarial, _ = attacker(fb_net, x, criterion=y, epsilons=[epsilon_l1])
             x_adversarial = x_adversarial[0].cpu()
-        elif attack_type == 'pointwise_blackbox':
-            _, x_adversarial, _ = attacker(fb_net, x, y)
+        elif attack_type == 'pointwise_blackbox' or attack_type == 'pointwise_blackbox+boundary' or attack_type == 'pointwise_blackbox+hopskipjump':
+            _, x_adversarial, _ = attacker(fb_net, x, criterion=y, epsilons=[epsilon_l1])
             x_adversarial = x_adversarial[0].cpu()    
         elif attack_type == 'sparse_rs_blackbox':
             _, x_adversarial = attacker.perturb(x, y)
-            x_adversarial = x_adversarial[0].cpu()        
+            x_adversarial = x_adversarial.cpu()    
         elif attack_type == 'original_AutoAttack':
             x_adversarial = attacker.run_standard_evaluation(x, y)
             x_adversarial = x_adversarial.cpu()
@@ -254,10 +243,9 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
         distance_l2 = torch.norm(delta, p=float(2))
 
         if int(predicted_adversarial.item()) == int(y.item()):
-            robust_predictions_l1 += 1
-            robust_predictions_l2 += 1
-            robust_predictions_en+=1
-            #print(f"attack number {i} failed")
+            #robust_predictions_l1 += 1
+            #robust_predictions_l2 += 1
+            #robust_predictions_en+=1
             if verbose:
                 print(f'Image {i}: No adversarial example found.')
         else:
@@ -269,9 +257,9 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
         
             distance_list_l1.append(distance_l1.item())
             distance_list_l2.append(distance_l2.item())
-            robust_predictions_l1 += (round(distance_l1.item(), 2) > epsilon_l1) 
-            robust_predictions_l2 += (round(distance_l2.item(), 2) > epsilon_l2) 
-            robust_predictions_en += (round(distance_l2.item(), 2) > epsilon_l2) and  (round(distance_l1.item(), 2) > epsilon_l1) 
+            #robust_predictions_l1 += (round(distance_l1.item(), 3) > epsilon_l1) 
+            #robust_predictions_l2 += (round(distance_l2.item(), 3) > epsilon_l2) 
+            #robust_predictions_en += (round(distance_l2.item(), 3) > epsilon_l2) and (round(distance_l1.item(), 3) > epsilon_l1) 
             attack_successes_in_epsilon_l1 += (round(distance_l1.item(), 3) <= epsilon_l1)
             attack_successes_in_epsilon_l2 += (round(distance_l2.item(), 3) <= epsilon_l2) 
             attack_successes_in_en += ((round(distance_l2.item(), 3) <= epsilon_l2) or (round(distance_l1.item(), 3) <= epsilon_l1)) 
@@ -284,11 +272,11 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
         if verbose:
             print(f'Image {i}\t\tAdversarial_distance (L1 / L2): {distance_l1:.4f} / {distance_l2:.5f}\t\tRuntime: {runtime:5f} seconds')
         if (i + 1) % 20 == 0:
-            print(f'{i+1} images done. Current Adversarial Accuracy (L1 / L2/ EN): {robust_predictions_l1*100/(i+1):2f}% / {robust_predictions_l2*100/(i+1):2f}%/{robust_predictions_en*100/(i+1):2f}%')
+            print(f'{i+1} images done. Current Attack Success Rate (Overall / L1 / L2 / EN): {attack_successes*100/(i+1):2f}% / {attack_successes_in_epsilon_l1*100/(i+1):2f}% / {attack_successes_in_epsilon_l2*100/(i+1):2f}% / {attack_successes_in_en*100/(i+1):2f}%')
 
-    adversarial_accuracy_l1 = (robust_predictions_l1 / len(xtest)) * 100
-    adversarial_accuracy_l2 = (robust_predictions_l2 / len(xtest)) * 100
-    adversarial_accuracy_en = (robust_predictions_en / len(xtest)) * 100
+    #adversarial_accuracy_l1 = (robust_predictions_l1 / len(xtest)) * 100
+    #adversarial_accuracy_l2 = (robust_predictions_l2 / len(xtest)) * 100
+    #adversarial_accuracy_en = (robust_predictions_en / len(xtest)) * 100
     attack_success_rate = (attack_successes / clean_correct) * 100
     attack_success_rate_in_epsilon_l1 = (attack_successes_in_epsilon_l1 / clean_correct) * 100
     attack_success_rate_in_epsilon_l2 = (attack_successes_in_epsilon_l2 / clean_correct) * 100
@@ -297,7 +285,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
     mean_adv_distance_l2 = (sum(distance_list_l2) / attack_successes) if attack_successes else 5
     mean_sparsity=sum(sparsity_list)/attack_successes if attack_successes else 1.0
 
-    print(f'\nAdversarial accuracy (L1 / L2/ EN): {adversarial_accuracy_l1:.2f} / {adversarial_accuracy_l2:.2f}/ {adversarial_accuracy_en:.2f}%\n')
+    #print(f'\nAdversarial accuracy (L1 / L2/ EN): {adversarial_accuracy_l1:.2f} / {adversarial_accuracy_l2:.2f}/ {adversarial_accuracy_en:.2f}%\n')
     print(f'\naverage sparsity: {mean_sparsity*100:.2f}%\n')
 
-    return distance_list_l1, distance_list_l2, runtime_list, adversarial_accuracy_l1, adversarial_accuracy_l2, attack_success_rate, attack_success_rate_in_epsilon_l1, attack_success_rate_in_epsilon_l2, mean_adv_distance_l1, mean_adv_distance_l2, saved_images
+    return distance_list_l1, distance_list_l2, runtime_list, attack_success_rate, attack_success_rate_in_epsilon_l1, attack_success_rate_in_epsilon_l2, mean_adv_distance_l1, mean_adv_distance_l2, saved_images

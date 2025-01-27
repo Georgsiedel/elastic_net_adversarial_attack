@@ -30,7 +30,7 @@ def load_dataset(dataset, dataset_split, root='../data'):
         transforms.ToTensor(),
                                     ])
         
-        testset = datasets.CIFAR10(root=root+'/cifar', train=False, download=True, transform=transform)
+        testset = datasets.CIFAR10(root=root, train=False, download=True, transform=transform)
 
     else: 
         raise KeyError("Dataset not implemented.")
@@ -62,8 +62,7 @@ def load_dataset(dataset, dataset_split, root='../data'):
     elif dataset == 'cifar10':
 
         transform = transforms.Compose([
-        transforms.ToTensor(),
-                                    ])
+        transforms.ToTensor()])
         
         testset = datasets.CIFAR10(root=root+'/cifar', train=False, download=True, transform=transform)
 
@@ -110,17 +109,19 @@ def get_model(dataset, modelname, norm=None):
         elif modelname == 'corruption_robust':
             #self trained with massive random data augmentation and JSD consistency loss, but no adversarial objective
             net = wideresnet.WideResNet_28_4(10, 'CIFAR10', normalized=True, block=wideresnet.WideBasic, activation_function='silu')
-        model = torch.load(f'./models/pretrained_models/{modelname}.pth', map_location=device)
+        model = torch.load(f'./models/pretrained_models/{modelname}.pth', map_location=device, weights_only=True)
         state_dict = model["model_state_dict"]
         new_state_dict = {key.replace("module.", ""): value for key, value in state_dict.items()}
         net.load_state_dict(new_state_dict, strict=True)
-    elif modelname == 'standard_resnet50' and dataset == 'imagenet':
+    elif modelname == 'standard' and dataset == 'imagenet':
         from torchvision.models import resnet50, ResNet50_Weights
         net = resnet50(weights=ResNet50_Weights.DEFAULT).to(device)
     else: #robustbench models
         net = load_model(model_name=modelname, dataset=dataset, threat_model=norm) #'Wang2023Better_WRN-28-10'
         modelname = modelname + '_' + norm
-        
+    
+    net.to(device)
+
     #net = torch.nn.DataParallel(net)
     net.eval()
 
@@ -146,8 +147,6 @@ def get_model(dataset, modelname, norm=None):
                                device_type=device,
                                clip_values=(0.0, 1.0))
     fb_net = fb.PyTorchModel(net, bounds=(0.0, 1.0), device=device)
-
-    net.to(device)
 
     alias = modelname + '_' + dataset
 
