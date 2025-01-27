@@ -5,7 +5,7 @@ import json
 import torch
 
 def main(dataset, samplesize_accuracy, samplesize_attack, dataset_root, model, model_norm, hyperparameter, hyperparameter_range, 
-         attack_type, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations, save_images, verbose):
+         attack_type, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations, batchsize, save_images, verbose):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Load dataset
@@ -26,6 +26,7 @@ def main(dataset, samplesize_accuracy, samplesize_attack, dataset_root, model, m
         eps_iter=eps_iter,
         norm=norm,
         max_iterations=max_iterations,
+        batchsize=batchsize,
         save_images=save_images,
         verbose=verbose
     )
@@ -47,24 +48,25 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hyperparameter Sweep Script")
     parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'imagenet'],
                         help="Dataset to use")
-    parser.add_argument('--samplesize_accuracy', type=int, default=1000, help="Split size for test accuracy evaluation")
-    parser.add_argument('--samplesize_attack', type=int, default=20, help="Split size for attack evaluation")
+    parser.add_argument('--samplesize_accuracy', type=int, default=10000, help="Split size for test accuracy evaluation")
+    parser.add_argument('--samplesize_attack', type=int, default=500, help="Split size for attack evaluation")
     parser.add_argument('--dataset_root', type=str, default='../data', help="data folder relative root")
-    parser.add_argument('--model', type=str, default='standard',
+    parser.add_argument('--model', type=str, default='corruption_robust',
                         help="Model name (e.g., standard, MainiAVG, etc.)")
-    parser.add_argument('--model_norm', type=str, default='L2',
+    parser.add_argument('--model_norm', type=str, default='Linf',
                         help="Attack Norm the selected model was trained with. Only necessary if you load robustbench models")
     parser.add_argument('--hyperparameter', type=str, default='learning_rate', help="Hyperparameter to sweep")
-    parser.add_argument('--hyperparameter_range', type=float, nargs='+', default=[1.0],
+    parser.add_argument('--hyperparameter_range', type=float, nargs='+', default=[0.1,0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0,2.5,3.0,4.0],
                         help="Range of hyperparameter values (space-separated)")
     parser.add_argument('--attack_type', type=str, default='exp_attack_l1',
                         help="Type of attack for the hyperparameter sweep")
-    parser.add_argument('--epsilon_l1', type=float, default=12, help="L1 norm epsilon (default: 12 for CIFAR10, 75 otherwise)")
+    parser.add_argument('--epsilon_l1', type=float, default=6, help="L1 norm epsilon (default: 12 for CIFAR10, 75 otherwise)")
     parser.add_argument('--epsilon_l2', type=float, default=0.5, help="L2 norm epsilon")
     parser.add_argument('--eps_iter', type=float, default=0.1, help="Step size for manual iterative attacks")
     parser.add_argument('--attack_norm', type=int, default=1, choices=[1, 2, float('inf')],
                         help="Attack norm type (1, 2, float('inf'))")
     parser.add_argument('--max_iterations', type=int, default=300, help="Maximum iterations for attacks")
+    parser.add_argument('--batchsize', type=int, default=1, help="Batchsize to run every adversarial attack on")
     parser.add_argument('--save_images', type=int, default=1, help="Integer > 0: number of saved images per attack, 0: do not save)")
     parser.add_argument('--verbose', type=bool, default=False, help="Verbose output")
 
@@ -72,5 +74,5 @@ if __name__ == "__main__":
     main(
         args.dataset, args.samplesize_accuracy, args.samplesize_attack, args.dataset_root, args.model, args.model_norm, args.hyperparameter, 
         args.hyperparameter_range,  args.attack_type, args.epsilon_l1, args.epsilon_l2, args.eps_iter, args.attack_norm, args.max_iterations, 
-        args.save_images, args.verbose
+        args.batchsize, args.save_images, args.verbose
     )

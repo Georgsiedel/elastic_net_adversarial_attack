@@ -25,13 +25,15 @@ class AdversarialAttacks:
     self.norm = norm
     self.max_iterations = max_iterations
     self.net = net
-  def init_attacker(self, attack_type, lr=None, beta=None, verbose=False):
+  def init_attacker(self, attack_type, lr=None, beta=None, quantile=None, verbose=False):
 
     kwargs = {'verbose': verbose}
     if lr is not None:
         kwargs['learning_rate'] = lr
     if beta is not None:
         kwargs['beta'] = beta
+    if quantile is not None:
+        kwargs['quantile'] = quantile
 
     if attack_type=='fast_gradient_method':
         return FastGradientMethod(self.art_net,
@@ -93,12 +95,12 @@ class AdversarialAttacks:
         return att
     elif attack_type=='pointwise_blackbox+boundary':
         #https://openreview.net/pdf?id=S1EHOsC9tX
-        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.boundary_attack.BoundaryAttack(steps=1000))
+        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.boundary_attack.BoundaryAttack(steps=25000))
         att._distance = fb.distances.l1
         return att
     elif attack_type=='pointwise_blackbox+hopskipjump':
         #https://openreview.net/pdf?id=S1EHOsC9tX
-        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.hop_skip_jump.HopSkipJumpAttack(steps=10, max_gradient_eval_steps=500))
+        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.hop_skip_jump.HopSkipJumpAttack(steps=64, max_gradient_eval_steps=10000))
         att._distance = fb.distances.l1
         return att
     elif attack_type=='sparse_rs_blackbox':
