@@ -43,7 +43,7 @@ class Experiment_class():
 
             results_dict[hyperparameter+str(value)] = {}
             print(f'\t\t-------------- Hyperparameter Sweep for Attack: {attack_type}: {hyperparameter} = {value} ----------------\n')
-            _, _, _, _, results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l1"], results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l2"], results_dict[hyperparameter+str(value)]["mean_adv_distance_l1"], results_dict[hyperparameter+str(value)]["mean_adv_distance_l2"], adv_images, results_dict[hyperparameter+str(value)]["mean_adv_distance_l2"] = calculation(
+            _, _, _, _, results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l1"], results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l2"], results_dict[hyperparameter+str(value)]["mean_adv_distance_l1"], results_dict[hyperparameter+str(value)]["mean_adv_distance_l2"], adv_images, results_dict[hyperparameter+str(value)]["average_sparsity"] = calculation(
                                                                 art_net=self.art_net,
                                                                 fb_net=self.fb_net,
                                                                 net = self.net,
@@ -70,7 +70,7 @@ class Experiment_class():
                    round(results_dict[hyperparameter+str(value)]["mean_adv_distance_l2"], 4))
         
             if adv_images:
-                image_dir = f'./data/attack_comparison_{self.alias}_images'
+                image_dir = f'./data/hyperparameter_sweep_{self.alias}_images'
                 os.makedirs(image_dir, exist_ok=True)
                 for i, img in enumerate(adv_images):
                     if img.dim() == 3:  
@@ -227,7 +227,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
         elif attack_type == 'original_AutoAttack':
             x_adversarial = attacker.run_standard_evaluation(x, y)
             x_adversarial = x_adversarial.cpu()
-        elif attack_type == 'original_AutoAttack_apgd-only':
+        elif attack_type == 'original_AutoAttack_apgd_only':
             x_adversarial = attacker.run_standard_evaluation(x, y,bs=1)
             x_adversarial = x_adversarial.cpu()
         elif attack_type == 'custom_apgd':
@@ -277,8 +277,8 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
                 if verbose:
                     print(f'Image {i + j}\t\tSuccesful attack with adversarial_distance (L1 / L2): {distance_l1[j]:.4f} / {distance_l2[j]:.5f}')
 
-        # Print progress summary after every 20 images
-        if (i + x.size(0) - counter) >= 10:
+        # Print progress summary after every 50 images
+        if (i + x.size(0) - counter) >= 20:
             counter = i + x.size(0)
             print(
                 f'{i+x.size(0)} images done. Current Attack Success Rate (Overall / L1 / L2 / EN): '
