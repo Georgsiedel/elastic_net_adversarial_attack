@@ -68,7 +68,7 @@ class AdversarialAttacks:
                                    device=device,
                                    version='standard',
                                    **kwargs)
-    elif attack_type=='original_AutoAttack_apgd-only':
+    elif attack_type=='original_AutoAttack_apgd_only':
         attack= original_AutoAttack(self.net, 
                                    norm='L1', 
                                    eps=self.epsilon,
