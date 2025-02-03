@@ -70,7 +70,7 @@ class Experiment_class():
                    round(results_dict[hyperparameter+str(value)]["mean_adv_distance_l2"], 4))
         
             if adv_images:
-                image_dir = f'./data/hyperparameter_sweep_{self.alias}_images'
+                image_dir = f'./data/hyperparameter_sweep_{attack_type}_{self.alias}_images'
                 os.makedirs(image_dir, exist_ok=True)
                 for i, img in enumerate(adv_images):
                     if img.dim() == 3:  
