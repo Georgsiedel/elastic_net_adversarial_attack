@@ -33,7 +33,7 @@ def main(dataset, samplesize_accuracy, samplesize_attack, dataset_root, model, m
     # Attack comparison
     results_dict_attack_comparison = Experiment.attack_comparison(attack_types)
 
-    json_file_path = f'./data/attack_comparison_{alias}.json'
+    json_file_path = f'./data/attack_comparison_{alias}_{samplesize_attack}samples_l1-epsilon-{epsilon_l1}.json'
     with open(json_file_path, 'w') as f:
         json.dump(results_dict_attack_comparison, f, indent=4)
     print(f'Evaluation results are saved under "{json_file_path}".')
