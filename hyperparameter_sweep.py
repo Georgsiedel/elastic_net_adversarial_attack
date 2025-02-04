@@ -56,7 +56,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_norm', type=str, default='Linf',
                         help="Attack Norm the selected model was trained with. Only necessary if you load robustbench models")
     parser.add_argument('--hyperparameter', type=str, default='learning_rate', help="Hyperparameter to sweep")
-    parser.add_argument('--hyperparameter_range', type=float, nargs='+', default=[1.25],
+    parser.add_argument('--hyperparameter_range', type=float, nargs='+', default=[0.1,1.0,1.5,3.0],
                         help="Range of hyperparameter values (space-separated)")
     parser.add_argument('--attack_type', type=str, default='exp_attack_l1',
                         help="Type of attack for the hyperparameter sweep")

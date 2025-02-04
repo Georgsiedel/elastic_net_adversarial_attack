@@ -13,6 +13,13 @@
         "mean_adv_distance_l2": 1.0274786741837212,
         "average_sparsity": 0.9907654154366594
     },
+    "learning_rate1.25": {
+        "attack_success_rate_in_epsilon_l1": 61.199999999999996,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 11.035444669474185,
+        "mean_adv_distance_l2": 1.1154775054626216,
+        "average_sparsity": 0.9913260008864653
+    },
     "learning_rate1.5": {
         "attack_success_rate_in_epsilon_l1": 59.599999999999994,
         "attack_success_rate_in_epsilon_l2": 0.0,
