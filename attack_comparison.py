@@ -8,8 +8,6 @@ def main(dataset, samplesize_accuracy, samplesize_attack, dataset_root, model, m
          eps_iter, norm, max_iterations, batchsize, save_images, verbose):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    print(device)
-
     # Load dataset
     xtest, ytest = utils.load_dataset(dataset=dataset, dataset_split=samplesize_accuracy, root=dataset_root)
 
@@ -43,7 +41,7 @@ def main(dataset, samplesize_accuracy, samplesize_attack, dataset_root, model, m
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hyperparameter Sweep Script")
-    parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'imagenet'],
+    parser.add_argument('--dataset', type=str, default='imagenet', choices=['cifar10', 'imagenet'],
                         help="Dataset to use")
     parser.add_argument('--samplesize_accuracy', type=int, default=10, help="Split size for test accuracy evaluation")
     parser.add_argument('--samplesize_attack', type=int, default=1, help="Split size for attack evaluation")
@@ -53,7 +51,8 @@ if __name__ == "__main__":
     parser.add_argument('--model_norm', type=str, default='Linf',
                         help="Attack Norm the selected model was trained with. Only necessary if you load robustbench models")
     parser.add_argument('--attack_types', type=str, nargs='+',
-                        default=['exp_attack_l1'
+                        default=['exp_attack_l1',
+                                 'original_AutoAttack_apgd_only',
                                  ], 
                         choices=[['fast_gradient_method',
                                 'projected_gradient_descent', #batch
@@ -79,7 +78,7 @@ if __name__ == "__main__":
                                 'exp_attack_l1',
                                 'custom_apgd']], 
                         help="List of attack types for comparison (space-separated). ")
-    parser.add_argument('--epsilon_l1', type=float, default=6, help="L1 norm epsilon (default: 12 for CIFAR10, 75 otherwise)")
+    parser.add_argument('--epsilon_l1', type=float, default=12, help="L1 norm epsilon (default: 12 for CIFAR10, 75 otherwise)")
     parser.add_argument('--epsilon_l2', type=float, default=0.5, help="L2 norm epsilon")
     parser.add_argument('--eps_iter', type=float, default=0.2, help="Step size for manual iterative attacks")
     parser.add_argument('--attack_norm', type=int, default=1, choices=[1, 2, float('inf')],

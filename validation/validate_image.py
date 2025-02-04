@@ -16,7 +16,7 @@ def validate(path):
             if pixels[x, y][0] != 255 or pixels[x, y][1] != 255 or pixels[x, y][2] != 255:
                 non_white.append((x, y))
 
-    print(f'There are {len(non_white)} non-white pixels on this image.')
+    print(f'There are {len(non_white)} non-white pixels on this image. {path}')
 
     if len(non_white) > 0:
         print('This image is valid.')

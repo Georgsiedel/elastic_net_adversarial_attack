@@ -262,7 +262,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
                 if 3 * save_images > len(saved_images):  # Save only successful adversarial examples
                     saved_images.append(x.cpu()[j])
                     saved_images.append(x_adversarial.cpu()[j])
-                    inverted_delta = 1.0 - delta[j]
+                    inverted_delta = (delta[j] * 10).clamp(0, 1) #perturbations are magnified 10x for better visibility
                     saved_images.append(inverted_delta)
 
                 distance_list_l1.append(distance_l1[j].item())
