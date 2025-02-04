@@ -1,0 +1,36 @@
+{
+    "exp_attack_l1": {
+        "adversarial_distance_l1": [
+            11.984719276428223
+        ],
+        "adversarial_distance_l2": [
+            0.7320685982704163
+        ],
+        "runtime": [
+            25.94758367538452
+        ],
+        "attack_success_rate": 100.0,
+        "attack_success_rate_in_epsilon_l1": 100.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 11.984719276428223,
+        "mean_adv_distance_l2": 0.7320685982704163,
+        "average_sparsity": 0.9690290178571429
+    },
+    "original_AutoAttack_apgd_only": {
+        "adversarial_distance_l1": [
+            12.000059127807617
+        ],
+        "adversarial_distance_l2": [
+            0.600837767124176
+        ],
+        "runtime": [
+            7.7088563442230225
+        ],
+        "attack_success_rate": 100.0,
+        "attack_success_rate_in_epsilon_l1": 100.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 12.000059127807617,
+        "mean_adv_distance_l2": 0.600837767124176,
+        "average_sparsity": 0.97238387542517
+    }
+}

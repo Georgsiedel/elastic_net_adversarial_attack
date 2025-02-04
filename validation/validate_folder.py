@@ -16,7 +16,7 @@ def validate_folder(path):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', type=str,
-                        default='data/attack_comparison_standard_cifar10_images',
+                        default='data/attack_comparison_standard_imagenet_images',
                         help='Path of image to validate')
     args = parser.parse_args()
 

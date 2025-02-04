@@ -157,7 +157,6 @@ class AdversarialAttacks:
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
                       epsilon=self.epsilon,
-                        learning_rate=2.25,
                       **kwargs)
     elif attack_type=='exp_attack_l1_ada':
         return ExpAttackL1Ada(self.art_net,
