@@ -1,0 +1,19 @@
+{
+    "exp_attack_l1": {
+        "adversarial_distance_l1": [
+            5.855837345123291
+        ],
+        "adversarial_distance_l2": [
+            1.4338866472244263
+        ],
+        "runtime": [
+            4.492751121520996
+        ],
+        "attack_success_rate": 100.0,
+        "attack_success_rate_in_epsilon_l1": 100.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 5.855837345123291,
+        "mean_adv_distance_l2": 1.4338866472244263,
+        "average_sparsity": 0.9723307291666666
+    }
+}

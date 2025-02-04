@@ -1,4 +1,4 @@
-
+import validation.validate_image
 from adversarial_attack.attacks import AdversarialAttacks
 import torch
 import time
@@ -75,6 +75,9 @@ class Experiment_class():
                 for i, img in enumerate(adv_images):
                     if img.dim() == 3:  
                         img = img.permute(1, 2, 0)
+
+                    validation.validate_image.validate_tensor(img)
+
                     img = (img * 255).clamp(0, 255).byte().numpy()
                     img = Image.fromarray(img)
 
