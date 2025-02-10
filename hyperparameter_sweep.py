@@ -38,7 +38,7 @@ def main(dataset, samplesize_accuracy, samplesize_attack, dataset_root, model, m
         attack_type=attack_type
     )
 
-    json_file_path = f'./data/hyperparameter_sweep_{attack_type}_{alias}_{samplesize_attack}samples_l1-epsilon-{epsilon_l1}.json'
+    json_file_path = f'./data/hyperparameter_sweep_{hyperparameter}_{attack_type}_{alias}_{samplesize_attack}samples_l1-epsilon-{epsilon_l1}.json'
     with open(json_file_path, 'w') as f:
         json.dump(results_dict_hyperparameter_sweep, f, indent=4)
     print(f'Evaluation results are saved under "{json_file_path}".')
@@ -52,11 +52,11 @@ if __name__ == "__main__":
     parser.add_argument('--samplesize_attack', type=int, default=500, help="Split size for attack evaluation")
     parser.add_argument('--dataset_root', type=str, default='../data', help="data folder relative root")
     parser.add_argument('--model', type=str, default='Salman2020Do_R50',
-                        help="Model name (e.g., standard, MainiAVG, etc.)")
+                        help="Model name (e.g., standard, ViT_revisiting, Salman2020Do_R50, corruption_robust, MainiAVG, etc.)")
     parser.add_argument('--model_norm', type=str, default='Linf',
                         help="Attack Norm the selected model was trained with. Only necessary if you load robustbench models")
     parser.add_argument('--hyperparameter', type=str, default='learning_rate', help="Hyperparameter to sweep")
-    parser.add_argument('--hyperparameter_range', type=float, nargs='+', default=[1.5],
+    parser.add_argument('--hyperparameter_range', type=float, nargs='+', default=[1.0,3.0],#0.0001,0.001,0.01,0.1,1.0,0.025
                         help="Range of hyperparameter values (space-separated)")
     parser.add_argument('--attack_type', type=str, default='exp_attack_l1',
                         help="Type of attack for the hyperparameter sweep")

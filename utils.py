@@ -11,6 +11,7 @@ cuda = True if torch.cuda.is_available() else False
 import torch
 import torchvision
 import torchvision.transforms as transforms
+import timm
 
 def load_dataset(dataset, dataset_split, root='../data'):
 
@@ -113,9 +114,17 @@ def get_model(dataset, modelname, norm=None):
         state_dict = model["model_state_dict"]
         new_state_dict = {key.replace("module.", ""): value for key, value in state_dict.items()}
         net.load_state_dict(new_state_dict, strict=True)
+
     elif modelname == 'standard' and dataset == 'imagenet':
         from torchvision.models import resnet50, ResNet50_Weights
-        net = resnet50(weights=ResNet50_Weights.DEFAULT).to(device)
+        net = resnet50(weights=ResNet50_Weights.DEFAULT)
+    elif modelname == 'ViT_revisiting' and dataset == 'imagenet':
+        net = timm.models.vision_transformer.vit_base_patch16_224(pretrained=False)
+        ckpt = torch.load(f'./models/pretrained_models/{modelname}.pt', map_location=device, weights_only=True) #['model']
+        ckpt = {k.replace('module.', ''): v for k, v in ckpt.items()}
+        ckpt = {k.replace('base_model.', ''): v for k, v in ckpt.items()}
+        ckpt = {k.replace('se_', 'se_module.'): v for k, v in ckpt.items()}
+        net.load_state_dict(ckpt)
     else: #robustbench models
         net = load_model(model_name=modelname, dataset=dataset, threat_model=norm) #'Wang2023Better_WRN-28-10'
         modelname = modelname + '_' + norm

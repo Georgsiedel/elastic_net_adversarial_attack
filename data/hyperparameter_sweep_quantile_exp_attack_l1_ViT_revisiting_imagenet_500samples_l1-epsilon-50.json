@@ -1,0 +1,9 @@
+{
+    "quantile0.999": {
+        "attack_success_rate_in_epsilon_l1": 32.6,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 33.142288576605864,
+        "mean_adv_distance_l2": 3.0597836751879357,
+        "average_sparsity": 0.9986581384854557
+    }
+}

@@ -49,7 +49,7 @@ class ExpAttack(ElasticNet):
         classifier: "CLASSIFIER_CLASS_LOSS_GRADIENTS_TYPE",
         confidence: float = 0.0,
         targeted: bool = False,
-        learning_rate: float =1.0,
+        learning_rate: float = 2.25,
         binary_search_steps: int = 9,
         max_iter: int = 100,
         beta: float = 1e-3,
@@ -57,7 +57,7 @@ class ExpAttack(ElasticNet):
         batch_size: int = 1,
         decision_rule: str = "EN",
         verbose: bool = True,
-        quantile:float =0.9,
+        quantile:float = 0.9,
         smooth:float=False
     ) -> None:
         """

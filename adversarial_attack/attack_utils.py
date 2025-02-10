@@ -76,7 +76,7 @@ class Experiment_class():
                     if img.dim() == 3:  
                         img = img.permute(1, 2, 0)
 
-                    validation.validate_image.validate_tensor(img)
+                    #validation.validate_image.validate_tensor(img)
 
                     img = (img * 255).clamp(0, 255).byte().numpy()
                     img = Image.fromarray(img)

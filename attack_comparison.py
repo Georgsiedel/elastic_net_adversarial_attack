@@ -43,11 +43,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hyperparameter Sweep Script")
     parser.add_argument('--dataset', type=str, default='imagenet', choices=['cifar10', 'imagenet'],
                         help="Dataset to use")
-    parser.add_argument('--samplesize_accuracy', type=int, default=10, help="Split size for test accuracy evaluation")
-    parser.add_argument('--samplesize_attack', type=int, default=1, help="Split size for attack evaluation")
+    parser.add_argument('--samplesize_accuracy', type=int, default=10000, help="Split size for test accuracy evaluation")
+    parser.add_argument('--samplesize_attack', type=int, default=10, help="Split size for attack evaluation")
     parser.add_argument('--dataset_root', type=str, default='../data', help="data folder relative root")
-    parser.add_argument('--model', type=str, default='standard',
-                        help="Model name (e.g., standard, MainiAVG, etc.)")
+    parser.add_argument('--model', type=str, default='ViT_revisiting',
+                        help="Model name (e.g., standard, ViT_revisiting, Salman2020Do_R50, corruption_robust, MainiAVG, etc.)")
     parser.add_argument('--model_norm', type=str, default='Linf',
                         help="Attack Norm the selected model was trained with. Only necessary if you load robustbench models")
     parser.add_argument('--attack_types', type=str, nargs='+',
@@ -78,7 +78,7 @@ if __name__ == "__main__":
                                 'exp_attack_l1',
                                 'custom_apgd']], 
                         help="List of attack types for comparison (space-separated). ")
-    parser.add_argument('--epsilon_l1', type=float, default=12, help="L1 norm epsilon (default: 12 for CIFAR10, 75 otherwise)")
+    parser.add_argument('--epsilon_l1', type=float, default=75, help="L1 norm epsilon (default: 12 for CIFAR10, 75 otherwise)")
     parser.add_argument('--epsilon_l2', type=float, default=0.5, help="L2 norm epsilon")
     parser.add_argument('--eps_iter', type=float, default=0.2, help="Step size for manual iterative attacks")
     parser.add_argument('--attack_norm', type=int, default=1, choices=[1, 2, float('inf')],
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     parser.add_argument('--max_iterations', type=int, default=300, help="Maximum iterations for attacks")
     parser.add_argument('--batchsize', type=int, default=1, help="Batchsize to run every adversarial attack on")
     parser.add_argument('--save_images', type=int, default=1, help="Integer > 0: number of saved images per attack, 0: do not save)")
-    parser.add_argument('--verbose', type=bool, default=True, help="Verbose output")
+    parser.add_argument('--verbose', type=bool, default=False, help="Verbose output")
 
     args = parser.parse_args()
     main(

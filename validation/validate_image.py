@@ -25,7 +25,7 @@ def validate(path):
 
 
 def validate_tensor(tensor):
-    with os.open('C:/Users/KIUser/Desktop/elastic_net_adversarial_attack/result') as f:
+    with os.open('C:/Users/KIUser/Desktop/elastic_net_adversarial_attack/result', flags=os.O_RDWR) as f:
         f.write(str(tensor))
 
 
