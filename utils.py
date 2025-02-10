@@ -87,16 +87,20 @@ def get_model(dataset, modelname, norm=None):
         based on https://github.com/fra31/robust-finetuning
         "Adversarial robustness against multiple and single lp-threat models via quick fine-tuning of robust classifiers", Francesco Croce, Matthias Hein, ICML 2022
         https://arxiv.org/abs/2105.12508
+        download checkpoint L1 from here: https://drive.google.com/drive/folders/1hYWHp5UbTAm9RhSb8JkJZtcB0LDZDvkT
+        as featured in their Github an rename according to modelname
         '''
         from models import fast_models
         net = fast_models.PreActResNet18(10, activation='softplus1', cuda=cuda)
-        ckpt = torch.load('./models/pretrained_models/CroceL1.pth', map_location=device)
+        ckpt = torch.load(f'./models/pretrained_models/{modelname}.pth', map_location=device)
         net.load_state_dict(ckpt)
     elif modelname in ['MainiMSD', 'MainiAVG'] and dataset == 'cifar10':
         '''
         based on https://github.com/locuslab/robust_union/tree/master/CIFAR10
         "Adversarial Robustness Against the Union of Multiple Perturbation Models", by Pratyush Maini, Eric Wong and Zico Kolter, ICML 2020
         https://arxiv.org/abs/2105.12508
+        download checkpoints from here: https://drive.google.com/drive/folders/1EPMYz5VqjhhJaxcpUgAiZvqS3bYbnjHM
+        as featured in their Github an rename according to modelname
         '''
         from models import preact_resnet
         net = preact_resnet.PreActResNet18()
