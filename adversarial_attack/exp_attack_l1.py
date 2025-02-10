@@ -41,7 +41,8 @@ class ExpAttackL1(EvasionAttack):
         "batch_size",
         "decision_rule",
         "verbose",
-        "quantile"
+        "quantile",
+        "perturbation_blackbox"
     ]
     _estimator_requirements = (BaseEstimator, LossGradientsMixin, ClassifierMixin)
     _predefined_losses = [None, "cross_entropy", "difference_logits_ratio"]
@@ -58,7 +59,8 @@ class ExpAttackL1(EvasionAttack):
         smooth:float=-1.0,
         epsilon:float=12,
         quantile:float=0.90,
-        loss_type= "cross_entropy"
+        loss_type= "cross_entropy",
+        perturbation_blackbox=0.0
     ) -> None:
         """
         Create an ElasticNet attack instance.
@@ -269,7 +271,7 @@ class ExpAttackL1(EvasionAttack):
 
         # Compute success rate of the EAD attack
         logger.info(
-            "Success rate of EAD attack: %.2f%%",
+            "Success rate of exp attack: %.2f%%",
             100 * compute_success(self.estimator, x, y, x_adv, self.targeted, batch_size=self.batch_size),
         )
         return x_adv

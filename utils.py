@@ -119,6 +119,7 @@ def get_model(dataset, modelname, norm=None):
         from torchvision.models import resnet50, ResNet50_Weights
         net = resnet50(weights=ResNet50_Weights.DEFAULT)
     elif modelname == 'ViT_revisiting' and dataset == 'imagenet':
+        #https://github.com/nmndeep/revisiting-at
         net = timm.models.vision_transformer.vit_base_patch16_224(pretrained=False)
         ckpt = torch.load(f'./models/pretrained_models/{modelname}.pt', map_location=device, weights_only=True) #['model']
         ckpt = {k.replace('module.', ''): v for k, v in ckpt.items()}
