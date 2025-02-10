@@ -10,6 +10,3 @@ models/__pycache__
 !/models/pretrained_models/standard.pth
 /adversarial_attack/auto_attack/__pycache__
 /validation/__pycache__
-git filter-branch --force --index-filter \
-  "git rm --cached --ignore-unmatch <path-to-large-file>" \
-  --prune-empty --tag-name-filter cat -- --all
