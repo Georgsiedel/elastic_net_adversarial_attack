@@ -5,8 +5,11 @@ models/__pycache__
 /adversarial_attack/__pycache__
 /models/cifar10
 /models/imagenet
-#/models/pretrained_models/*
-#!/models/pretrained_models/corruption_robust.pth
-#!/models/pretrained_models/standard.pth
+/models/pretrained_models/*
+!/models/pretrained_models/corruption_robust.pth
+!/models/pretrained_models/standard.pth
 /adversarial_attack/auto_attack/__pycache__
 /validation/__pycache__
+git filter-branch --force --index-filter \
+  "git rm --cached --ignore-unmatch <path-to-large-file>" \
+  --prune-empty --tag-name-filter cat -- --all
