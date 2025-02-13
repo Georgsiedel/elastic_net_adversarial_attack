@@ -48,38 +48,6 @@ def load_dataset(dataset, dataset_split, root='../data'):
 
     return xtest, ytest
 
-def load_dataset(dataset, dataset_split, root='../data'):
-
-    if dataset== 'imagenet':
-
-        transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Resize(256, antialias=True),
-        transforms.CenterCrop(224)
-                                    ])
-        
-        testset = datasets.ImageFolder(root=root+'/ImageNet/val', transform=transform)
-        
-    elif dataset == 'cifar10':
-
-        transform = transforms.Compose([
-        transforms.ToTensor()])
-        
-        testset = datasets.CIFAR10(root=root+'/cifar', train=False, download=True, transform=transform)
-
-    else: 
-        raise KeyError("Dataset not implemented.")
-    
-    # Truncated testset for experiments and ablations
-    if isinstance(dataset_split, int):
-        testset, _ = torch.utils.data.random_split(testset,
-                                                          [dataset_split, len(testset) - dataset_split],
-                                                          generator=torch.Generator().manual_seed(42))
-    
-    # Extract data and labels from torchvision dataset
-    xtest, ytest = zip(*[(data[0], data[1]) for data in testset])
-    return torch.stack(xtest), torch.tensor(ytest)
-
 def get_model(dataset, modelname, norm=None):
     
     if modelname=='CroceL1' and dataset=='cifar10': 
