@@ -95,7 +95,7 @@ class AdversarialAttacks:
         return att
     elif attack_type=='pointwise_blackbox+boundary':
         #https://openreview.net/pdf?id=S1EHOsC9tX
-        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.boundary_attack.BoundaryAttack(steps=25000))
+        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.boundary_attack.BoundaryAttack(steps=2500))
         att._distance = fb.distances.l1
         return att
     elif attack_type=='pointwise_blackbox+hopskipjump':
@@ -157,6 +157,13 @@ class AdversarialAttacks:
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
                       epsilon=self.epsilon,
+                      **kwargs)
+    elif attack_type=='exp_attack_l1_blackbox':
+        return ExpAttackL1(self.art_net,
+                      max_iter=self.max_iterations,
+                      epsilon=self.epsilon,
+                      perturbation_blackbox=0.001,
+                      samples_blackbox=100,
                       **kwargs)
     elif attack_type=='exp_attack_l1_ada':
         return ExpAttackL1Ada(self.art_net,
