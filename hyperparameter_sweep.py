@@ -51,12 +51,12 @@ if __name__ == "__main__":
     parser.add_argument('--samplesize_accuracy', type=int, default=10000, help="Split size for test accuracy evaluation")
     parser.add_argument('--samplesize_attack', type=int, default=500, help="Split size for attack evaluation")
     parser.add_argument('--dataset_root', type=str, default='../data', help="data folder relative root")
-    parser.add_argument('--model', type=str, default='Salman2020Do_R50',
+    parser.add_argument('--model', type=str, default='standard',
                         help="Model name (e.g., standard, ViT_revisiting, Salman2020Do_R50, corruption_robust, MainiAVG, etc.)")
     parser.add_argument('--model_norm', type=str, default='Linf',
                         help="Attack Norm the selected model was trained with. Only necessary if you load robustbench models")
-    parser.add_argument('--hyperparameter', type=str, default='learning_rate', help="Hyperparameter to sweep")
-    parser.add_argument('--hyperparameter_range', type=float, nargs='+', default=[1.0,3.0],#0.0001,0.001,0.01,0.1,1.0,0.025
+    parser.add_argument('--hyperparameter', type=str, default='beta', help="Hyperparameter to sweep")
+    parser.add_argument('--hyperparameter_range', type=float, nargs='+', default=[3.0,5.0,6.0,7.0,8.0,10.0,15.0,20.0,1.0,2.0],
                         help="Range of hyperparameter values (space-separated)")
     parser.add_argument('--attack_type', type=str, default='exp_attack_l1',
                         help="Type of attack for the hyperparameter sweep")
