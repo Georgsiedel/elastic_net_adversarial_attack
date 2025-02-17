@@ -52,7 +52,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_norm', type=str, default='Linf',
                         help="Attack Norm the selected model was trained with. Only necessary if you load robustbench models")
     parser.add_argument('--attack_types', type=str, nargs='+',
-                        default=[#'exp_attack_l1_blackbox',
+                        default=['exp_attack_l1_blackbox',
                                  'pointwise_blackbox',
                                  'sparse_rs_blackbox'
                                  ], 
