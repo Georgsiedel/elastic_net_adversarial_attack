@@ -1,0 +1,9 @@
+{
+    "beta8.0": {
+        "attack_success_rate_in_epsilon_l1": 42.199999999999996,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 11.342205296195514,
+        "mean_adv_distance_l2": 2.1400114964534884,
+        "average_sparsity": 0.9994606347426407
+    }
+}

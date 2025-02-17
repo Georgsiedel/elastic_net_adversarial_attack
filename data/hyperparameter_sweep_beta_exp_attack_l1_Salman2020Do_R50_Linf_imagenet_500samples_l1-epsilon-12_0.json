@@ -1,0 +1,93 @@
+{   
+    "beta0.0001": {
+        "attack_success_rate_in_epsilon_l1": 36.6,
+        "attack_success_rate_in_epsilon_l2": 3.8,
+        "mean_adv_distance_l1": 8.2667,
+        "mean_adv_distance_l2": 1.4546,
+        "average_sparsity": 0.9473
+    },
+    "beta0.001": {
+        "attack_success_rate_in_epsilon_l1": 37.2,
+        "attack_success_rate_in_epsilon_l2": 3.6,
+        "mean_adv_distance_l1": 8.4448,
+        "mean_adv_distance_l2": 1.3946,
+        "average_sparsity": 0.9647
+    },
+    "beta0.01": {
+        "attack_success_rate_in_epsilon_l1": 39.2,
+        "attack_success_rate_in_epsilon_l2": 2.4,
+        "mean_adv_distance_l1": 0.0,
+        "mean_adv_distance_l2": 0.0,
+        "average_sparsity": 0.9970
+    },
+    "beta0.1": {
+        "attack_success_rate_in_epsilon_l1": 39.2,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 8.4049,
+        "mean_adv_distance_l2": 1.3311,
+        "average_sparsity": 0.9993
+    },
+    "beta0.5": {
+        "attack_success_rate_in_epsilon_l1": 39.4,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 8.836663581393092,
+        "mean_adv_distance_l2": 1.4757107729234067,
+        "average_sparsity": 0.9994659745243268
+    },
+    "beta1.0": {
+        "attack_success_rate_in_epsilon_l1": 41.2,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 9.3452,
+        "mean_adv_distance_l2": 1.6108,
+        "average_sparsity": 0.9995
+    },
+    "beta2.0": {
+        "attack_success_rate_in_epsilon_l1": 41.199999999999996,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 9.851013500713607,
+        "mean_adv_distance_l2": 1.7863928062244527,
+        "average_sparsity": 0.999500592864573
+    },
+    "beta3.0": {
+        "attack_success_rate_in_epsilon_l1": 41.6,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 10.29101422887582,
+        "mean_adv_distance_l2": 1.9195775406864972,
+        "average_sparsity": 0.9995139544700091
+    },
+    "beta5.0": {
+        "attack_success_rate_in_epsilon_l1": 42.8,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 11.001801134269929,
+        "mean_adv_distance_l2": 2.0924346135041425,
+        "average_sparsity": 0.9995072174605826
+    },
+    "beta7.0": {
+        "attack_success_rate_in_epsilon_l1": 44.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 11.3273,
+        "mean_adv_distance_l2": 2.1283,
+        "average_sparsity": 0.9994
+    },
+    "beta8.0": {
+        "attack_success_rate_in_epsilon_l1": 42.199999999999996,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 11.342205296195514,
+        "mean_adv_distance_l2": 2.1400114964534884,
+        "average_sparsity": 0.9994606347426407
+    },
+    "beta10.0": {
+        "attack_success_rate_in_epsilon_l1": 43.4,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 11.4083,
+        "mean_adv_distance_l2": 2.1643,
+        "average_sparsity": 0.9995139544700091
+    },
+    "beta15.0": {
+        "attack_success_rate_in_epsilon_l1": 43.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 11.5158,
+        "mean_adv_distance_l2": 2.231,
+        "average_sparsity": 0.9995
+    }
+}

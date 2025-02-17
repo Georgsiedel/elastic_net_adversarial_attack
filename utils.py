@@ -11,6 +11,7 @@ cuda = True if torch.cuda.is_available() else False
 import torch
 import torchvision
 import torchvision.transforms as transforms
+import timm
 
 def load_dataset(dataset, dataset_split, root='../data'):
 
@@ -47,38 +48,6 @@ def load_dataset(dataset, dataset_split, root='../data'):
 
     return xtest, ytest
 
-def load_dataset(dataset, dataset_split, root='../data'):
-
-    if dataset== 'imagenet':
-
-        transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Resize(256, antialias=True),
-        transforms.CenterCrop(224)
-                                    ])
-        
-        testset = datasets.ImageFolder(root=root+'/ImageNet/val', transform=transform)
-        
-    elif dataset == 'cifar10':
-
-        transform = transforms.Compose([
-        transforms.ToTensor()])
-        
-        testset = datasets.CIFAR10(root=root+'/cifar', train=False, download=True, transform=transform)
-
-    else: 
-        raise KeyError("Dataset not implemented.")
-    
-    # Truncated testset for experiments and ablations
-    if isinstance(dataset_split, int):
-        testset, _ = torch.utils.data.random_split(testset,
-                                                          [dataset_split, len(testset) - dataset_split],
-                                                          generator=torch.Generator().manual_seed(42))
-    
-    # Extract data and labels from torchvision dataset
-    xtest, ytest = zip(*[(data[0], data[1]) for data in testset])
-    return torch.stack(xtest), torch.tensor(ytest)
-
 def get_model(dataset, modelname, norm=None):
     
     if modelname=='CroceL1' and dataset=='cifar10': 
@@ -86,16 +55,20 @@ def get_model(dataset, modelname, norm=None):
         based on https://github.com/fra31/robust-finetuning
         "Adversarial robustness against multiple and single lp-threat models via quick fine-tuning of robust classifiers", Francesco Croce, Matthias Hein, ICML 2022
         https://arxiv.org/abs/2105.12508
+        download checkpoint L1 from here: https://drive.google.com/drive/folders/1hYWHp5UbTAm9RhSb8JkJZtcB0LDZDvkT
+        as featured in their Github an rename according to modelname
         '''
         from models import fast_models
         net = fast_models.PreActResNet18(10, activation='softplus1', cuda=cuda)
-        ckpt = torch.load('./models/pretrained_models/CroceL1.pth', map_location=device)
+        ckpt = torch.load(f'./models/pretrained_models/{modelname}.pth', map_location=device)
         net.load_state_dict(ckpt)
     elif modelname in ['MainiMSD', 'MainiAVG'] and dataset == 'cifar10':
         '''
         based on https://github.com/locuslab/robust_union/tree/master/CIFAR10
         "Adversarial Robustness Against the Union of Multiple Perturbation Models", by Pratyush Maini, Eric Wong and Zico Kolter, ICML 2020
         https://arxiv.org/abs/2105.12508
+        download checkpoints from here: https://drive.google.com/drive/folders/1EPMYz5VqjhhJaxcpUgAiZvqS3bYbnjHM
+        as featured in their Github an rename according to modelname
         '''
         from models import preact_resnet
         net = preact_resnet.PreActResNet18()
@@ -113,9 +86,18 @@ def get_model(dataset, modelname, norm=None):
         state_dict = model["model_state_dict"]
         new_state_dict = {key.replace("module.", ""): value for key, value in state_dict.items()}
         net.load_state_dict(new_state_dict, strict=True)
+
     elif modelname == 'standard' and dataset == 'imagenet':
         from torchvision.models import resnet50, ResNet50_Weights
-        net = resnet50(weights=ResNet50_Weights.DEFAULT).to(device)
+        net = resnet50(weights=ResNet50_Weights.DEFAULT)
+    elif modelname == 'ViT_revisiting' and dataset == 'imagenet':
+        #get your ViT-B 50 epochs checkpoint from here: https://github.com/nmndeep/revisiting-at
+        net = timm.models.vision_transformer.vit_base_patch16_224(pretrained=False)
+        ckpt = torch.load(f'./models/pretrained_models/{modelname}.pt', map_location=device, weights_only=True) #['model']
+        ckpt = {k.replace('module.', ''): v for k, v in ckpt.items()}
+        ckpt = {k.replace('base_model.', ''): v for k, v in ckpt.items()}
+        ckpt = {k.replace('se_', 'se_module.'): v for k, v in ckpt.items()}
+        net.load_state_dict(ckpt)
     else: #robustbench models
         net = load_model(model_name=modelname, dataset=dataset, threat_model=norm) #'Wang2023Better_WRN-28-10'
         modelname = modelname + '_' + norm
