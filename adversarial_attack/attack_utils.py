@@ -180,33 +180,16 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
                           beta=beta,
                           quantile=quantile,
                           verbose=verbose)
-    #robust_predictions_l1 = 0
-    #robust_predictions_l2 = 0
-    #robust_predictions_en = 0
+
     attack_successes_in_epsilon_l1 = 0
     attack_successes_in_epsilon_l2 = 0
     attack_successes_in_en = 0
     attack_successes = 0
-    #clean_correct = 0
     counter = 0
     
     for i in range(0, len(xtest), batchsize):
         x, y = xtest[i:min(i+batchsize, len(xtest))].clamp(0, 1), ytest[i:min(i+batchsize, len(xtest))]
 
-#    for i, x in enumerate(xtest):
-
-#        x = x.unsqueeze(0).clamp(0, 1)
-#        y = ytest[i].unsqueeze(0)
-        
-        #outputs = art_net.predict(x.cpu())
-        #_, clean_predicted = torch.max(torch.tensor(outputs).data, 1)
-        #    
-        #if int(clean_predicted.item()) != int(y.item()):
-        #    if verbose:
-        #        print('Misclassified input. Not attacking.')
-        #    continue        
-
-        #clean_correct += 1
         start_time = time.time()
 
         if attack_type == 'pgd_early_stopping':
@@ -248,7 +231,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
         output_adversarial = art_net.predict(x_adversarial)
         _, predicted_adversarial = torch.max(torch.tensor(output_adversarial).data, 1)
 
-                # Adversarial distance calculation: if no AE found, save 0.0 as distance
+        # Adversarial distance calculation: if no AE found, save 0.0 as distance
         delta = x.cpu() - x_adversarial.cpu()
         distance_l1 = torch.norm(delta.view(delta.size(0), -1), p=1, dim=1)  # Batch-wise L1 distance
         distance_l2 = torch.norm(delta.view(delta.size(0), -1), p=2, dim=1)  # Batch-wise L2 distance
@@ -289,9 +272,6 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
                 f'{attack_successes_in_epsilon_l2 * 100 / (i+x.size(0)):.2f}% / {attack_successes_in_en * 100 / (i+x.size(0)):.2f}%'
             )
 
-    #adversarial_accuracy_l1 = (robust_predictions_l1 / len(xtest)) * 100
-    #adversarial_accuracy_l2 = (robust_predictions_l2 / len(xtest)) * 100
-    #adversarial_accuracy_en = (robust_predictions_en / len(xtest)) * 100
     attack_success_rate = (attack_successes / len(xtest)) * 100
     attack_success_rate_in_epsilon_l1 = (attack_successes_in_epsilon_l1 / len(xtest)) * 100
     attack_success_rate_in_epsilon_l2 = (attack_successes_in_epsilon_l2 / len(xtest)) * 100

@@ -90,17 +90,17 @@ class AdversarialAttacks:
                                           **kwargs)
     elif attack_type=='pointwise_blackbox':
         #https://openreview.net/pdf?id=S1EHOsC9tX
-        att = fb.attacks.pointwise.PointwiseAttack()
+        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.SaltAndPepperNoiseAttack(steps=5000, across_channels=False))
         att._distance = fb.distances.l1
         return att
     elif attack_type=='pointwise_blackbox+boundary':
         #https://openreview.net/pdf?id=S1EHOsC9tX
-        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.boundary_attack.BoundaryAttack(steps=2500))
+        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.boundary_attack.BoundaryAttack())
         att._distance = fb.distances.l1
         return att
     elif attack_type=='pointwise_blackbox+hopskipjump':
         #https://openreview.net/pdf?id=S1EHOsC9tX
-        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.hop_skip_jump.HopSkipJumpAttack(steps=64, max_gradient_eval_steps=10000))
+        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.hop_skip_jump.HopSkipJumpAttack())
         att._distance = fb.distances.l1
         return att
     elif attack_type=='sparse_rs_blackbox':
@@ -163,7 +163,7 @@ class AdversarialAttacks:
                       max_iter=self.max_iterations,
                       epsilon=self.epsilon,
                       perturbation_blackbox=0.001,
-                      samples_blackbox=100,
+                      samples_blackbox=50,
                       **kwargs)
     elif attack_type=='exp_attack_l1_ada':
         return ExpAttackL1Ada(self.art_net,
