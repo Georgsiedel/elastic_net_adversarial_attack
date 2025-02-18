@@ -25,7 +25,7 @@ class AdversarialAttacks:
     self.norm = norm
     self.max_iterations = max_iterations
     self.net = net
-  def init_attacker(self, attack_type, lr=None, beta=None, quantile=None, verbose=False):
+  def init_attacker(self, attack_type, lr=None, beta=None, quantile=None, max_iterations_sweep=None, verbose=False):
 
     kwargs = {'verbose': verbose}
     if lr is not None:
@@ -34,6 +34,12 @@ class AdversarialAttacks:
         kwargs['beta'] = beta
     if quantile is not None:
         kwargs['quantile'] = quantile
+    if max_iterations_sweep is not None:
+        max_iterations_sweep = int(max_iterations_sweep)
+        if attack_type == 'sparse_rs_blackbox':
+            kwargs['n_queries'] = max_iterations_sweep
+        else:
+            self.max_iterations = max_iterations_sweep
 
     if attack_type=='fast_gradient_method':
         return FastGradientMethod(self.art_net,
@@ -162,8 +168,9 @@ class AdversarialAttacks:
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
                       epsilon=self.epsilon,
+                      quantile=0.0,
                       perturbation_blackbox=0.001,
-                      samples_blackbox=50,
+                      samples_blackbox=100,
                       **kwargs)
     elif attack_type=='exp_attack_l1_ada':
         return ExpAttackL1Ada(self.art_net,

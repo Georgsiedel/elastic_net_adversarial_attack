@@ -1,0 +1,23 @@
+{   
+    "beta1.0": {
+        "attack_success_rate_in_epsilon_l1": 36.2,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 9.51118,
+        "mean_adv_distance_l2": 1.29964,
+        "average_sparsity": 0.96805
+    },
+    "beta2.0": {
+        "attack_success_rate_in_epsilon_l1": 36.6,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 10.34992,
+        "mean_adv_distance_l2": 1.44272,
+        "average_sparsity": 0.96643
+    },
+    "beta3.0": {
+        "attack_success_rate_in_epsilon_l1": 36.8,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 10.88233,
+        "mean_adv_distance_l2": 1.55884,
+        "average_sparsity": 0.96668
+    }
+}

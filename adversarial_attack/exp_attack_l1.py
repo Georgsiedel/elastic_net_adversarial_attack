@@ -63,7 +63,7 @@ class ExpAttackL1(EvasionAttack):
         quantile:float=0.90,
         loss_type= "cross_entropy",
         perturbation_blackbox:float=0.0,
-        samples_blackbox:int=0,
+        samples_blackbox:int=100,
         max_batchsize_blackbox:int=100
     ) -> None:
         """

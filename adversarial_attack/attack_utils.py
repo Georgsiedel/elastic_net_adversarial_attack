@@ -32,7 +32,7 @@ class Experiment_class():
         
         '''
         hyperparameter sweep. Pick only one model.
-        hyperparameter = 'learning_rate', 'beta' , 'quantile'
+        hyperparameter = 'learning_rate', 'beta' , 'quantile', 'max_iterations_sweep' (overwrites max_iterations)
         hyperparameter_range: iterable
         '''
             
@@ -161,7 +161,7 @@ def attack_with_early_stopping(art_net, x, y, PGD_iterations, attacker, verbose=
             
     return adv_inputs
 
-def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations, attack_type, batchsize = 1, learning_rate = None, beta = None, quantile = None, save_images: int = 0, verbose: bool = False):
+def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations, attack_type, batchsize = 1, learning_rate = None, beta = None, quantile = None, max_iterations_sweep = None, save_images: int = 0, verbose: bool = False):
 
     sparsity_list,distance_list_l1, distance_list_l2, runtime_list = [], [], [], []
     assert save_images <= len(xtest), "Number of images to be saved is larger than the number processed"
@@ -180,6 +180,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
                           lr=learning_rate,
                           beta=beta,
                           quantile=quantile,
+                          max_iterations_sweep=max_iterations_sweep,
                           verbose=verbose)
 
     attack_successes_in_epsilon_l1 = 0
