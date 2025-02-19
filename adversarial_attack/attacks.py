@@ -159,6 +159,13 @@ class AdversarialAttacks:
         return ExpAttack(self.art_net,
                       max_iter=self.max_iterations,
                       **kwargs)
+    elif attack_type=='exp_attack_blackbox':
+        return ExpAttack(self.art_net,
+                      max_iter=self.max_iterations,
+                      quantile=0.0,
+                      perturbation_blackbox=0.001,
+                      samples_blackbox=100,
+                      **kwargs)
     elif attack_type=='exp_attack_l1':
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,

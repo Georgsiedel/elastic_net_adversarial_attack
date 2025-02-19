@@ -26,5 +26,12 @@
         "mean_adv_distance_l1": 9.91268,
         "mean_adv_distance_l2": 1.4793,
         "average_sparsity": 0.97810
+    },
+    "quantile0.999": {
+        "attack_success_rate_in_epsilon_l1": 33.8,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 10.322185087486131,
+        "mean_adv_distance_l2": 1.64625317493134,
+        "average_sparsity": 0.980580467209073
     }
 }

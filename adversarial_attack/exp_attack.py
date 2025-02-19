@@ -40,6 +40,9 @@ class ExpAttack(ElasticNet):
         "batch_size",
         "decision_rule",
         "verbose",
+        "perturbation_blackbox",
+        "samples_blackbox",
+        "max_batchsize_blackbox"
     ]
 
     _estimator_requirements = (BaseEstimator, ClassGradientsMixin)
@@ -49,7 +52,7 @@ class ExpAttack(ElasticNet):
         classifier: "CLASSIFIER_CLASS_LOSS_GRADIENTS_TYPE",
         confidence: float = 0.0,
         targeted: bool = False,
-        learning_rate: float = 2.25,
+        learning_rate: float = 1.0,
         binary_search_steps: int = 9,
         max_iter: int = 100,
         beta: float = 1e-3,
@@ -58,7 +61,10 @@ class ExpAttack(ElasticNet):
         decision_rule: str = "EN",
         verbose: bool = True,
         quantile:float = 0.9,
-        smooth:float=False
+        smooth:float=False,
+        perturbation_blackbox:float=0.0,
+        samples_blackbox:int=100,
+        max_batchsize_blackbox:int=100
     ) -> None:
         """
         Create an ElasticNet attack instance.
@@ -93,6 +99,9 @@ class ExpAttack(ElasticNet):
         self.eta=0.0
         self.smooth=smooth
         self.quantile=quantile
+        self.perturbation_blackbox = abs(perturbation_blackbox)
+        self.samples_blackbox = samples_blackbox
+        self.max_batchsize_blackbox = max_batchsize_blackbox
         self._check_params()
 
     def generate(self, x: np.ndarray, y: np.ndarray | None = None, **kwargs) -> np.ndarray:
@@ -303,8 +312,11 @@ class ExpAttack(ElasticNet):
             )
         cost=i_add-i_sub
         
-        loss_gradient = self.estimator.class_gradient(x_adv, label=i_add)
-        loss_gradient -= self.estimator.class_gradient(x_adv, label=i_sub)
+        if self.perturbation_blackbox > 0:
+            loss_gradient = self._estimate_class_gradients_blackbox(x_adv, i_add, i_sub, predictions)
+        else:
+            loss_gradient = self.estimator.class_gradient(x_adv, label=i_add)
+            loss_gradient -= self.estimator.class_gradient(x_adv, label=i_sub)
         loss_gradient = loss_gradient.reshape(x.shape)
 
         c_mult = c_weight
@@ -325,6 +337,57 @@ class ExpAttack(ElasticNet):
 
         return loss_gradient
     
+    def _estimate_class_gradients_blackbox(self, x_adv, i_add, i_sub, predictions):
+        """
+        Efficient batched gradient estimation using black-box sampling.
+        """
+        # Initialize the gradient estimate
+        gradient_estimate_add = np.zeros_like(x_adv)
+        gradient_estimate_sub = np.zeros_like(x_adv)
+
+        # Extend x_adv to a batch with size equal to self.samples_blackbox
+        x_adv_extended = np.repeat(x_adv, self.samples_blackbox, axis=0)
+        
+        # Generate Rademacher samples (±1) for the extended batch
+        vi = np.random.choice([-1, 1], size=x_adv_extended.shape).astype(np.float32)
+
+        # Compute perturbed inputs for all samples in the extended batch
+        rand_perturbed_inputs = x_adv_extended + self.perturbation_blackbox * vi
+
+        # Split into batches of size self.max_batchsize_blackbox
+        num_batches = int(np.ceil(self.samples_blackbox / self.max_batchsize_blackbox))
+        
+        for batch_idx in range(num_batches):
+            # Determine the range of indices for this batch
+            start_idx = batch_idx * self.max_batchsize_blackbox
+            end_idx = min((batch_idx + 1) * self.max_batchsize_blackbox, self.samples_blackbox)
+            batch_size = end_idx - start_idx
+            
+            # Slice the current batch
+            batch_perturbed_inputs = rand_perturbed_inputs[start_idx:end_idx]
+            batch_vi = vi[start_idx:end_idx]
+
+            # Compute classes for the perturbed inputs and original inputs
+            pred_add_perturbed = self.estimator.predict(np.array(batch_perturbed_inputs, dtype=ART_NUMPY_DTYPE))[:, i_add]
+            pred_add_original = predictions[:, i_add]
+            pred_sub_perturbed = self.estimator.predict(np.array(batch_perturbed_inputs, dtype=ART_NUMPY_DTYPE))[:, i_sub]
+            pred_sub_original = predictions[:, i_sub]
+
+            # Compute delta loss with broadcasting
+            delta_add = (pred_add_perturbed - pred_add_original) / self.perturbation_blackbox
+            delta_sub = (pred_sub_perturbed - pred_sub_original) / self.perturbation_blackbox
+
+            # Accumulate the gradient estimate
+            gradient_estimate_add += np.sum(batch_vi * delta_add.reshape(batch_size)[:, None, None, None], axis=0)
+            gradient_estimate_sub += np.sum(batch_vi * delta_sub.reshape(batch_size)[:, None, None, None], axis=0)
+
+        # Average the accumulated gradient estimate over the total number of samples
+        gradient_estimate_add /= self.samples_blackbox
+        gradient_estimate_sub /= self.samples_blackbox
+
+        return gradient_estimate_add - gradient_estimate_sub
+
+
     def _loss(self, x: np.ndarray, x_adv: np.ndarray) -> tuple:
         """
         Compute the loss function values.
