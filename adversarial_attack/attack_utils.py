@@ -203,10 +203,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
                                                                 attacker=attacker,
                                                                 verbose = verbose)
             x_adversarial = torch.from_numpy(x_adversarial)
-        elif attack_type == 'brendel_bethge':
-            _, x_adversarial, _ = attacker(fb_net, x, criterion=y, epsilons=[epsilon_l1])
-            x_adversarial = x_adversarial[0].cpu()
-        elif attack_type == 'pointwise_blackbox' or attack_type == 'pointwise_blackbox+boundary' or attack_type == 'pointwise_blackbox+hopskipjump':
+        elif attack_type in ['brendel_bethge', 'pointwise_blackbox', 'pointwise_blackbox+boundary', 'pointwise_blackbox+hopskipjump', 'boundary_blackbox', 'hopskipjump_blackbox']:
             _, x_adversarial, _ = attacker(fb_net, x, criterion=y, epsilons=[epsilon_l1])
             x_adversarial = x_adversarial[0].cpu()    
         elif attack_type == 'sparse_rs_blackbox':
@@ -215,11 +212,8 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l1, epsilon_l2, eps_
         elif attack_type == 'original_AutoAttack':
             x_adversarial = attacker.run_standard_evaluation(x, y)
             x_adversarial = x_adversarial.cpu()
-        elif attack_type == 'original_AutoAttack_apgd_only':
-            x_adversarial = attacker.run_standard_evaluation(x, y,bs=1)
-            x_adversarial = x_adversarial.cpu()
-        elif attack_type == 'custom_apgd':
-            x_adversarial = attacker.run_standard_evaluation(x, y,bs=1)
+        elif attack_type in ['original_AutoAttack_apgd_only', 'custom_apgd']:
+            x_adversarial = attacker.run_standard_evaluation(x, y, bs=1)
             x_adversarial = x_adversarial.cpu()
         else:             
             x_adversarial = attacker.generate(x.cpu().numpy(), y.cpu().numpy())

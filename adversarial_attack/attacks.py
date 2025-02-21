@@ -6,7 +6,9 @@ from art.attacks.evasion import (FastGradientMethod,
                                  AutoAttack,
                                  CarliniL2Method,
                                  DeepFool,
-                                 ElasticNet)
+                                 ElasticNet,
+                                 HopSkipJump,
+                                 BoundaryAttack)
 from adversarial_attack.geometric_decision_based_attack import GeoDA
 from adversarial_attack.rs_attacks import RSAttack
 from adversarial_attack.exp_attack import ExpAttack
@@ -109,6 +111,22 @@ class AdversarialAttacks:
         att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.hop_skip_jump.HopSkipJumpAttack())
         att._distance = fb.distances.l1
         return att
+    elif attack_type=='boundary_blackbox':
+        att = fb.attacks.boundary_attack.BoundaryAttack(steps=25000)
+        att._distance = fb.distances.l1
+        return att
+    elif attack_type=='boundary_blackbox_art':
+        return BoundaryAttack(self.art_net,
+                              max_iter=25000,
+                              **kwargs)
+    elif attack_type=='hopskipjump_blackbox':
+        att = fb.attacks.hop_skip_jump.HopSkipJumpAttack()
+        att._distance = fb.distances.l1
+        return att
+    elif attack_type=='hopskipjump_blackbox_art':
+        return HopSkipJump(self.art_net,
+                           max_iter=64, 
+                           **kwargs)
     elif attack_type=='sparse_rs_blackbox':
         #https://ojs.aaai.org/index.php/AAAI/article/view/20595/20354
         assert self.norm == 1, "only norm=1 translates correctly into sparse_rs attack budget"
@@ -124,12 +142,8 @@ class AdversarialAttacks:
     elif attack_type=='geoda_blackbox':
         #this is the ART implementation, but without a deprecated np function
         #https://openaccess.thecvf.com/content_CVPR_2020/papers/Rahmati_GeoDA_A_Geometric_Framework_for_Black-Box_Adversarial_Attacks_CVPR_2020_paper.pdf
-        fb.attacks.sparse_l1_descent_attack.SparseL1DescentAttack
         return GeoDA(self.art_net,
-                        batch_size=1,
-                        norm=self.norm,
-                        max_iter=4000,
-                        lambda_param=0.6,
+                     max_iter=10000,
                         **kwargs)
     elif attack_type=='carlini_wagner_l2':
         return CarliniL2Method(self.art_net,
@@ -163,6 +177,16 @@ class AdversarialAttacks:
         return ExpAttack(self.art_net,
                       max_iter=self.max_iterations,
                       quantile=0.0,
+                      perturbation_blackbox=0.001,
+                      samples_blackbox=100,
+                      final_quantile=0.0,
+                      **kwargs)
+    elif attack_type=='exp_attack_blackbox_L1_rule_higher_beta':
+        return ExpAttack(self.art_net,
+                      max_iter=self.max_iterations,
+                      quantile=0.0,
+                      decision_rule='L1',
+                      beta=1.0,
                       perturbation_blackbox=0.001,
                       samples_blackbox=100,
                       **kwargs)

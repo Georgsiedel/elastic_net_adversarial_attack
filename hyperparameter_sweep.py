@@ -3,6 +3,7 @@ import utils
 import adversarial_attack.attack_utils as attack_utils
 import json
 import torch
+import os
 
 def main(dataset, samplesize_accuracy, samplesize_attack, dataset_root, model, model_norm, hyperparameter, hyperparameter_range, 
          attack_type, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations, batchsize, save_images, verbose):
@@ -45,22 +46,24 @@ def main(dataset, samplesize_accuracy, samplesize_attack, dataset_root, model, m
 
 
 if __name__ == "__main__":
+    #os.environ["CUDA_LAUNCH_BLOCKING"] = "1"#prevents "CUDA error: unspecified launch failure" and is recommended for some illegal memory access errors #increases train time by ~15%
+
     parser = argparse.ArgumentParser(description="Hyperparameter Sweep Script")
     parser.add_argument('--dataset', type=str, default='imagenet', choices=['cifar10', 'imagenet'],
                         help="Dataset to use")
     parser.add_argument('--samplesize_accuracy', type=int, default=10000, help="Split size for test accuracy evaluation")
     parser.add_argument('--samplesize_attack', type=int, default=500, help="Split size for attack evaluation")
     parser.add_argument('--dataset_root', type=str, default='../data', help="data folder relative root")
-    parser.add_argument('--model', type=str, default='standard',
+    parser.add_argument('--model', type=str, default='ViT_revisiting',
                         help="Model name (e.g., standard, ViT_revisiting, Salman2020Do_R50, corruption_robust, MainiAVG, etc.)")
     parser.add_argument('--model_norm', type=str, default='Linf',
                         help="Attack Norm the selected model was trained with. Only necessary if you load robustbench models")
     parser.add_argument('--hyperparameter', type=str, default='beta', help="Hyperparameter to sweep")
-    parser.add_argument('--hyperparameter_range', type=float, nargs='+', default=[3.0,5.0,6.0,7.0,8.0,10.0,15.0,20.0,1.0,2.0],
+    parser.add_argument('--hyperparameter_range', type=float, nargs='+', default=[2.0,4.0,6.0,7.0,15.0],
                         help="Range of hyperparameter values (space-separated)")
     parser.add_argument('--attack_type', type=str, default='exp_attack_l1',
                         help="Type of attack for the hyperparameter sweep")
-    parser.add_argument('--epsilon_l1', type=float, default=12, help="L1 norm epsilon (default: 12 for CIFAR10, 75 otherwise)")
+    parser.add_argument('--epsilon_l1', type=float, default=50, help="L1 norm epsilon (default: 12 for CIFAR10, 75 otherwise)")
     parser.add_argument('--epsilon_l2', type=float, default=0.5, help="L2 norm epsilon")
     parser.add_argument('--eps_iter', type=float, default=0.1, help="Step size for manual iterative attacks")
     parser.add_argument('--attack_norm', type=int, default=1, choices=[1, 2, float('inf')],
@@ -68,7 +71,7 @@ if __name__ == "__main__":
     parser.add_argument('--max_iterations', type=int, default=300, help="Maximum iterations for attacks")
     parser.add_argument('--batchsize', type=int, default=1, help="Batchsize to run every adversarial attack on")
     parser.add_argument('--save_images', type=int, default=1, help="Integer > 0: number of saved images per attack, 0: do not save)")
-    parser.add_argument('--verbose', type=bool, default=False, help="Verbose output")
+    parser.add_argument('--verbose', type=utils.str2bool, nargs='?', const=False, default=True, help="Verbose output")
 
     args = parser.parse_args()
     main(

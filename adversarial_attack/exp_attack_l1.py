@@ -356,7 +356,7 @@ class ExpAttackL1(EvasionAttack):
         vi = np.random.choice([-1, 1], size=x_adv_extended.shape).astype(np.float32)
 
         # Compute perturbed inputs for all samples in the extended batch
-        rand_perturbed_inputs = x_adv_extended + self.perturbation_blackbox * vi
+        rand_perturbed_inputs = np.clip(x_adv_extended + self.perturbation_blackbox * vi, 0.0, 1.0)
 
         # Split into batches of size self.max_batchsize_blackbox
         num_batches = int(np.ceil(self.samples_blackbox / self.max_batchsize_blackbox))

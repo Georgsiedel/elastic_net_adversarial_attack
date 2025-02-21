@@ -42,7 +42,9 @@ class ExpAttack(ElasticNet):
         "verbose",
         "perturbation_blackbox",
         "samples_blackbox",
-        "max_batchsize_blackbox"
+        "max_batchsize_blackbox",
+        'quantile',
+        'final_quantile'
     ]
 
     _estimator_requirements = (BaseEstimator, ClassGradientsMixin)
@@ -64,7 +66,8 @@ class ExpAttack(ElasticNet):
         smooth:float=False,
         perturbation_blackbox:float=0.0,
         samples_blackbox:int=100,
-        max_batchsize_blackbox:int=100
+        max_batchsize_blackbox:int=100,
+        final_quantile: float=0.0
     ) -> None:
         """
         Create an ElasticNet attack instance.
@@ -102,6 +105,7 @@ class ExpAttack(ElasticNet):
         self.perturbation_blackbox = abs(perturbation_blackbox)
         self.samples_blackbox = samples_blackbox
         self.max_batchsize_blackbox = max_batchsize_blackbox
+        self.final_quantile = final_quantile
         self._check_params()
 
     def generate(self, x: np.ndarray, y: np.ndarray | None = None, **kwargs) -> np.ndarray:
@@ -191,6 +195,9 @@ class ExpAttack(ElasticNet):
             c_current, c_lower_bound, c_upper_bound = super()._update_const(
                 y_batch, best_label, c_current, c_lower_bound, c_upper_bound
             )
+
+        if self.final_quantile > 0.0:
+            o_best_attack = self._sparsify_attack(o_best_attack, x_batch, self.final_quantile)
 
         return o_best_attack
     
@@ -352,7 +359,7 @@ class ExpAttack(ElasticNet):
         vi = np.random.choice([-1, 1], size=x_adv_extended.shape).astype(np.float32)
 
         # Compute perturbed inputs for all samples in the extended batch
-        rand_perturbed_inputs = x_adv_extended + self.perturbation_blackbox * vi
+        rand_perturbed_inputs = np.clip(x_adv_extended + self.perturbation_blackbox * vi, 0.0, 1.0)
 
         # Split into batches of size self.max_batchsize_blackbox
         num_batches = int(np.ceil(self.samples_blackbox / self.max_batchsize_blackbox))
@@ -368,9 +375,10 @@ class ExpAttack(ElasticNet):
             batch_vi = vi[start_idx:end_idx]
 
             # Compute classes for the perturbed inputs and original inputs
-            pred_add_perturbed = self.estimator.predict(np.array(batch_perturbed_inputs, dtype=ART_NUMPY_DTYPE))[:, i_add]
+            pred_perturbed = self.estimator.predict(np.array(batch_perturbed_inputs, dtype=ART_NUMPY_DTYPE))
+            pred_add_perturbed = pred_perturbed[:, i_add]
+            pred_sub_perturbed = pred_perturbed[:, i_sub]
             pred_add_original = predictions[:, i_add]
-            pred_sub_perturbed = self.estimator.predict(np.array(batch_perturbed_inputs, dtype=ART_NUMPY_DTYPE))[:, i_sub]
             pred_sub_original = predictions[:, i_sub]
 
             # Compute delta loss with broadcasting
@@ -403,3 +411,23 @@ class ExpAttack(ElasticNet):
         predictions = self.estimator.predict(np.array(x_adv, dtype=ART_NUMPY_DTYPE), batch_size=self.batch_size)
 
         return np.argmax(predictions, axis=1), l1dist, l2dist, endist
+    
+    def _sparsify_attack(self, o_best_attack, x_batch, quantile):
+        # Compute the absolute differences
+        differences = np.abs(o_best_attack - x_batch)
+        
+        # Initialize a mask of zeros with the same shape as differences
+        mask = np.zeros_like(differences, dtype=bool)
+        
+        # Iterate through each image in the batch
+        for i in range(differences.shape[0]):
+            # Get the quantile threshold for the current image
+            threshold = np.quantile(differences[i], quantile)
+            
+            # Create a mask for values greater than or equal to the threshold
+            mask[i] = differences[i] >= threshold
+        
+        # Apply the mask to keep only the highest percentage modifications in o_best_attack
+        o_best_attack_sparsified = np.where(mask, o_best_attack, x_batch)
+        
+        return o_best_attack_sparsified
