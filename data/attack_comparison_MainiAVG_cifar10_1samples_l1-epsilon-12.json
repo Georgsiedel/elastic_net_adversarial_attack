@@ -1,0 +1,52 @@
+{
+    "projected_gradient_descent": {
+        "mean_runtime_per_image": 3.6097068786621094,
+        "attack_success_rate": 0.0,
+        "attack_success_rate_in_epsilon_l0": 0.0,
+        "attack_success_rate_in_epsilon_l1": 0.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 0.0,
+        "mean_adv_distance_l2": 0.0,
+        "average_sparsity": 0.0
+    },
+    "custom_apgd": {
+        "mean_runtime_per_image": 6.695892572402954,
+        "attack_success_rate": 0.0,
+        "attack_success_rate_in_epsilon_l0": 0.0,
+        "attack_success_rate_in_epsilon_l1": 0.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 0.0,
+        "mean_adv_distance_l2": 0.0,
+        "average_sparsity": 0.0
+    },
+    "AutoAttack": {
+        "mean_runtime_per_image": 103.72588348388672,
+        "attack_success_rate": 0.0,
+        "attack_success_rate_in_epsilon_l0": 0.0,
+        "attack_success_rate_in_epsilon_l1": 0.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 0.0,
+        "mean_adv_distance_l2": 0.0,
+        "average_sparsity": 0.0
+    },
+    "brendel_bethge": {
+        "mean_runtime_per_image": 113.67497634887695,
+        "attack_success_rate": 0.0,
+        "attack_success_rate_in_epsilon_l0": 0.0,
+        "attack_success_rate_in_epsilon_l1": 0.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 0.0,
+        "mean_adv_distance_l2": 0.0,
+        "average_sparsity": 0.0
+    },
+    "exp_attack_l1": {
+        "mean_runtime_per_image": 5.356440782546997,
+        "attack_success_rate": 0.0,
+        "attack_success_rate_in_epsilon_l0": 0.0,
+        "attack_success_rate_in_epsilon_l1": 0.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 0.0,
+        "mean_adv_distance_l2": 0.0,
+        "average_sparsity": 0.0
+    }
+}

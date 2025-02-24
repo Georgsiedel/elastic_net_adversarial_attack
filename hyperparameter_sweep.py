@@ -6,7 +6,7 @@ import torch
 import os
 
 def main(dataset, samplesize_accuracy, samplesize_attack, dataset_root, model, model_norm, hyperparameter, hyperparameter_range, 
-         attack_type, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations, batchsize, save_images, verbose):
+         attack_type, epsilon_l0, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations, max_batchsize, save_images, **kwargs):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Load dataset
@@ -22,21 +22,22 @@ def main(dataset, samplesize_accuracy, samplesize_attack, dataset_root, model, m
     # Experiment setup
     Experiment = attack_utils.Experiment_class(
         art_net, fb_net, net, xtest, ytest, alias,
+        epsilon_l0=epsilon_l0,
         epsilon_l1=epsilon_l1,
         epsilon_l2=epsilon_l2,
         eps_iter=eps_iter,
         norm=norm,
         max_iterations=max_iterations,
-        batchsize=batchsize,
-        save_images=save_images,
-        verbose=verbose
+        max_batchsize=max_batchsize,
+        save_images=save_images
     )
 
     # Hyperparameter sweep
     results_dict_hyperparameter_sweep = Experiment.hyperparameter_sweep(
         hyperparameter=hyperparameter,
         range=hyperparameter_range,
-        attack_type=attack_type
+        attack_type=attack_type,
+        **kwargs
     )
 
     json_file_path = f'./data/hyperparameter_sweep_{hyperparameter}_{attack_type}_{alias}_{samplesize_attack}samples_l1-epsilon-{epsilon_l1}.json'
@@ -59,23 +60,29 @@ if __name__ == "__main__":
     parser.add_argument('--model_norm', type=str, default='Linf',
                         help="Attack Norm the selected model was trained with. Only necessary if you load robustbench models")
     parser.add_argument('--hyperparameter', type=str, default='beta', help="Hyperparameter to sweep")
-    parser.add_argument('--hyperparameter_range', type=float, nargs='+', default=[2.0,4.0,6.0,7.0,15.0],
+    parser.add_argument('--hyperparameter_range', type=float, nargs='+', default=[20.0],
                         help="Range of hyperparameter values (space-separated)")
     parser.add_argument('--attack_type', type=str, default='exp_attack_l1',
                         help="Type of attack for the hyperparameter sweep")
+    parser.add_argument('--epsilon_l0', type=float, default=25, help="L0 epsilon, translates to overall number of input features altered")
     parser.add_argument('--epsilon_l1', type=float, default=50, help="L1 norm epsilon (default: 12 for CIFAR10, 75 otherwise)")
     parser.add_argument('--epsilon_l2', type=float, default=0.5, help="L2 norm epsilon")
     parser.add_argument('--eps_iter', type=float, default=0.1, help="Step size for manual iterative attacks")
     parser.add_argument('--attack_norm', type=int, default=1, choices=[1, 2, float('inf')],
                         help="Attack norm type (1, 2, float('inf'))")
     parser.add_argument('--max_iterations', type=int, default=300, help="Maximum iterations for attacks")
-    parser.add_argument('--batchsize', type=int, default=1, help="Batchsize to run every adversarial attack on")
+    parser.add_argument('--max_batchsize', type=int, default=1, help="Maximum Batchsize to run every adversarial attack on." \
+                        "If attack is not optimized or not working with batches, will be returned by attacks.AdversarialAttacks class.")
     parser.add_argument('--save_images', type=int, default=1, help="Integer > 0: number of saved images per attack, 0: do not save)")
-    parser.add_argument('--verbose', type=utils.str2bool, nargs='?', const=False, default=True, help="Verbose output")
+    parser.add_argument('--verbose', type=utils.str2bool, nargs='?', const=False, default=False, help="Verbose output")
 
     args = parser.parse_args()
+    # Convert Namespace to dictionary and filter some arguments to kwargs
+    filtered_kwargs = {"verbose"}
+    kwargs = {k: v for k, v in vars(args).items() if k in filtered_kwargs and v is not None}
+
     main(
         args.dataset, args.samplesize_accuracy, args.samplesize_attack, args.dataset_root, args.model, args.model_norm, args.hyperparameter, 
-        args.hyperparameter_range,  args.attack_type, args.epsilon_l1, args.epsilon_l2, args.eps_iter, args.attack_norm, args.max_iterations, 
-        args.batchsize, args.save_images, args.verbose
+        args.hyperparameter_range,  args.attack_type, args.epsilon_l0, args.epsilon_l1, args.epsilon_l2, args.eps_iter, args.attack_norm, args.max_iterations, 
+        args.max_batchsize, args.save_images, **kwargs
     )

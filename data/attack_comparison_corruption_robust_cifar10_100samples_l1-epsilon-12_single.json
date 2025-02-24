@@ -1,0 +1,74 @@
+{
+    "exp_attack_l1_blackbox": {
+        "mean_runtime_per_image": 3.616440,
+        "attack_success_rate": 11.0,
+        "attack_success_rate_in_epsilon_l1": 11.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 11.92098,
+        "mean_adv_distance_l2": 1.35577,
+        "average_sparsity": 0.75284
+    },
+    "exp_attack_blackbox": {
+        "mean_runtime_per_image": 34.099967,
+        "attack_success_rate": 100.0,
+        "attack_success_rate_in_epsilon_l1": 55.0,
+        "attack_success_rate_in_epsilon_l2": 64.0,
+        "mean_adv_distance_l1": 12.80428,
+        "mean_adv_distance_l2": 0.44827,
+        "average_sparsity": 0.00142
+    },
+    "hopskipjump_blackbox": {
+        "mean_runtime_per_image": 16.429386,
+        "attack_success_rate": 100.0,
+        "attack_success_rate_in_epsilon_l1": 48.0,
+        "attack_success_rate_in_epsilon_l2": 80.0,
+        "mean_adv_distance_l1": 13.70691,
+        "mean_adv_distance_l2": 0.35293,
+        "average_sparsity": 0.00393
+    },
+    "pointwise_blackbox": {
+        "mean_runtime_per_image": 25.229141800403596,
+        "attack_success_rate": 2.0,
+        "attack_success_rate_in_epsilon_l1": 2.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 1.9730980396270752,
+        "mean_adv_distance_l2": 1.0549265146255493,
+        "average_sparsity": 0.9983723958333334
+    },
+    "boundary_blackbox": {
+        "mean_runtime_per_image": 28.975126464366912,
+        "attack_success_rate": 98.0,
+        "attack_success_rate_in_epsilon_l1": 48.0,
+        "attack_success_rate_in_epsilon_l2": 82.0,
+        "mean_adv_distance_l1": 13.281432937602608,
+        "mean_adv_distance_l2": 0.33460816524314635,
+        "average_sparsity": 0.0003454506802721088
+    },
+    "boundary_blackbox_art": {
+        "mean_runtime_per_image": 0.002150256633758545,
+        "attack_success_rate": 0.0,
+        "attack_success_rate_in_epsilon_l1": 0.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 0.0,
+        "mean_adv_distance_l2": 0.0,
+        "average_sparsity": 0.0
+    },
+    "geoda_blackbox": {
+        "mean_runtime_per_image": 4.527904994487763,
+        "attack_success_rate": 59.0,
+        "attack_success_rate_in_epsilon_l1": 5.0,
+        "attack_success_rate_in_epsilon_l2": 6.0,
+        "mean_adv_distance_l1": 61.35680792695385,
+        "mean_adv_distance_l2": 1.3583694853014865,
+        "average_sparsity": 0.007492496468926555
+    },
+    "sparse_rs_blackbox": {
+        "mean_runtime_per_image": 13.42335610628128,
+        "attack_success_rate": 31.0,
+        "attack_success_rate_in_epsilon_l1": 31.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 11.392662848195721,
+        "mean_adv_distance_l2": 2.565149276487289,
+        "average_sparsity": 0.9924080141129032
+    }
+}

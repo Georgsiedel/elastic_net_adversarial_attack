@@ -8,8 +8,14 @@ if __name__ == '__main__':
 
     os.environ["CUDA_LAUNCH_BLOCKING"] = "1" #prevents "CUDA error: unspecified launch failure" and is recommended for some illegal memory access errors #increases train time by ~15%
 
-    os.system("python attack_comparison.py --batchsize=1 --verbose=False")
-
-    os.system("python attack_comparison.py --batchsize=10 --verbose=False")
+    os.system("python attack_comparison.py --verbose=False")
 
     os.system("python hyperparameter_sweep.py")
+
+    os.system("python attack_comparison.py --dataset=imagenet --model=standard")
+
+    os.system("python attack_comparison.py --dataset=imagenet --model=Salman2020Do_R50 --beta=7.0 --learning_rate=2.25")
+
+    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --epsilon_l1=50 --beta=15.0 --learning_rate=2.25")
+
+    #os.system("python attack_comparison.py --max_batchsize=10 --verbose=False")

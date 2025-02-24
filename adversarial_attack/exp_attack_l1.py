@@ -53,7 +53,7 @@ class ExpAttackL1(EvasionAttack):
         self,
         estimator: "CLASSIFIER_LOSS_GRADIENTS_TYPE",
         targeted: bool = False,
-        learning_rate: float = 2.25,
+        learning_rate: float = 2.0,
         max_iter: int = 100,
         beta: float = 3.0,
         batch_size: int = 1,
