@@ -15,6 +15,7 @@ from adversarial_attack.exp_attack_l1 import ExpAttackL1
 from autoattack import AutoAttack as original_AutoAttack
 from adversarial_attack.auto_attack.autoattack_custom import AutoAttack_Custom
 from adversarial_attack.exp_attack_l1_ada import ExpAttackL1Ada
+from adversarial_attack.exp_attack_l0 import ExpAttackL0
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class AdversarialAttacks:
@@ -164,11 +165,29 @@ class AdversarialAttacks:
                       epsilon=self.epsilon,
                       perturbation_blackbox=0.001,
                       samples_blackbox=100,
+                      quantile=0.0,
                       **kwargs)
-    elif attack_type=='exp_attack_l1_ada':
+    elif attack_type=='exp_attack_l1_ada_bb':
         return ExpAttackL1Ada(self.art_net,
                         max_iter=self.max_iterations,
                         epsilon=self.epsilon,
+                        perturbation_blackbox=0.001,
+                        samples_blackbox=100,
+                        quantile=0.0,
+                        **kwargs)
+    elif attack_type=='exp_attack_l0':
+        return ExpAttackL0(self.art_net,
+                        max_iter=self.max_iterations,
+                        epsilon=self.epsilon,
+                        perturbation_blackbox=0.0,
+                        samples_blackbox=100,
+                        **kwargs)
+    elif attack_type=='exp_attack_l0_bb':
+        return ExpAttackL0(self.art_net,
+                        max_iter=self.max_iterations,
+                        epsilon=self.epsilon,
+                        perturbation_blackbox=0.001,
+                        samples_blackbox=100,
                         **kwargs)
     elif attack_type=='custom_apgd':
         attack= AutoAttack_Custom(self.net, 
