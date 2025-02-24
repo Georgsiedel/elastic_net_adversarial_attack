@@ -53,9 +53,9 @@ class ExpAttackL1(EvasionAttack):
         self,
         estimator: "CLASSIFIER_LOSS_GRADIENTS_TYPE",
         targeted: bool = False,
-        learning_rate: float =1.0,
+        learning_rate: float = 2.25,
         max_iter: int = 100,
-        beta: float =1.0,
+        beta: float = 3.0,
         batch_size: int = 1,
         verbose: bool = True,
         smooth:float=-1.0,
@@ -63,7 +63,7 @@ class ExpAttackL1(EvasionAttack):
         quantile:float=0.90,
         loss_type= "cross_entropy",
         perturbation_blackbox:float=0.0,
-        samples_blackbox:int=0,
+        samples_blackbox:int=100,
         max_batchsize_blackbox:int=100
     ) -> None:
         """
@@ -356,7 +356,7 @@ class ExpAttackL1(EvasionAttack):
         vi = np.random.choice([-1, 1], size=x_adv_extended.shape).astype(np.float32)
 
         # Compute perturbed inputs for all samples in the extended batch
-        rand_perturbed_inputs = x_adv_extended + self.perturbation_blackbox * vi
+        rand_perturbed_inputs = np.clip(x_adv_extended + self.perturbation_blackbox * vi, 0.0, 1.0)
 
         # Split into batches of size self.max_batchsize_blackbox
         num_batches = int(np.ceil(self.samples_blackbox / self.max_batchsize_blackbox))

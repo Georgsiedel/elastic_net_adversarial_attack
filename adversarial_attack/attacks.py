@@ -6,7 +6,9 @@ from art.attacks.evasion import (FastGradientMethod,
                                  AutoAttack,
                                  CarliniL2Method,
                                  DeepFool,
-                                 ElasticNet)
+                                 ElasticNet,
+                                 HopSkipJump,
+                                 BoundaryAttack)
 from adversarial_attack.geometric_decision_based_attack import GeoDA
 from adversarial_attack.rs_attacks import RSAttack
 from adversarial_attack.exp_attack import ExpAttack
@@ -26,7 +28,7 @@ class AdversarialAttacks:
     self.norm = norm
     self.max_iterations = max_iterations
     self.net = net
-  def init_attacker(self, attack_type, lr=None, beta=None, quantile=None, verbose=False):
+  def init_attacker(self, attack_type, lr=None, beta=None, quantile=None, max_iterations_sweep=None, verbose=False):
 
     kwargs = {'verbose': verbose}
     if lr is not None:
@@ -35,6 +37,12 @@ class AdversarialAttacks:
         kwargs['beta'] = beta
     if quantile is not None:
         kwargs['quantile'] = quantile
+    if max_iterations_sweep is not None:
+        max_iterations_sweep = int(max_iterations_sweep)
+        if attack_type == 'sparse_rs_blackbox':
+            kwargs['n_queries'] = max_iterations_sweep
+        else:
+            self.max_iterations = max_iterations_sweep
 
     if attack_type=='fast_gradient_method':
         return FastGradientMethod(self.art_net,
@@ -91,19 +99,35 @@ class AdversarialAttacks:
                                           **kwargs)
     elif attack_type=='pointwise_blackbox':
         #https://openreview.net/pdf?id=S1EHOsC9tX
-        att = fb.attacks.pointwise.PointwiseAttack()
+        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.SaltAndPepperNoiseAttack(steps=5000, across_channels=False))
         att._distance = fb.distances.l1
         return att
     elif attack_type=='pointwise_blackbox+boundary':
         #https://openreview.net/pdf?id=S1EHOsC9tX
-        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.boundary_attack.BoundaryAttack(steps=2500))
+        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.boundary_attack.BoundaryAttack())
         att._distance = fb.distances.l1
         return att
     elif attack_type=='pointwise_blackbox+hopskipjump':
         #https://openreview.net/pdf?id=S1EHOsC9tX
-        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.hop_skip_jump.HopSkipJumpAttack(steps=64, max_gradient_eval_steps=10000))
+        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.hop_skip_jump.HopSkipJumpAttack())
         att._distance = fb.distances.l1
         return att
+    elif attack_type=='boundary_blackbox':
+        att = fb.attacks.boundary_attack.BoundaryAttack(steps=25000)
+        att._distance = fb.distances.l1
+        return att
+    elif attack_type=='boundary_blackbox_art':
+        return BoundaryAttack(self.art_net,
+                              max_iter=25000,
+                              **kwargs)
+    elif attack_type=='hopskipjump_blackbox':
+        att = fb.attacks.hop_skip_jump.HopSkipJumpAttack()
+        att._distance = fb.distances.l1
+        return att
+    elif attack_type=='hopskipjump_blackbox_art':
+        return HopSkipJump(self.art_net,
+                           max_iter=64, 
+                           **kwargs)
     elif attack_type=='sparse_rs_blackbox':
         #https://ojs.aaai.org/index.php/AAAI/article/view/20595/20354
         assert self.norm == 1, "only norm=1 translates correctly into sparse_rs attack budget"
@@ -119,12 +143,8 @@ class AdversarialAttacks:
     elif attack_type=='geoda_blackbox':
         #this is the ART implementation, but without a deprecated np function
         #https://openaccess.thecvf.com/content_CVPR_2020/papers/Rahmati_GeoDA_A_Geometric_Framework_for_Black-Box_Adversarial_Attacks_CVPR_2020_paper.pdf
-        fb.attacks.sparse_l1_descent_attack.SparseL1DescentAttack
         return GeoDA(self.art_net,
-                        batch_size=1,
-                        norm=self.norm,
-                        max_iter=4000,
-                        lambda_param=0.6,
+                     max_iter=10000,
                         **kwargs)
     elif attack_type=='carlini_wagner_l2':
         return CarliniL2Method(self.art_net,
@@ -154,6 +174,23 @@ class AdversarialAttacks:
         return ExpAttack(self.art_net,
                       max_iter=self.max_iterations,
                       **kwargs)
+    elif attack_type=='exp_attack_blackbox':
+        return ExpAttack(self.art_net,
+                      max_iter=self.max_iterations,
+                      quantile=0.0,
+                      perturbation_blackbox=0.001,
+                      samples_blackbox=100,
+                      final_quantile=0.0,
+                      **kwargs)
+    elif attack_type=='exp_attack_blackbox_L1_rule_higher_beta':
+        return ExpAttack(self.art_net,
+                      max_iter=self.max_iterations,
+                      quantile=0.0,
+                      decision_rule='L1',
+                      beta=1.0,
+                      perturbation_blackbox=0.001,
+                      samples_blackbox=100,
+                      **kwargs)
     elif attack_type=='exp_attack_l1':
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
@@ -163,6 +200,7 @@ class AdversarialAttacks:
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
                       epsilon=self.epsilon,
+                      quantile=0.0,
                       perturbation_blackbox=0.001,
                       samples_blackbox=100,
                       quantile=0.0,
