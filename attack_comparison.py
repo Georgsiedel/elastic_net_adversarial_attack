@@ -43,19 +43,20 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hyperparameter Sweep Script")
     parser.add_argument('--dataset', type=str, default='imagenet', choices=['cifar10', 'imagenet'],
                         help="Dataset to use")
-    parser.add_argument('--samplesize_accuracy', type=int, default=100, help="Split size for test accuracy evaluation")
-    parser.add_argument('--samplesize_attack', type=int, default=20, help="Split size for attack evaluation")
-    parser.add_argument('--dataset_root', type=str, default='../data', help="data folder relative root")
+    parser.add_argument('--samplesize_accuracy', type=int, default=500, help="Split size for test accuracy evaluation")
+    parser.add_argument('--samplesize_attack', type=int, default=200, help="Split size for attack evaluation")
+    parser.add_argument('--dataset_root', type=str, default='../datasets', help="data folder relative root")
     parser.add_argument('--model', type=str, default='standard',
                         help="Model name (e.g., standard, ViT_revisiting, Salman2020Do_R50, corruption_robust, MainiAVG, etc.)")
     parser.add_argument('--model_norm', type=str, default='Linf',
                         help="Attack Norm the selected model was trained with. Only necessary if you load robustbench models")
     parser.add_argument('--attack_types', type=str, nargs='+',
-                        default=['exp_attack_l1_blackbox',
+                        default=['exp_attack_l1_ada_bb',
+                                 'exp_attack_l1_blackbox',
                                  'pointwise_blackbox',
                                  'sparse_rs_blackbox'
                                  ], 
-                        choices=[['fast_gradient_method',
+                        choices=['fast_gradient_method',
                                 'projected_gradient_descent', #batch
                                 'pgd_early_stopping',
                                 'deep_fool',
@@ -69,16 +70,19 @@ if __name__ == "__main__":
                                 'elastic_net', #batch (little advantage)
                                 'exp_attack', #worse in batches
                                 'exp_attack_smooth',
-                                'exp_attack_l1_blackbox'
+                                'exp_attack_l1_blackbox',
                                 'exp_attack_l1_l2',
                                 'auto_projected_gradient_descent',
                                 'elastic_net_L1_rule',
                                 'elastic_net_L1_rule_higher_beta',
+                                'exp_attack_l1_ada_bb',
+                                'exp_attack_l0',
+                                'exp_attack_l0_bb',
                                 'ART_AutoAttack',
                                 'original_AutoAttack',
                                 'original_AutoAttack_apgd_only',
                                 'exp_attack_l1',
-                                'custom_apgd']], 
+                                'custom_apgd'], 
                         help="List of attack types for comparison (space-separated). ")
     parser.add_argument('--epsilon_l1', type=float, default=50, help="L1 norm epsilon (default: 12 for CIFAR10, 75 otherwise)")
     parser.add_argument('--epsilon_l2', type=float, default=0.5, help="L2 norm epsilon")
