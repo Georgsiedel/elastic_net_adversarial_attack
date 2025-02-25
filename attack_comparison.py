@@ -96,7 +96,7 @@ if __name__ == "__main__":
                                 'original_AutoAttack',
                                 'original_AutoAttack_apgd_only',
                                 'exp_attack_l1',
-                                'custom_apgd']], 
+                                'custom_apgd'], 
                         help="List of attack types for comparison (space-separated). ")
     parser.add_argument('--epsilon_l0', type=float, default=25, help="L0 epsilon, translates to overall number of input features altered")
     parser.add_argument('--epsilon_l1', type=float, default=12, help="L1 norm epsilon (default: 12 for CIFAR10)")
