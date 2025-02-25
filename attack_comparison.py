@@ -47,6 +47,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hyperparameter Sweep Script")
     parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'imagenet'],
                         help="Dataset to use")
+
     parser.add_argument('--samplesize_accuracy', type=int, default=10000, help="Split size for test accuracy evaluation")
     parser.add_argument('--samplesize_attack', type=int, default=1000, help="Split size for attack evaluation")
     parser.add_argument('--dataset_root', type=str, default='../data', help="data folder relative root")
@@ -65,7 +66,7 @@ if __name__ == "__main__":
                                 #'geoda_blackbox',
                                 #'sparse_rs_blackbox',
                                  ], 
-                        choices=[['fast_gradient_method',
+                        choices=['fast_gradient_method',
                                 'projected_gradient_descent', #batch
                                 'pgd_early_stopping',
                                 'AutoAttack',
@@ -85,10 +86,17 @@ if __name__ == "__main__":
                                 'exp_attack', 
                                 'exp_attack_blackbox', 
                                 'exp_attack_blackbox_L1_rule_higher_beta',
-                                'exp_attack_l1',
+                                'exp_attack_smooth',
                                 'exp_attack_l1_blackbox'
-                                'exp_attack_l1_ada'
-                                ]], 
+                                'exp_attack_l1_l2',
+                                'auto_projected_gradient_descent',
+                                'elastic_net_L1_rule',
+                                'elastic_net_L1_rule_higher_beta',
+                                'ART_AutoAttack',
+                                'original_AutoAttack',
+                                'original_AutoAttack_apgd_only',
+                                'exp_attack_l1',
+                                'custom_apgd']], 
                         help="List of attack types for comparison (space-separated). ")
     parser.add_argument('--epsilon_l0', type=float, default=25, help="L0 epsilon, translates to overall number of input features altered")
     parser.add_argument('--epsilon_l1', type=float, default=12, help="L1 norm epsilon (default: 12 for CIFAR10)")

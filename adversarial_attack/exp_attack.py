@@ -141,6 +141,7 @@ class ExpAttack(ElasticNet):
             batch_index_1, batch_index_2 = batch_id * self.batch_size, (batch_id + 1) * self.batch_size
             x_batch = x_adv[batch_index_1:batch_index_2]
             y_batch = y[batch_index_1:batch_index_2]
+
             x_adv[batch_index_1:batch_index_2] = self._generate_batch(x_batch, y_batch)
 
         # Apply clip
