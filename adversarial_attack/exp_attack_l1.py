@@ -55,12 +55,12 @@ class ExpAttackL1(EvasionAttack):
         targeted: bool = False,
         learning_rate: float = 2.0,
         max_iter: int = 100,
-        beta: float = 3.0,
+        beta: float = 0.1,
         batch_size: int = 1,
         verbose: bool = True,
         smooth:float=-1.0,
         epsilon:float=12,
-        quantile:float=0.90,
+        quantile:float=0.0,
         loss_type= "cross_entropy",
         perturbation_blackbox:float=0.0,
         samples_blackbox:int=100,
@@ -395,7 +395,7 @@ class ExpAttackL1(EvasionAttack):
             v=self._md_const(g,x,lower,upper,eta_t)
             dual_v= (np.log(np.abs(v) / beta + 1.0)) * np.sign(v)
             dist=(eta_t**2)*np.vdot(x-v,dual_x-dual_v)
-            eta_t=np.sqrt(dist)   
+            eta_t=np.sqrt(dist)/self.learning_rate   
         else:
             eta_t=np.sqrt(self.eta)/self.learning_rate
         #print(f"eta {eta_t}")
@@ -434,10 +434,6 @@ class ExpAttackL1(EvasionAttack):
         z_val=np.abs(z)
         v=self._project(z_sgn,z_val,beta,self.epsilon,lower,upper)
         
-        #dual_v= (np.log(np.abs(v) / beta + 1.0)) * np.sign(v)
-        #dist_prod=np.vdot(v-x,dual_v-dual_x)
-        
-        #print(f"generalised gradient {(eta**2)*dist_prod}")
         return v
 
     def _project(self, y_sgn,y_val, beta, D,l,u):
@@ -481,16 +477,9 @@ class ExpAttackL1(EvasionAttack):
             num_active=np.count_nonzero(active_index)
             y_bound=np.sum(c[lam_u<=lam[sort_idx[idx_l]]])
             if num_active!=0:
-            #nummerical instability 
-                #if(y_bound>D):
-                    #print(f"norm of active coordinatte {y_bound} larger than radius")
-                    #assert(y_bound<=D)
                 y_max_active=np.max(y_val[active_index])
                 normaliser=np.log(np.sum(np.exp(y_val[active_index]-y_max_active+log_beta)))-np.log(D-y_bound+num_active*beta)+y_max_active
                 phi[active_index]=np.exp(y_val[active_index]+np.log(beta)-normaliser)-beta
-        #radius=np.sum(phi)
-        #if np.abs(radius)>self.epsilon+1.0: 
-        #print(f"radius {np.sum(np.abs(phi))}")
         phi=phi*y_sgn
         return phi
     
