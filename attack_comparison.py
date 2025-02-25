@@ -35,7 +35,7 @@ def main(dataset, samplesize_accuracy, samplesize_attack, dataset_root, model, m
     # Attack comparison
     results_dict_attack_comparison = Experiment.attack_comparison(attack_types, **kwargs)
 
-    json_file_path = f'./data/attack_comparison_{alias}_{samplesize_attack}samples_l1-epsilon-{epsilon_l1}.json'
+    json_file_path = f'./results/attack_comparison_{alias}_{samplesize_attack}samples_l1-epsilon-{epsilon_l1}.json'
     with open(json_file_path, 'w') as f:
         json.dump(results_dict_attack_comparison, f, indent=4)
     print(f'Evaluation results are saved under "{json_file_path}".')
@@ -47,7 +47,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hyperparameter Sweep Script")
     parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'imagenet'],
                         help="Dataset to use")
-
     parser.add_argument('--samplesize_accuracy', type=int, default=10000, help="Split size for test accuracy evaluation")
     parser.add_argument('--samplesize_attack', type=int, default=1000, help="Split size for attack evaluation")
     parser.add_argument('--dataset_root', type=str, default='../data', help="data folder relative root")

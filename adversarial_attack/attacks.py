@@ -11,8 +11,8 @@ from adversarial_attack.rs_attacks import RSAttack
 from adversarial_attack.exp_attack import ExpAttack
 from adversarial_attack.exp_attack_l1 import ExpAttackL1
 #from adversarial_attack.acc_exp_attack import AccExpAttack
-from autoattack import AutoAttack as original_AutoAttack
-from adversarial_attack.auto_attack.autoattack_custom import AutoAttack_Custom
+from autoattack import AutoAttack
+#from adversarial_attack.auto_attack.autoattack_custom import AutoAttack_Custom
 from adversarial_attack.exp_attack_l1_ada import ExpAttackL1Ada
 from adversarial_attack.exp_attack_l0 import ExpAttackL0
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -66,16 +66,17 @@ class AdversarialAttacks:
                                              ), 1
     elif attack_type=='AutoAttack':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
-        return original_AutoAttack(self.net, 
+        return AutoAttack(self.net, 
                                    norm='L1', 
                                    eps=self.epsilon,
                                    device=device,
                                    version='standard',
                                    **relevant_kwargs
                                    ), max_batchsize
+
     elif attack_type=='custom_apgd':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
-        attack= AutoAttack_Custom(self.net, 
+        attack= AutoAttack(self.net, 
                                    norm='L1', 
                                    eps=self.epsilon,
                                    device=device,
@@ -87,6 +88,7 @@ class AdversarialAttacks:
         attack.apgd.verbose=False
         attack.apgd.use_largereps=False
         attack.apgd.eot_iter=1
+        attack.apgd.use_rs = False
 
         return attack, max_batchsize
     

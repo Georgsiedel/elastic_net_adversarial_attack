@@ -71,7 +71,7 @@ class Experiment_class():
                    round(results_dict[hyperparameter+str(value)]["mean_adv_distance_l2"], 5))
         
             if adv_images:
-                image_dir = f'./data/hyperparameter_sweep_{attack_type}_{self.alias}_images'
+                image_dir = f'./results/hyperparameter_sweep_{attack_type}_{self.alias}_images'
                 os.makedirs(image_dir, exist_ok=True)
                 for i, img in enumerate(adv_images):
                     if img.dim() == 3:  
@@ -125,7 +125,7 @@ class Experiment_class():
                    round(results_dict[attack_type]["mean_adv_distance_l2"], 5))
         
             if adv_images:
-                image_dir = f'./data/attack_comparison_{self.alias}_images'
+                image_dir = f'./results/attack_comparison_{self.alias}_images'
                 os.makedirs(image_dir, exist_ok=True)
                 for i, img in enumerate(adv_images):
                     if img.dim() == 3:  
@@ -214,11 +214,8 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
         elif attack_type in ['sparse_rs_blackbox', 'sparse_rs_custom_L1_blackbox']:
             _, x_adversarial = attacker.perturb(x, y)
             x_adversarial = x_adversarial.cpu()    
-        elif attack_type == 'AutoAttack':
+        elif attack_type in ['custom_apgd', 'AutoAttack']:
             x_adversarial = attacker.run_standard_evaluation(x, y)
-            x_adversarial = x_adversarial.cpu()
-        elif attack_type in ['custom_apgd']:
-            x_adversarial = attacker.run_standard_evaluation(x, y, bs=1)
             x_adversarial = x_adversarial.cpu()
         else:             
             x_adversarial = attacker.generate(x.cpu().numpy(), y.cpu().numpy())
