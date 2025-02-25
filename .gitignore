@@ -2,7 +2,5 @@
 .venv
 /models/cifar10/
 /models/imagenet/
-/models/pretrained_models/*
-!/models/pretrained_models/corruption_robust.pth
-!/models/pretrained_models/standard.pth
+/models/pretrained_models/ViT_revisiting.pt
 **/__pycache__/
