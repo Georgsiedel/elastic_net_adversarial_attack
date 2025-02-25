@@ -10,12 +10,10 @@ if __name__ == '__main__':
 
     os.system("python attack_comparison.py --verbose=False")
 
-    os.system("python hyperparameter_sweep.py")
+    #os.system("python hyperparameter_sweep.py")
 
     os.system("python attack_comparison.py --dataset=imagenet --model=standard")
 
     os.system("python attack_comparison.py --dataset=imagenet --model=Salman2020Do_R50 --beta=7.0 --learning_rate=2.25")
 
     os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --epsilon_l1=50 --beta=15.0 --learning_rate=2.25")
-
-    #os.system("python attack_comparison.py --max_batchsize=10 --verbose=False")

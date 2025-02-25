@@ -113,11 +113,6 @@ class AdversarialAttacks:
         att = fb.attacks.boundary_attack.BoundaryAttack(steps=25000)
         att._distance = fb.distances.l1
         return att, max_batchsize
-    elif attack_type=='ART_boundary_blackbox':
-        return BoundaryAttack(self.art_net,
-                              max_iter=25000,
-                              **kwargs
-                              ), max_batchsize
     elif attack_type=='hopskipjump_blackbox':
         return HopSkipJump(self.art_net,
                            max_iter=64, 
@@ -177,7 +172,6 @@ class AdversarialAttacks:
     elif attack_type=='exp_attack_blackbox':
         return ExpAttack(self.art_net,
                       max_iter=self.max_iterations,
-                      quantile=0.0,
                       perturbation_blackbox=0.001,
                       samples_blackbox=100,
                       final_quantile=0.0,
@@ -186,7 +180,6 @@ class AdversarialAttacks:
     elif attack_type=='exp_attack_blackbox_L1_rule_higher_beta':
         return ExpAttack(self.art_net,
                       max_iter=self.max_iterations,
-                      quantile=0.0,
                       decision_rule='L1',
                       beta=0.01,
                       perturbation_blackbox=0.001,

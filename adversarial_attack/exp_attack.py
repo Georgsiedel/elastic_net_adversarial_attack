@@ -62,7 +62,7 @@ class ExpAttack(ElasticNet):
         batch_size: int = 1,
         decision_rule: str = "EN",
         verbose: bool = True,
-        quantile:float = 0.9,
+        quantile:float = 0.0,
         smooth:float=False,
         perturbation_blackbox:float=0.0,
         samples_blackbox:int=100,

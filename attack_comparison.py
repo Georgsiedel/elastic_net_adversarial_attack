@@ -62,7 +62,6 @@ if __name__ == "__main__":
                                 'brendel_bethge',
                                 'exp_attack_l1',
                                 #'boundary_blackbox',
-                                #'boundary_blackbox_art',
                                 #'geoda_blackbox',
                                 #'sparse_rs_blackbox',
                                  ], 
@@ -75,7 +74,6 @@ if __name__ == "__main__":
                                 'brendel_bethge', #batch 
                                 'pointwise_blackbox', #batch (+better results ??)
                                 'boundary_blackbox',
-                                'ART_boundary_blackbox',
                                 'hopskipjump_blackbox',
                                 'sparse_rs_blackbox', #batch (+better results ??)
                                 'sparse_rs_custom_L1_blackbox', #batch (+better results ??)
@@ -86,17 +84,8 @@ if __name__ == "__main__":
                                 'exp_attack', 
                                 'exp_attack_blackbox', 
                                 'exp_attack_blackbox_L1_rule_higher_beta',
-                                'exp_attack_smooth',
                                 'exp_attack_l1_blackbox'
-                                'exp_attack_l1_l2',
-                                'auto_projected_gradient_descent',
-                                'elastic_net_L1_rule',
-                                'elastic_net_L1_rule_higher_beta',
-                                'ART_AutoAttack',
-                                'original_AutoAttack',
-                                'original_AutoAttack_apgd_only',
-                                'exp_attack_l1',
-                                'custom_apgd'], 
+                                'exp_attack_l1'], 
                         help="List of attack types for comparison (space-separated). ")
     parser.add_argument('--epsilon_l0', type=float, default=25, help="L0 epsilon, translates to overall number of input features altered")
     parser.add_argument('--epsilon_l1', type=float, default=12, help="L1 norm epsilon (default: 12 for CIFAR10)")
