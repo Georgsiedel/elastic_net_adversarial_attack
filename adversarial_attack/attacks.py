@@ -2,13 +2,10 @@ import torch
 import foolbox as fb
 from art.attacks.evasion import (FastGradientMethod,
                                  ProjectedGradientDescentNumpy,
-                                 AutoProjectedGradientDescent,
-                                 AutoAttack,
                                  CarliniL2Method,
                                  DeepFool,
                                  ElasticNet,
-                                 HopSkipJump,
-                                 BoundaryAttack)
+                                 HopSkipJump)
 from adversarial_attack.geometric_decision_based_attack import GeoDA
 from adversarial_attack.rs_attacks import RSAttack
 from adversarial_attack.exp_attack import ExpAttack
@@ -197,7 +194,6 @@ class AdversarialAttacks:
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
                       epsilon=self.epsilon,
-                      quantile=0.0,
                       perturbation_blackbox=0.001,
                       samples_blackbox=100,
                       quantile=0.0,
