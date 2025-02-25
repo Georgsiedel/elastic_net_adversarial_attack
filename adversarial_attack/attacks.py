@@ -57,14 +57,16 @@ class AdversarialAttacks:
                                              eps_step=self.eps_iter,
                                              max_iter=self.max_iterations,
                                              norm=self.norm,
-                                             **relevant_kwargs), max_batchsize
+                                             **relevant_kwargs
+                                             ), max_batchsize
     elif attack_type=='pgd_early_stopping':
         return ProjectedGradientDescentNumpy(self.art_net,
                                              eps=self.epsilon,
                                              eps_step=self.eps_iter,
                                              max_iter=1,
                                              norm=self.norm,
-                                             **kwargs), 1
+                                             **kwargs
+                                             ), 1
     elif attack_type=='AutoAttack':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return original_AutoAttack(self.net, 
@@ -72,7 +74,8 @@ class AdversarialAttacks:
                                    eps=self.epsilon,
                                    device=device,
                                    version='standard',
-                                   **relevant_kwargs), max_batchsize
+                                   **relevant_kwargs
+                                   ), max_batchsize
     elif attack_type=='custom_apgd':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         attack= AutoAttack_Custom(self.net, 
@@ -87,12 +90,15 @@ class AdversarialAttacks:
         attack.apgd.verbose=False
         attack.apgd.use_largereps=False
         attack.apgd.eot_iter=1
+
         return attack, max_batchsize
+    
     elif attack_type=='deep_fool':
         return DeepFool(self.art_net,
                       max_iter=self.max_iterations,
                       epsilon=self.eps_iter,
-                      **kwargs), max_batchsize
+                      **kwargs
+                      ), max_batchsize
     elif attack_type=='brendel_bethge':
         att = fb.attacks.L1BrendelBethgeAttack(steps=self.max_iterations, 
                                                init_attack=fb.attacks.SaltAndPepperNoiseAttack(steps=5000, 
@@ -110,11 +116,13 @@ class AdversarialAttacks:
     elif attack_type=='ART_boundary_blackbox':
         return BoundaryAttack(self.art_net,
                               max_iter=25000,
-                              **kwargs), max_batchsize
+                              **kwargs
+                              ), max_batchsize
     elif attack_type=='hopskipjump_blackbox':
         return HopSkipJump(self.art_net,
                            max_iter=64, 
-                           **kwargs), max_batchsize
+                           **kwargs
+                           ), max_batchsize
     elif attack_type=='sparse_rs_custom_L1_blackbox':
         #https://ojs.aaai.org/index.php/AAAI/article/view/20595/20354
         assert self.norm == 1, "only norm=1 translates correctly into sparse_rs attack budget"
@@ -139,28 +147,33 @@ class AdversarialAttacks:
         #https://openaccess.thecvf.com/content_CVPR_2020/papers/Rahmati_GeoDA_A_Geometric_Framework_for_Black-Box_Adversarial_Attacks_CVPR_2020_paper.pdf
         return GeoDA(self.art_net,
                      max_iter=10000,
-                        **kwargs), max_batchsize
+                        **kwargs
+                        ), max_batchsize
     elif attack_type=='carlini_wagner_l2':
         return CarliniL2Method(self.art_net,
                                max_iter=self.max_iterations,
-                               **kwargs), 1
+                               **kwargs
+                               ), 1
     elif attack_type=='elastic_net':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ElasticNet(self.art_net,
                       max_iter=self.max_iterations,
-                      **relevant_kwargs), 1
+                      **relevant_kwargs
+                      ), 1
     elif attack_type=='elastic_net_L1_rule_higher_beta':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ElasticNet(self.art_net,
                       max_iter=self.max_iterations,
                       decision_rule='L1',
                       beta=0.01,
-                      **relevant_kwargs), 1
+                      **relevant_kwargs
+                      ), 1
     elif attack_type=='exp_attack':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ExpAttack(self.art_net,
                       max_iter=self.max_iterations,
-                      **relevant_kwargs), 1
+                      **relevant_kwargs
+                      ), 1
     elif attack_type=='exp_attack_blackbox':
         return ExpAttack(self.art_net,
                       max_iter=self.max_iterations,
@@ -168,7 +181,8 @@ class AdversarialAttacks:
                       perturbation_blackbox=0.001,
                       samples_blackbox=100,
                       final_quantile=0.0,
-                      **kwargs), 1
+                      **kwargs
+                      ), 1
     elif attack_type=='exp_attack_blackbox_L1_rule_higher_beta':
         return ExpAttack(self.art_net,
                       max_iter=self.max_iterations,
@@ -177,13 +191,15 @@ class AdversarialAttacks:
                       beta=0.01,
                       perturbation_blackbox=0.001,
                       samples_blackbox=100,
-                      **kwargs), 1
+                      **kwargs
+                      ), 1
     elif attack_type=='exp_attack_l1':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
                       epsilon=self.epsilon,
-                      **relevant_kwargs), 1
+                      **relevant_kwargs
+                      ), 1
     elif attack_type=='exp_attack_l1_blackbox':
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
@@ -192,7 +208,8 @@ class AdversarialAttacks:
                       perturbation_blackbox=0.001,
                       samples_blackbox=100,
                       quantile=0.0,
-                      **kwargs)
+                      **kwargs
+                      ), 1
     elif attack_type=='exp_attack_l1_ada_bb':
         return ExpAttackL1Ada(self.art_net,
                         max_iter=self.max_iterations,
@@ -200,34 +217,23 @@ class AdversarialAttacks:
                         perturbation_blackbox=0.001,
                         samples_blackbox=100,
                         quantile=0.0,
-                        **kwargs)
+                        **kwargs
+                        ), 1
     elif attack_type=='exp_attack_l0':
         return ExpAttackL0(self.art_net,
                         max_iter=self.max_iterations,
                         epsilon=self.epsilon,
                         perturbation_blackbox=0.0,
                         samples_blackbox=100,
-                        **kwargs)
+                        **kwargs
+                        ), 1
     elif attack_type=='exp_attack_l0_bb':
         return ExpAttackL0(self.art_net,
                         max_iter=self.max_iterations,
                         epsilon=self.epsilon,
                         perturbation_blackbox=0.001,
                         samples_blackbox=100,
-                        **kwargs)
-    elif attack_type=='custom_apgd':
-        attack= AutoAttack_Custom(self.net, 
-                                   norm='L1', 
-                                   eps=self.epsilon,
-                                   device=device,
-                                   version='custom',
-                                   attacks_to_run=['apgd-ce'],
-                                   **kwargs)
-        attack.apgd.n_restarts=1
-        attack.apgd.n_iter=self.max_iterations
-        attack.apgd.verbose=False
-        attack.apgd.use_largereps=False
-        attack.apgd.eot_iter=1
-        return attack
+                        **kwargs
+                        ), 1
     else:
         raise ValueError(f'Attack type "{attack_type}" not supported!')
