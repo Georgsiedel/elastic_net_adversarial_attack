@@ -42,9 +42,7 @@ class ExpAttack(ElasticNet):
         "verbose",
         "perturbation_blackbox",
         "samples_blackbox",
-        "max_batchsize_blackbox",
-        'quantile',
-        'final_quantile'
+        "max_batchsize_blackbox"
     ]
 
     _estimator_requirements = (BaseEstimator, ClassGradientsMixin)
@@ -57,17 +55,15 @@ class ExpAttack(ElasticNet):
         learning_rate: float = 1.0,
         binary_search_steps: int = 9,
         max_iter: int = 100,
-        beta: float = 1e-3,
+        l1: float = 1e-3,
+        beta:float=0.1,
         initial_const: float = 1e-3,
         batch_size: int = 1,
         decision_rule: str = "EN",
         verbose: bool = True,
-        quantile:float = 0.0,
-        smooth:float=False,
         perturbation_blackbox:float=0.0,
         samples_blackbox:int=100,
-        max_batchsize_blackbox:int=100,
-        final_quantile: float=0.0
+        max_batchsize_blackbox:int=100
     ) -> None:
         """
         Create an ElasticNet attack instance.
@@ -94,18 +90,16 @@ class ExpAttack(ElasticNet):
         self.learning_rate = learning_rate
         self.binary_search_steps = binary_search_steps
         self.max_iter = max_iter
-        self.beta = beta
+        self.l1 = l1
         self.initial_const = initial_const
         self.batch_size = batch_size
         self.decision_rule = decision_rule
         self.verbose = verbose
         self.eta=0.0
-        self.smooth=smooth
-        self.quantile=quantile
+        self.beta=beta
         self.perturbation_blackbox = abs(perturbation_blackbox)
         self.samples_blackbox = samples_blackbox
         self.max_batchsize_blackbox = max_batchsize_blackbox
-        self.final_quantile = final_quantile
         self._check_params()
 
     def generate(self, x: np.ndarray, y: np.ndarray | None = None, **kwargs) -> np.ndarray:
@@ -230,15 +224,9 @@ class ExpAttack(ElasticNet):
         self.eta=0.0
         for i_iter in range(self.max_iter):
             logger.debug("Iteration step %i out of %i", i_iter, self.max_iter)
-            rnd=np.random.normal(size=x_0.shape)
-            rnd1=np.random.normal()
-            rnd=rnd/((np.linalg.norm(rnd)**2+rnd1**2)**0.5)
             # updating rule
-            grad = self._gradient_of_loss(target=y_batch, x=x_batch, x_adv=x_adv.astype(np.float32)+(self.smooth*rnd).astype(np.float32), c_weight=c_batch)
+            grad = self._gradient_of_loss(target=y_batch, x=x_batch, x_adv=x_adv.astype(np.float32), c_weight=c_batch)
             
-            grad_val=np.abs(grad)
-            topk_val=np.quantile(grad_val,self.quantile)
-            grad[grad_val<topk_val]=0.0             
             delta = self._md(grad,delta,lower,upper)
             
             x_adv=x_0+delta
@@ -263,28 +251,49 @@ class ExpAttack(ElasticNet):
         return best_dist, best_label, best_attack
 
     def _md(self,g,x,lower,upper):
-        beta = 1.0 / g.size
-        init=False
+        beta = self.beta
+        dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
+        
         if self.eta==0.0:
-            init=True
-            self.eta+=(np.linalg.norm((g).flatten(), ord=inf)**2)
-        eta_t=np.sqrt(self.eta)/self.learning_rate
-        z=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x) - g/eta_t
+            eta_t=np.max(np.abs(g))/self.learning_rate
+            v=self._md_const(g,x,lower,upper,eta_t)
+            dual_v= (np.log(np.abs(v) / beta + 1.0)) * np.sign(v)
+            dist=(eta_t**2)*np.vdot(x-v,dual_x-dual_v)
+            eta_t=np.sqrt(dist)/self.learning_rate   
+        else:
+            eta_t=np.sqrt(self.eta)/self.learning_rate
+
+        dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
+        z=dual_x- g/eta_t
         v_sgn = np.sign(z)
         a = beta
         b = 2.0/eta_t
-        c = np.minimum(self.beta/eta_t- np.abs(z),0.0)
+        c = np.minimum(self.l1/eta_t- np.abs(z),0.0)
         abc=-c+np.log(a*b)+a*b
         v_val = np.where(abc>=15.0,np.log(abc)-np.log(np.log(abc))+np.log(np.log(abc))/np.log(abc), lambertw( np.exp(abc), k=0).real)/b-a
         v = v_sgn * v_val
         v = np.clip(v, lower, upper)
 
+        dual_v= (np.log(np.abs(v) / beta + 1.0)) * np.sign(v)
+        dist=(eta_t**2)*np.vdot(x-v,dual_x-dual_v)
         
-        if not init:
-            D=np.maximum(np.linalg.norm(x.flatten(), ord=1),np.linalg.norm((v).flatten(), ord=1))
-            self.eta+=(eta_t/(D+1)*np.linalg.norm((x-v).flatten(), ord=1))**2
-            eta_t_1=np.sqrt(self.eta)/self.learning_rate
-            v=(1.0-eta_t/eta_t_1)*x+eta_t/eta_t_1*v
+        self.eta+=dist
+        eta_t_1=np.sqrt(self.eta)/self.learning_rate
+        v=(1.0-eta_t/eta_t_1)*x+eta_t/eta_t_1*v
+        return v
+    
+    def _md_const(self,g,x,lower,upper,eta):
+        beta = self.beta
+        dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
+        z=dual_x- g/eta
+        v_sgn = np.sign(z)
+        a = beta
+        b = 2.0/eta
+        c = np.minimum(self.l1/eta- np.abs(z),0.0)
+        abc=-c+np.log(a*b)+a*b
+        v_val = np.where(abc>=15.0,np.log(abc)-np.log(np.log(abc))+np.log(np.log(abc))/np.log(abc), lambertw( np.exp(abc), k=0).real)/b-a
+        v = v_sgn * v_val
+        v = np.clip(v, lower, upper)
         return v
     
     def _gradient_of_loss(
@@ -408,7 +417,7 @@ class ExpAttack(ElasticNet):
         """
         l1dist = np.sum(np.abs(x - x_adv).reshape(x.shape[0], -1), axis=1)
         l2dist = np.sum(np.square(x - x_adv).reshape(x.shape[0], -1), axis=1)
-        endist = self.beta * l1dist + l2dist
+        endist = self.l1 * l1dist + l2dist
         predictions = self.estimator.predict(np.array(x_adv, dtype=ART_NUMPY_DTYPE), batch_size=self.batch_size)
 
         return np.argmax(predictions, axis=1), l1dist, l2dist, endist

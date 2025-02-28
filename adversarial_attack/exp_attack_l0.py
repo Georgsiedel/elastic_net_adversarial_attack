@@ -53,9 +53,9 @@ class ExpAttackL0(EvasionAttack):
         self,
         estimator: "CLASSIFIER_LOSS_GRADIENTS_TYPE",
         targeted: bool = False,
-        learning_rate: float =10.0,
+        learning_rate: float =1.0,
         max_iter: int = 100,
-        beta: float =0.001,
+        beta: float =0.1,
         batch_size: int = 1,
         verbose: bool = True,
         smooth:float=-1.0,
@@ -291,31 +291,31 @@ class ExpAttackL0(EvasionAttack):
         _w_norm=np.sum(_w_val)
         prob=[]
         arm=[]
-        while _w_norm>1e-6:
-            if np.count_nonzero(_w_val)>k:
-                idx_corner=np.unravel_index(np.argsort(-_w_val,axis=None)[0:k],_w.shape)
-            else:
-                idx_corner=np.nonzero(_w_val)
+        #while _w_norm>1e-6:
+        if np.count_nonzero(_w_val)>k:
+            idx_corner=np.unravel_index(np.argsort(-_w_val,axis=None)[0:k],_w.shape)
+        else:
+            idx_corner=np.nonzero(_w_val)
 
-            corner=np.zeros(_w.shape)
-            corner[idx_corner]=np.sign(_w)[idx_corner]
-            
-            s=np.min(_w_val[idx_corner])
-            if _w_val[_w_val<s].size>0:
-                l=np.max(_w_val[_w_val<s])
-            else:
-                l=0.0
-            p=np.minimum(s, _w_norm-l)
-            
-            
-            _w=_w-p*corner
-            _w_val=np.abs(_w)
-            _w[_w_val<=1e-6]=0.0
-            _w_val[_w_val<=1e-6]=0.0
-            _w_norm=np.sum(_w_val)
-            
-            prob.append(p)
-            arm.append(corner)
+        corner=np.zeros(_w.shape)
+        corner[idx_corner]=np.sign(_w)[idx_corner]
+        
+        s=np.min(_w_val[idx_corner])
+        if _w_val[_w_val<s].size>0:
+            l=np.max(_w_val[_w_val<s])
+        else:
+            l=0.0
+        p=np.minimum(s, _w_norm-l)
+        
+        
+        _w=_w-p*corner
+        _w_val=np.abs(_w)
+        _w[_w_val<=1e-6]=0.0
+        _w_val[_w_val<=1e-6]=0.0
+        _w_norm=np.sum(_w_val)
+        #print(f"s: {s}, l: {l}, w norm: {_w_norm}, p: {p}")
+        prob.append(p)
+        arm.append(corner)
         return np.array(arm),np.array(prob)
 
     def _generate_bss(self, x_batch: np.ndarray, y_batch: np.ndarray) -> tuple:
@@ -357,7 +357,9 @@ class ExpAttackL0(EvasionAttack):
                 grad = -self._estimate_gradient_blackbox(x_adv.astype(ART_NUMPY_DTYPE), y_batch) * (1 - 2 * int(self.targeted))
             else:
                 grad = -self.estimator.loss_gradient(x_adv.astype(ART_NUMPY_DTYPE), y_batch) * (1 - 2 * int(self.targeted))
-            
+            multiplier= np.where(delta>0,delta_upper, -delta_lower)
+            multiplier=np.where(delta==0.0,1.0, multiplier)
+            grad*=multiplier
             prob_delta = self._md(grad,prob_delta, lower,upper)
             arms,probs=self._mixture_decompose(self.epsilon,prob_delta)
             if probs.size>0:
@@ -370,11 +372,16 @@ class ExpAttackL0(EvasionAttack):
             x_adv=x_0+delta
             (logits, l1dist) = self._loss(x=x_batch, x_adv=x_adv.astype(ART_NUMPY_DTYPE))
             zip_set = zip(l1dist, logits)
+            found= True
             for j, (distance, label) in enumerate(zip_set):
                 if distance < best_dist[j] and compare(label, np.argmax(y_batch[j])):
                     best_dist[j] = distance
                     best_attack[j] = x_adv[j]
                     best_label[j] = label
+                else:
+                    found = False
+            if found: 
+                break 
         return best_attack
 
     def _estimate_gradient_blackbox(self, x_adv, y_batch):
