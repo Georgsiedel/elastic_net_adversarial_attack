@@ -27,7 +27,6 @@ class AdversarialAttacks:
     self.net = net
   def init_attacker(self, attack_type, max_batchsize=1, lr=None, beta=None, quantile=None, max_iterations_sweep=None, **kwargs):
 
-    #kwargs = {'verbose': verbose}
     if lr is not None:
         kwargs['learning_rate'] = lr
     if beta is not None:
@@ -35,11 +34,10 @@ class AdversarialAttacks:
     if quantile is not None:
         kwargs['quantile'] = quantile
     if max_iterations_sweep is not None:
-        max_iterations_sweep = int(max_iterations_sweep)
         if attack_type == 'sparse_rs_blackbox':
-            kwargs['n_queries'] = max_iterations_sweep
+            kwargs['n_queries'] = int(max_iterations_sweep)
         else:
-            self.max_iterations = max_iterations_sweep
+            self.max_iterations = int(max_iterations_sweep)
 
     if attack_type=='fast_gradient_method':
         return FastGradientMethod(self.art_net,
@@ -99,9 +97,8 @@ class AdversarialAttacks:
                       **kwargs
                       ), max_batchsize
     elif attack_type=='brendel_bethge':
-        att = fb.attacks.L1BrendelBethgeAttack(steps=self.max_iterations, 
-                                               init_attack=fb.attacks.SaltAndPepperNoiseAttack(steps=5000, 
-                                                                                               across_channels=False))
+        att = fb.attacks.L1BrendelBethgeAttack(steps=1000, 
+                                               init_attack=fb.attacks.blended_noise.LinearSearchBlendedUniformNoiseAttack(directions=10000, steps=2500, distance=fb.distances.l1))
         return att, max_batchsize
     elif attack_type=='pointwise_blackbox':
         #https://openreview.net/pdf?id=S1EHOsC9tX
@@ -109,7 +106,7 @@ class AdversarialAttacks:
         att._distance = fb.distances.l1
         return att, max_batchsize
     elif attack_type=='boundary_blackbox':
-        att = fb.attacks.boundary_attack.BoundaryAttack(steps=25000)
+        att = fb.attacks.boundary_attack.BoundaryAttack(steps=25000, init_attack=fb.attacks.blended_noise.LinearSearchBlendedUniformNoiseAttack(steps=50, distance=fb.distances.l1))
         att._distance = fb.distances.l1
         return att, max_batchsize
     elif attack_type=='hopskipjump_blackbox':

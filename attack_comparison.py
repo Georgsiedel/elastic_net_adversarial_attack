@@ -5,7 +5,7 @@ import json
 import torch
 import os
 
-def main(dataset, samplesize_accuracy, samplesize_attack, dataset_root, model, model_norm, attack_types, epsilon_l0, epsilon_l1, epsilon_l2, 
+def main(dataset, samplesize_accuracy, samplesize_attack, validation_run, dataset_root, model, model_norm, attack_types, epsilon_l0, epsilon_l1, epsilon_l2, 
          eps_iter, norm, max_iterations, max_batchsize, save_images, **kwargs):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -17,7 +17,7 @@ def main(dataset, samplesize_accuracy, samplesize_attack, dataset_root, model, m
 
     # calculate accuracy, select a subset from the correctly classified images
     correct_map = utils.test_accuracy(net, xtest, ytest)
-    xtest, ytest = utils.subset(correct_map, xtest, ytest, attack_samples=samplesize_attack)
+    xtest, ytest = utils.subset(correct_map, xtest, ytest, attack_samples=samplesize_attack, valid=validation_run)
 
     # Experiment setup
     Experiment = attack_utils.Experiment_class(
@@ -49,6 +49,8 @@ if __name__ == "__main__":
                         help="Dataset to use")
     parser.add_argument('--samplesize_accuracy', type=int, default=10000, help="Split size for test accuracy evaluation")
     parser.add_argument('--samplesize_attack', type=int, default=1000, help="Split size for attack evaluation")
+    parser.add_argument('--validation_run', type=utils.str2bool, nargs='?', const=False, default=False, 
+                        help="True for validation/tuning, False for testing. Selects attackset from the front or the back")
     parser.add_argument('--dataset_root', type=str, default='../data', help="data folder relative root")
     parser.add_argument('--model', type=str, default='MainiAVG',
                         help="Model name (e.g., standard, ViT_revisiting, Salman2020Do_R50, corruption_robust, MainiAVG, etc.)")
@@ -83,13 +85,13 @@ if __name__ == "__main__":
                                 'exp_attack', 
                                 'exp_attack_blackbox', 
                                 'exp_attack_blackbox_L1_rule_higher_beta',
-                                'exp_attack_l1_blackbox'
+                                'exp_attack_l1_blackbox',
                                 'exp_attack_l1'], 
                         help="List of attack types for comparison (space-separated). ")
     parser.add_argument('--epsilon_l0', type=float, default=25, help="L0 epsilon, translates to overall number of input features altered")
     parser.add_argument('--epsilon_l1', type=float, default=12, help="L1 norm epsilon (default: 12 for CIFAR10)")
     parser.add_argument('--epsilon_l2', type=float, default=0.5, help="L2 norm epsilon")
-    parser.add_argument('--eps_iter', type=float, default=0.2, help="Step size for manual iterative attacks")
+    parser.add_argument('--eps_iter', type=float, default=0.1, help="Step size for manual iterative attacks")
     parser.add_argument('--learning_rate', type=float, help="Learning rate for exp attacks")
     parser.add_argument('--beta', type=float, help="Beta for exp_attack_l1, exp_attack, EAD")
     parser.add_argument('--attack_norm', type=int, default=1, choices=[1, 2, float('inf')],
@@ -107,6 +109,6 @@ if __name__ == "__main__":
     kwargs = {k: v for k, v in vars(args).items() if k in filtered_kwargs and v is not None}
 
     main(
-        args.dataset, args.samplesize_accuracy, args.samplesize_attack, args.dataset_root, args.model, args.model_norm, args.attack_types, args.epsilon_l0,
+        args.dataset, args.samplesize_accuracy, args.samplesize_attack, args.validation_run, args.dataset_root, args.model, args.model_norm, args.attack_types, args.epsilon_l0,
         args.epsilon_l1, args.epsilon_l2, args.eps_iter, args.attack_norm, args.max_iterations, args.max_batchsize, args.save_images, **kwargs
     )

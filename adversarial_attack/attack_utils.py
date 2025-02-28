@@ -38,8 +38,9 @@ class Experiment_class():
             
         results_dict = {}
         for value in range:
-
-            kwargs = {hyperparameter: value}
+            
+            #this sets the hyperparameter into kwargs, even if you accidently passed it before, it should overwrite it
+            kwargs[hyperparameter] = value
 
             results_dict[hyperparameter+str(value)] = {}
             print(f'\t\t-------------- Hyperparameter Sweep for Attack: {attack_type}: {hyperparameter} = {value} ----------------\n')
@@ -265,7 +266,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
                     print(f'Image {i + j}\t\tSuccesful attack with adversarial_distance (L1 / L2): {distance_l1[j]:.4f} / {distance_l2[j]:.5f}')
 
         # Print progress summary after every some images
-        if (i + x.size(0) - counter) >= max(20, batchsize):
+        if (i + x.size(0) - counter) >= max(50, batchsize):
             counter = i + x.size(0)
             print(
                 f'{i+x.size(0)} images done. Current Attack Success Rate: Overall - {attack_successes * 100 / (i+x.size(0)):.2f}% / '

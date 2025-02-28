@@ -103,5 +103,15 @@
         "mean_adv_distance_l1": 11.957682543878056,
         "mean_adv_distance_l2": 1.6974676384413538,
         "average_sparsity": 0.9535204674586776
+    },
+    "learning_rate5.0": {
+        "mean_runtime_per_image": 5.670934512138366,
+        "attack_success_rate": 30.8,
+        "attack_success_rate_in_epsilon_l0": 0.0,
+        "attack_success_rate_in_epsilon_l1": 30.8,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 11.979659123854203,
+        "mean_adv_distance_l2": 1.8787913469525126,
+        "average_sparsity": 0.9548160173160171
     }
 }

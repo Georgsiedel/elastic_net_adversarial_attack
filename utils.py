@@ -171,7 +171,7 @@ def test_accuracy(model, xtest, ytest, batch_size=100):
 
     return correct_map
 
-def subset(correct_tensor, xtest, ytest, attack_samples=100):
+def subset(correct_tensor, xtest, ytest, attack_samples=100, valid=False):
     """
     Selects n samples from xtest where the classification was correct.
 
@@ -189,8 +189,11 @@ def subset(correct_tensor, xtest, ytest, attack_samples=100):
     # Get indices of correctly classified samples
     correct_indices = torch.nonzero(correct_tensor, as_tuple=True)[0]
 
-    # Select the first n correctly classified samples
-    selected_indices = correct_indices[:attack_samples]
+    # Select the first (validation) or last (testing) n correctly classified samples
+    if valid:     
+        selected_indices = correct_indices[:attack_samples]
+    else:
+        selected_indices = correct_indices[-attack_samples:]
 
     # Return the selected samples from xtest
     return xtest[selected_indices], ytest[selected_indices]
