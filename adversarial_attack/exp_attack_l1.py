@@ -51,12 +51,12 @@ class ExpAttackL1(EvasionAttack):
         
     def __init__(
         self,
-        estimator: "CLASSIFIER_LOSS_GRADIENTS_TYPE",
+        estimator: PyTorchClassifier,
         targeted: bool = False,
-        learning_rate: float = 2.0,
+        learning_rate: float = 1.0,
         max_iter: int = 100,
-        beta: float = 0.1,
-        batch_size: int = 1,
+        beta: float =1.0,
+        batch_size: int = 100,
         verbose: bool = True,
         smooth:float=-1.0,
         epsilon:float=12,
@@ -103,7 +103,7 @@ class ExpAttackL1(EvasionAttack):
 
                 def __init__(self, reduction="mean"):
                     super().__init__()
-                    self.ce_loss = torch.nn.CrossEntropyLoss(reduction="none")
+                    self.ce_loss = torch.nn.CrossEntropyLoss(reduction=reduction)
                     self.reduction = reduction
 
                 def __call__(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
@@ -127,7 +127,7 @@ class ExpAttackL1(EvasionAttack):
                     """
                     return self.__call__(y_pred=input, y_true=target)
 
-            _loss_object_pt: torch.nn.modules.loss._Loss = CrossEntropyLossTorch(reduction="none")
+            _loss_object_pt: torch.nn.modules.loss._Loss = CrossEntropyLossTorch(reduction="sum")
 
 
 
@@ -218,7 +218,7 @@ class ExpAttackL1(EvasionAttack):
             preprocessing_defences=estimator.preprocessing_defences,
             postprocessing_defences=estimator.postprocessing_defences,
             preprocessing=estimator.preprocessing,
-            device_type=str(estimator._device),
+            device_type=str(estimator._device)
         )
         super().__init__(estimator=estimator)
         self._targeted = targeted
@@ -312,7 +312,7 @@ class ExpAttackL1(EvasionAttack):
         #dual_delta=self._reg_prim(delta,self.beta)
         #delta=self._project(np.abs(dual_delta),np.abs(dual_delta),self.beta,self.epsilon,lower,upper)
         x_adv=x_0+delta
-        self.eta=0.0
+        self.eta=np.zeros(x_0.shape[0])
         #self.beta=self.epsilon/x_0.size
         #print(f"initial loss {self.estimator.compute_loss(x_adv.astype(ART_NUMPY_DTYPE),y_batch)}")
         for i_iter in range(self.max_iter):
@@ -322,14 +322,13 @@ class ExpAttackL1(EvasionAttack):
             else:
                 grad = -self.estimator.loss_gradient(x_adv.astype(ART_NUMPY_DTYPE), y_batch) * (1 - 2 * int(self.targeted))
             
-          
-            #print(np.count_nonzero(grad))        
-            grad_val=np.abs(grad)
-            topk_val=np.quantile(grad_val,self.quantile)
-            grad[grad_val<topk_val]=0.0             
             
-            delta = self._md(grad,delta, lower,upper)
-            #prob=(abs(delta)+self.beta)/np.sum(np.abs(delta)+self.beta)
+            for i in range(grad.shape[0]):
+                #grad_val=np.abs(grad[i])
+                #topk_val=np.quantile(grad_val,self.quantile)
+                #grad[i][grad_val<topk_val]=0.0             
+                delta[i] = self._md(grad[i],delta[i], lower[i],upper[i],i)
+            
 
             logger.debug("Iteration step %i out of %i", i_iter, self.max_iter)
             x_adv=x_0+delta
@@ -341,7 +340,6 @@ class ExpAttackL1(EvasionAttack):
                     best_attack[j] = x_adv[j]
                     best_label[j] = label
         return best_attack
-
     def _estimate_gradient_blackbox(self, x_adv, y_batch):
         """
         Efficient batched gradient estimation using black-box sampling.
@@ -385,19 +383,19 @@ class ExpAttackL1(EvasionAttack):
 
         return gradient_estimate
 
-    def _md(self,g,x,lower,upper):
+    def _md(self,g,x,lower,upper,i):
         beta=self.beta
         dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
-        dim=g.size
+
         #first step try 
-        if self.eta==0.0:
+        if self.eta[i]==0.0:
             eta_t=np.max(np.abs(g))/self.learning_rate
             v=self._md_const(g,x,lower,upper,eta_t)
             dual_v= (np.log(np.abs(v) / beta + 1.0)) * np.sign(v)
             dist=(eta_t**2)*np.vdot(x-v,dual_x-dual_v)
             eta_t=np.sqrt(dist)/self.learning_rate   
         else:
-            eta_t=np.sqrt(self.eta)/self.learning_rate
+            eta_t=np.sqrt(self.eta[i])/self.learning_rate
         #print(f"eta {eta_t}")
         descent=g/eta_t
         z=dual_x -descent
@@ -411,24 +409,18 @@ class ExpAttackL1(EvasionAttack):
         
         #print(f"descent: {np.sum(np.abs(v-x))}")
         #print(f"step {dist_prod}")
-        self.eta+=dist
+        self.eta[i]+=dist
         #print(f"eta {np.max(np.abs(self.eta))}")
-        eta_t_1=np.sqrt(self.eta)/self.learning_rate
+        eta_t_1=np.sqrt(self.eta[i])/self.learning_rate
         if eta_t_1>eta_t:
             v=(1.0-eta_t/eta_t_1)*x+eta_t/eta_t_1*v 
         return v
 
-    def _reg(self,x,beta):
-        return np.sum(np.log(np.abs(x)/beta+1.0)*(np.abs(x)+beta)-abs(x))
-    def _reg_prim(self,x,beta):
-        return np.log(np.abs(x)/beta+1.0)*np.sign(x)
-
 
     def _md_const(self,g,x,lower,upper,eta):
-        dim=g.size
         beta=self.beta
         dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
-        descent=g/eta/(self.epsilon+self.beta*dim)
+        descent=g/eta
         z=dual_x -descent
         z_sgn=np.sign(z)
         z_val=np.abs(z)
