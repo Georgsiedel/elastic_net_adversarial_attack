@@ -12,7 +12,6 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 import timm
-
 def load_dataset(dataset, dataset_split, root='../data'):
 
     if dataset== 'imagenet':

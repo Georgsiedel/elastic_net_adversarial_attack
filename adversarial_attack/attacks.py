@@ -15,6 +15,7 @@ from autoattack import AutoAttack
 #from adversarial_attack.auto_attack.autoattack_custom import AutoAttack_Custom
 from adversarial_attack.exp_attack_l1_ada import ExpAttackL1Ada
 from adversarial_attack.exp_attack_l0 import ExpAttackL0
+from adversarial_attack.exp_attack_pixel import ExpAttackPixel
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class AdversarialAttacks:
@@ -132,8 +133,9 @@ class AdversarialAttacks:
         assert self.norm == 1, "only norm=1 translates correctly into sparse_rs attack budget"
         return RSAttack(predict=self.net,
                         norm='L0', #'L0+L1' to reject L0 perturbations that are larger than the L1 epsilon. Combine with sensible eps parameter below, otherwise you will reject everything
-                        eps=int(self.epsilon/3*2), # approximating the L0 epsilon that corresponds to the L1 epsilon on 3 channels
+                        eps=int(self.epsilon), # approximating the L0 epsilon that corresponds to the L1 epsilon on 3 channels
                         device=device,
+                        n_queries=self.max_iterations,
                         **kwargs
                         ), max_batchsize
     elif attack_type=='geoda_blackbox':
@@ -190,8 +192,9 @@ class AdversarialAttacks:
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
                       epsilon=self.epsilon,
+                      batch_size=max_batchsize,
                       **relevant_kwargs
-                      ), 1
+                      ), max_batchsize
     elif attack_type=='exp_attack_l1_blackbox':
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
@@ -222,8 +225,24 @@ class AdversarialAttacks:
         return ExpAttackL0(self.art_net,
                         max_iter=self.max_iterations,
                         epsilon=self.epsilon,
-                        perturbation_blackbox=0.001,
+                        perturbation_blackbox=0.01,
+                        samples_blackbox=1,
+                        **kwargs
+                        ), 1    
+    elif attack_type=='exp_attack_pixel':
+        return ExpAttackPixel(self.art_net,
+                        max_iter=self.max_iterations,
+                        epsilon=self.epsilon,
+                        perturbation_blackbox=0.0,
                         samples_blackbox=100,
+                        **kwargs
+                        ), 1
+    elif attack_type=='exp_attack_pixel_bb':
+        return ExpAttackPixel(self.art_net,
+                        max_iter=self.max_iterations,
+                        epsilon=self.epsilon,
+                        perturbation_blackbox=0.01,
+                        samples_blackbox=1,
                         **kwargs
                         ), 1
     else:
