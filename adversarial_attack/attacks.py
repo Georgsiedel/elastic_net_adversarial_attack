@@ -2,6 +2,7 @@ import torch
 import foolbox as fb
 from art.attacks.evasion import (FastGradientMethod,
                                  ProjectedGradientDescentNumpy,
+                                 AutoProjectedGradientDescent,
                                  CarliniL2Method,
                                  DeepFool,
                                  ElasticNet,
@@ -43,7 +44,8 @@ class AdversarialAttacks:
         return FastGradientMethod(self.art_net,
                                 eps=self.epsilon,
                                 eps_step=self.epsilon,
-                                norm=self.norm
+                                norm=self.norm,
+                                batch_size=max_batchsize,
                                 ), max_batchsize
     elif attack_type=='projected_gradient_descent':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
@@ -52,6 +54,7 @@ class AdversarialAttacks:
                                              eps_step=self.eps_iter,
                                              max_iter=self.max_iterations,
                                              norm=self.norm,
+                                             batch_size=max_batchsize,
                                              **relevant_kwargs
                                              ), max_batchsize
     elif attack_type=='pgd_early_stopping':
@@ -71,7 +74,16 @@ class AdversarialAttacks:
                                    version='standard',
                                    **relevant_kwargs
                                    ), max_batchsize
-
+    elif attack_type=='autopgd_art':
+        return AutoProjectedGradientDescent(self.art_net,
+                                             eps=self.epsilon,
+                                             eps_step=self.eps_iter,
+                                             max_iter=self.max_iterations,
+                                             norm=self.norm,
+                                             **kwargs,
+                                             batch_size=max_batchsize,
+                                             nb_random_init=1,
+                                            ), max_batchsize
     elif attack_type=='custom_apgd':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         attack= AutoAttack(self.net, 

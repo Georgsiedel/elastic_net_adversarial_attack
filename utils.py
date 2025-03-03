@@ -98,6 +98,13 @@ def get_model(dataset, modelname, norm=None):
         ckpt = {k.replace('base_model.', ''): v for k, v in ckpt.items()}
         ckpt = {k.replace('se_', 'se_module.'): v for k, v in ckpt.items()}
         net.load_state_dict(ckpt)
+    elif modelname == 'ConvNext_iso_CvSt_revisiting' and dataset == 'imagenet':
+        #get your ConvNext_iso_CvSt checkpoint from here: https://github.com/nmndeep/revisiting-at
+        from models import convnext_iso
+        net = convnext_iso.convnext_iso_cvst_revisiting()
+        ckpt = torch.load(f'./models/pretrained_models/{modelname}.pt', map_location=device, weights_only=True) #['model']
+        ckpt = {k.replace('base_model.', ''): v for k, v in ckpt.items()}
+        net.load_state_dict(ckpt)
     else: #robustbench models
         net = load_model(model_name=modelname, dataset=dataset, threat_model=norm) #'Wang2023Better_WRN-28-10'
         modelname = modelname + '_' + norm

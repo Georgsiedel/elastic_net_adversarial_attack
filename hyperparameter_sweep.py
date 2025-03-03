@@ -58,7 +58,7 @@ if __name__ == "__main__":
                         help="True for validation/tuning, False for testing. Selects attackset from the front or the back")
     parser.add_argument('--dataset_root', type=str, default='../data', help="data folder relative root")
     parser.add_argument('--model', type=str, default='standard',
-                        help="Model name (e.g., standard, ViT_revisiting, Salman2020Do_R50, corruption_robust, MainiAVG, etc.)")
+                        help="Model name (e.g., standard, ViT_revisiting, ConvNext_iso_CvSt_revisiting, Salman2020Do_R50, corruption_robust, MainiAVG...)")
     parser.add_argument('--model_norm', type=str, default='Linf',
                         help="Attack Norm the selected model was trained with. Only necessary if you load robustbench models")
     parser.add_argument('--hyperparameter', type=str, default='beta', help="Hyperparameter to sweep")

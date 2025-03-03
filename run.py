@@ -12,10 +12,8 @@ if __name__ == '__main__':
 
     #os.system("python attack_comparison.py --model=standard --learning_rate=1.0 --beta=0.01 --epsilon_l1=2 --attack_types brendel_bethge exp_attack_l1")
 
-    os.system("python attack_comparison.py --model=corruption_robust --learning_rate=0.75 --beta=0.05 --epsilon_l1=4 --attack_types AutoAttack brendel_bethge exp_attack_l1")
+    os.system("python attack_comparison.py --dataset=imagenet --model=standard --learning_rate=1.25 --attack_types brendel_bethge")
 
-    os.system("python attack_comparison.py --dataset=imagenet --model=standard --learning_rate=1.25 --attack_types brendel_bethge exp_attack_l1 --verbose=True")
+    os.system("python attack_comparison.py --dataset=imagenet --model=Salman2020Do_R50 --beta=7.0 --learning_rate=2.25 --attack_types custom_apgd AutoAttack brendel_bethge")
 
-    os.system("python attack_comparison.py --dataset=imagenet --model=Salman2020Do_R50 --beta=7.0 --learning_rate=2.25 --attack_types custom_apgd AutoAttack brendel_bethge exp_attack_l1")
-
-    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --epsilon_l1=50 --beta=15.0 --learning_rate=2.25 --attack_types brendel_bethge --verbose=True")
+    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --epsilon_l1=50 --beta=15.0 --learning_rate=2.25 --max_batchsize=20")
