@@ -2,6 +2,7 @@ import torch
 import foolbox as fb
 from art.attacks.evasion import (FastGradientMethod,
                                  ProjectedGradientDescentNumpy,
+                                 AutoProjectedGradientDescent,
                                  CarliniL2Method,
                                  DeepFool,
                                  ElasticNet,
@@ -28,7 +29,6 @@ class AdversarialAttacks:
     self.net = net
   def init_attacker(self, attack_type, max_batchsize=1, lr=None, beta=None, quantile=None, max_iterations_sweep=None, **kwargs):
 
-    #kwargs = {'verbose': verbose}
     if lr is not None:
         kwargs['learning_rate'] = lr
     if beta is not None:
@@ -36,17 +36,17 @@ class AdversarialAttacks:
     if quantile is not None:
         kwargs['quantile'] = quantile
     if max_iterations_sweep is not None:
-        max_iterations_sweep = int(max_iterations_sweep)
         if attack_type == 'sparse_rs_blackbox':
-            kwargs['n_queries'] = max_iterations_sweep
+            kwargs['n_queries'] = int(max_iterations_sweep)
         else:
-            self.max_iterations = max_iterations_sweep
+            self.max_iterations = int(max_iterations_sweep)
 
     if attack_type=='fast_gradient_method':
         return FastGradientMethod(self.art_net,
                                 eps=self.epsilon,
                                 eps_step=self.epsilon,
-                                norm=self.norm
+                                norm=self.norm,
+                                batch_size=max_batchsize,
                                 ), max_batchsize
     elif attack_type=='projected_gradient_descent':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
@@ -55,6 +55,7 @@ class AdversarialAttacks:
                                              eps_step=self.eps_iter,
                                              max_iter=self.max_iterations,
                                              norm=self.norm,
+                                             batch_size=max_batchsize,
                                              **relevant_kwargs
                                              ), max_batchsize
     elif attack_type=='pgd_early_stopping':
@@ -74,7 +75,16 @@ class AdversarialAttacks:
                                    version='standard',
                                    **relevant_kwargs
                                    ), max_batchsize
-
+    elif attack_type=='autopgd_art':
+        return AutoProjectedGradientDescent(self.art_net,
+                                             eps=self.epsilon,
+                                             eps_step=self.eps_iter,
+                                             max_iter=self.max_iterations,
+                                             norm=self.norm,
+                                             **kwargs,
+                                             batch_size=max_batchsize,
+                                             nb_random_init=1,
+                                            ), max_batchsize
     elif attack_type=='custom_apgd':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         attack= AutoAttack(self.net, 
@@ -100,9 +110,8 @@ class AdversarialAttacks:
                       **kwargs
                       ), max_batchsize
     elif attack_type=='brendel_bethge':
-        att = fb.attacks.L1BrendelBethgeAttack(steps=self.max_iterations, 
-                                               init_attack=fb.attacks.SaltAndPepperNoiseAttack(steps=5000, 
-                                                                                               across_channels=False))
+        att = fb.attacks.L1BrendelBethgeAttack(steps=1000, 
+                                               init_attack=fb.attacks.blended_noise.LinearSearchBlendedUniformNoiseAttack(directions=10000, steps=2500, distance=fb.distances.l1))
         return att, max_batchsize
     elif attack_type=='pointwise_blackbox':
         #https://openreview.net/pdf?id=S1EHOsC9tX
@@ -110,7 +119,7 @@ class AdversarialAttacks:
         att._distance = fb.distances.l1
         return att, max_batchsize
     elif attack_type=='boundary_blackbox':
-        att = fb.attacks.boundary_attack.BoundaryAttack(steps=25000)
+        att = fb.attacks.boundary_attack.BoundaryAttack(steps=25000, init_attack=fb.attacks.blended_noise.LinearSearchBlendedUniformNoiseAttack(steps=50, distance=fb.distances.l1))
         att._distance = fb.distances.l1
         return att, max_batchsize
     elif attack_type=='hopskipjump_blackbox':

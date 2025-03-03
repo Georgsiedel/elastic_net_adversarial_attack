@@ -97,6 +97,13 @@ def get_model(dataset, modelname, norm=None):
         ckpt = {k.replace('base_model.', ''): v for k, v in ckpt.items()}
         ckpt = {k.replace('se_', 'se_module.'): v for k, v in ckpt.items()}
         net.load_state_dict(ckpt)
+    elif modelname == 'ConvNext_iso_CvSt_revisiting' and dataset == 'imagenet':
+        #get your ConvNext_iso_CvSt checkpoint from here: https://github.com/nmndeep/revisiting-at
+        from models import convnext_iso
+        net = convnext_iso.convnext_iso_cvst_revisiting()
+        ckpt = torch.load(f'./models/pretrained_models/{modelname}.pt', map_location=device, weights_only=True) #['model']
+        ckpt = {k.replace('base_model.', ''): v for k, v in ckpt.items()}
+        net.load_state_dict(ckpt)
     else: #robustbench models
         net = load_model(model_name=modelname, dataset=dataset, threat_model=norm) #'Wang2023Better_WRN-28-10'
         modelname = modelname + '_' + norm
@@ -170,7 +177,7 @@ def test_accuracy(model, xtest, ytest, batch_size=100):
 
     return correct_map
 
-def subset(correct_tensor, xtest, ytest, attack_samples=100):
+def subset(correct_tensor, xtest, ytest, attack_samples=100, valid=False):
     """
     Selects n samples from xtest where the classification was correct.
 
@@ -188,8 +195,11 @@ def subset(correct_tensor, xtest, ytest, attack_samples=100):
     # Get indices of correctly classified samples
     correct_indices = torch.nonzero(correct_tensor, as_tuple=True)[0]
 
-    # Select the first n correctly classified samples
-    selected_indices = correct_indices[:attack_samples]
+    # Select the first (validation) or last (testing) n correctly classified samples
+    if valid:     
+        selected_indices = correct_indices[:attack_samples]
+    else:
+        selected_indices = correct_indices[-attack_samples:]
 
     # Return the selected samples from xtest
     return xtest[selected_indices], ytest[selected_indices]
