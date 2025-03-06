@@ -16,7 +16,7 @@ from autoattack import AutoAttack
 #from adversarial_attack.auto_attack.autoattack_custom import AutoAttack_Custom
 from adversarial_attack.exp_attack_l1_ada import ExpAttackL1Ada
 from adversarial_attack.exp_attack_l0 import ExpAttackL0
-from adversarial_attack.exp_attack_pixel import ExpAttackPixel
+#from adversarial_attack.exp_attack_pixel import ExpAttackPixel
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class AdversarialAttacks:
@@ -59,12 +59,13 @@ class AdversarialAttacks:
                                              **relevant_kwargs
                                              ), max_batchsize
     elif attack_type=='pgd_early_stopping':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return ProjectedGradientDescentNumpy(self.art_net,
                                              eps=self.epsilon,
                                              eps_step=self.eps_iter,
                                              max_iter=1,
                                              norm=self.norm,
-                                             **kwargs
+                                             **relevant_kwargs
                                              ), 1
     elif attack_type=='AutoAttack':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
@@ -75,15 +76,16 @@ class AdversarialAttacks:
                                    version='standard',
                                    **relevant_kwargs
                                    ), max_batchsize
-    elif attack_type=='autopgd_art':
+    elif attack_type=='apgd_art':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return AutoProjectedGradientDescent(self.art_net,
                                              eps=self.epsilon,
                                              eps_step=self.eps_iter,
                                              max_iter=self.max_iterations,
                                              norm=self.norm,
-                                             **kwargs,
                                              batch_size=max_batchsize,
                                              nb_random_init=1,
+                                             **relevant_kwargs,
                                             ), max_batchsize
     elif attack_type=='custom_apgd':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
@@ -104,10 +106,11 @@ class AdversarialAttacks:
         return attack, max_batchsize
     
     elif attack_type=='deep_fool':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return DeepFool(self.art_net,
                       max_iter=self.max_iterations,
                       epsilon=self.eps_iter,
-                      **kwargs
+                      **relevant_kwargs
                       ), max_batchsize
     elif attack_type=='brendel_bethge':
         att = fb.attacks.L1BrendelBethgeAttack(steps=1000, 
@@ -123,41 +126,46 @@ class AdversarialAttacks:
         att._distance = fb.distances.l1
         return att, max_batchsize
     elif attack_type=='hopskipjump_blackbox':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return HopSkipJump(self.art_net,
                            max_iter=64, 
-                           **kwargs
+                           **relevant_kwargs
                            ), max_batchsize
     elif attack_type=='sparse_rs_custom_L1_blackbox':
         #https://ojs.aaai.org/index.php/AAAI/article/view/20595/20354
         assert self.norm == 1, "only norm=1 translates correctly into sparse_rs attack budget"
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return RSAttack(predict=self.net,
                         norm='L0+L1', #'L0+L1' to reject L0 perturbations that are larger than the L1 epsilon. Combine with sensible eps parameter below, otherwise you will reject everything
                         eps=int(self.epsilon/3*2), # approximating the L0 epsilon that corresponds to the L1 epsilon on 3 channels
                         eps_L1=self.epsilon,
                         device=device,
-                        **kwargs
+                        **relevant_kwargs
                         ), max_batchsize
     elif attack_type=='sparse_rs_blackbox':
         #https://ojs.aaai.org/index.php/AAAI/article/view/20595/20354
         assert self.norm == 1, "only norm=1 translates correctly into sparse_rs attack budget"
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return RSAttack(predict=self.net,
                         norm='L0', #'L0+L1' to reject L0 perturbations that are larger than the L1 epsilon. Combine with sensible eps parameter below, otherwise you will reject everything
                         eps=int(self.epsilon), # approximating the L0 epsilon that corresponds to the L1 epsilon on 3 channels
                         device=device,
                         n_queries=self.max_iterations,
-                        **kwargs
+                        **relevant_kwargs
                         ), max_batchsize
     elif attack_type=='geoda_blackbox':
         #this is the ART implementation, but without a deprecated np function
         #https://openaccess.thecvf.com/content_CVPR_2020/papers/Rahmati_GeoDA_A_Geometric_Framework_for_Black-Box_Adversarial_Attacks_CVPR_2020_paper.pdf
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return GeoDA(self.art_net,
                      max_iter=10000,
-                        **kwargs
+                        **relevant_kwargs
                         ), max_batchsize
     elif attack_type=='carlini_wagner_l2':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return CarliniL2Method(self.art_net,
                                max_iter=self.max_iterations,
-                               **kwargs
+                               **relevant_kwargs
                                ), 1
     elif attack_type=='elastic_net':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
