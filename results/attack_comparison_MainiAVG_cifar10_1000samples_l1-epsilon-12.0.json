@@ -1,0 +1,12 @@
+{
+    "apgd_art": {
+        "mean_runtime_per_image": 0.2898241844177246,
+        "attack_success_rate": 12.6,
+        "attack_success_rate_in_epsilon_l0": 0.0,
+        "attack_success_rate_in_epsilon_l1": 12.6,
+        "attack_success_rate_in_epsilon_l2": 12.6,
+        "mean_adv_distance_l1": 11.999999470180935,
+        "mean_adv_distance_l2": 0.33631059030691784,
+        "average_sparsity": 0.004146515376984126
+    }
+}
