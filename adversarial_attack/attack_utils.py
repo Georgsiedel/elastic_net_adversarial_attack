@@ -62,7 +62,11 @@ class Experiment_class():
                                                                 **kwargs)
             
             print(f'\nTotal runtime: {len(self.ytest) * results_dict[hyperparameter+str(value)]["mean_runtime_per_image"]: .4f} seconds\n')
-            print(hyperparameter+str(value), 'attack success rate in epsilon (L1 / L2): ',
+            print(hyperparameter+str(value), 'attack success rate in epsilon (Overall / L0 / L1 / L2): ',
+                round(results_dict[hyperparameter+str(value)]["attack_success_rate"], 4),
+                ' / ',
+                round(results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l0"], 4),
+                ' / ',
                 round(results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l1"], 4),
                 ' / ',
                 round(results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l2"], 4))           
@@ -116,7 +120,11 @@ class Experiment_class():
                                                                 **kwargs)
             
             print(f'\nTotal runtime: {len(self.ytest) * results_dict[attack_type]["mean_runtime_per_image"]: .4f} seconds\n')
-            print('attack success rate in epsilon (L1 / L2): ',
+            print('attack success rate in epsilon (Overall / L0 / L1 / L2): ',
+                  round(results_dict[attack_type]["attack_success_rate"], 4), 
+                  ' / ',
+                  round(results_dict[attack_type]["attack_success_rate_in_epsilon_l0"], 4),
+                  ' / ',
                 round(results_dict[attack_type]["attack_success_rate_in_epsilon_l1"], 4),
                 ' / ',
                 round(results_dict[attack_type]["attack_success_rate_in_epsilon_l2"], 4))           
@@ -252,10 +260,10 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
                 distance_list_l1.append(distance_l1[j].item())
                 distance_list_l2.append(distance_l2[j].item())
                 
-                attack_successes_in_epsilon_l0 += (round(distance_l0[j].item(), 3) <= epsilon_l0)
-                attack_successes_in_epsilon_l1 += (round(distance_l1[j].item(), 3) <= epsilon_l1)
-                attack_successes_in_epsilon_l2 += (round(distance_l2[j].item(), 3) <= epsilon_l2)
-                attack_successes_in_en += ((round(distance_l2[j].item(), 3) <= epsilon_l2) or (round(distance_l1[j].item(), 3) <= epsilon_l1))
+                attack_successes_in_epsilon_l0 += (round(distance_l0[j].item(), 1) <= epsilon_l0)
+                attack_successes_in_epsilon_l1 += (round(distance_l1[j].item(), 1) <= epsilon_l1)
+                attack_successes_in_epsilon_l2 += (round(distance_l2[j].item(), 1) <= epsilon_l2)
+                attack_successes_in_en += ((round(distance_l2[j].item(), 1) <= epsilon_l2) or (round(distance_l1[j].item(), 1) <= epsilon_l1))
                 attack_successes += 1
 
                 dim = torch.numel(delta[j])

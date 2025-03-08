@@ -113,7 +113,7 @@ class AdversarialAttacks:
                       **relevant_kwargs
                       ), max_batchsize
     elif attack_type=='brendel_bethge':
-        att = fb.attacks.L1BrendelBethgeAttack(steps=1000, 
+        att = fb.attacks.L1BrendelBethgeAttack(steps=self.max_iterations, 
                                                init_attack=fb.attacks.blended_noise.LinearSearchBlendedUniformNoiseAttack(directions=10000, steps=2500, distance=fb.distances.l1))
         return att, max_batchsize
     elif attack_type=='pointwise_blackbox':
