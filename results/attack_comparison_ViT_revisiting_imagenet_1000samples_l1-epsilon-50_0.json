@@ -1,0 +1,12 @@
+{
+    "projected_gradient_descent": {
+        "mean_runtime_per_image": 5.7789937,
+        "attack_success_rate": 1.0,
+        "attack_success_rate_in_epsilon_l0": 0.7,
+        "attack_success_rate_in_epsilon_l1": 1.0,
+        "attack_success_rate_in_epsilon_l2": 0.1,
+        "mean_adv_distance_l1": 4.98294,
+        "mean_adv_distance_l2": 1.20088,
+        "average_sparsity": 0.99984
+    }
+}

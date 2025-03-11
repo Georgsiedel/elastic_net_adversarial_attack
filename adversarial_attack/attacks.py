@@ -114,7 +114,19 @@ class AdversarialAttacks:
                       ), max_batchsize
     elif attack_type=='brendel_bethge':
         att = fb.attacks.L1BrendelBethgeAttack(steps=self.max_iterations, 
-                                               init_attack=fb.attacks.blended_noise.LinearSearchBlendedUniformNoiseAttack(directions=10000, steps=2500, distance=fb.distances.l1))
+                                               init_attack=fb.attacks.SaltAndPepperNoiseAttack(steps=5000, across_channels=False))
+        return att, max_batchsize
+    elif attack_type=='L1pgd_fb':
+        att = fb.attacks.L1ProjectedGradientDescentAttack(abs_stepsize=self.eps_iter, steps=self.max_iterations, random_start=False)
+        return att, max_batchsize
+    elif attack_type=='sparseL1pgd_fb':
+        att = fb.attacks.SparseL1DescentAttack(abs_stepsize=self.eps_iter, steps=self.max_iterations, random_start=False)
+        return att, max_batchsize
+    elif attack_type=='ead_fb':
+        att = fb.attacks.EADAttack(steps=self.max_iterations, regularization=0.001)
+        return att, max_batchsize
+    elif attack_type=='ead_fb_L1_rule_higher_beta':
+        att = fb.attacks.EADAttack(steps=self.max_iterations, regularization=0.01, decision_rule='L1')
         return att, max_batchsize
     elif attack_type=='pointwise_blackbox':
         #https://openreview.net/pdf?id=S1EHOsC9tX
@@ -166,21 +178,21 @@ class AdversarialAttacks:
         return CarliniL2Method(self.art_net,
                                max_iter=self.max_iterations,
                                **relevant_kwargs
-                               ), 1
-    elif attack_type=='elastic_net':
+                               ), max_batchsize
+    elif attack_type=='ead':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ElasticNet(self.art_net,
                       max_iter=self.max_iterations,
                       **relevant_kwargs
-                      ), 1
-    elif attack_type=='elastic_net_L1_rule_higher_beta':
+                      ), max_batchsize
+    elif attack_type=='ead_L1_rule_higher_beta':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ElasticNet(self.art_net,
                       max_iter=self.max_iterations,
                       decision_rule='L1',
                       beta=0.01,
                       **relevant_kwargs
-                      ), 1
+                      ), max_batchsize
     elif attack_type=='exp_attack':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ExpAttack(self.art_net,
