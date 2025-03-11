@@ -57,11 +57,12 @@ if __name__ == "__main__":
                         help="Attack Norm the selected model was trained with. Only necessary if you load robustbench models")
     parser.add_argument('--attack_types', type=str, nargs='+',
                         default=['projected_gradient_descent',
-                                 'apgd_art',
+                                #'sparseL1pgd_fb',
                                 'custom_apgd',
-                                'AutoAttack',
-                                'exp_attack_l1',
-                                'brendel_bethge',
+                                'ead_fb',
+                                'ead_fb_L1_rule_higher_beta',
+                                #'exp_attack_l1',
+                                #'exp_attack',
                                  ], 
                         choices=['fast_gradient_method',
                                 'projected_gradient_descent', #batch
@@ -78,13 +79,17 @@ if __name__ == "__main__":
                                 'sparse_rs_custom_L1_blackbox', #batch (+better results ??)
                                 'geoda_blackbox',
                                 'carlini_wagner_l2', #worse in batches
-                                'elastic_net', #batch (little advantage)
-                                'elastic_net_L1_rule_higher_beta',
+                                'ead', #batch (little advantage)
+                                'ead_L1_rule_higher_beta',
                                 'exp_attack', 
                                 'exp_attack_blackbox', 
                                 'exp_attack_blackbox_L1_rule_higher_beta',
                                 'exp_attack_l1_blackbox',
-                                'exp_attack_l1'], 
+                                'exp_attack_l1',
+                                'L1pgd_fb',
+                                'sparseL1pgd_fb',
+                                'ead_fb',
+                                'ead_fb_L1_rule_higher_beta'], 
                         help="List of attack types for comparison (space-separated). ")
     parser.add_argument('--epsilon_l0', type=float, default=25, help="L0 epsilon, translates to overall number of input features altered")
     parser.add_argument('--epsilon_l1', type=float, default=12, help="L1 norm epsilon (default: 12 for CIFAR10)")
@@ -95,7 +100,7 @@ if __name__ == "__main__":
     parser.add_argument('--attack_norm', type=int, default=1, choices=[1, 2, float('inf')],
                         help="Attack norm type (1, 2, float('inf'))")
     parser.add_argument('--max_iterations', type=int, default=500, help="Maximum iterations for attacks")
-    parser.add_argument('--max_batchsize', type=int, default=100, help="Maximum Batchsize to run every adversarial attack on." \
+    parser.add_argument('--max_batchsize', type=int, default=20, help="Maximum Batchsize to run every adversarial attack on." \
                         "If attack is not optimized or not working with batches, will be returned by attacks.AdversarialAttacks class.")
     parser.add_argument('--save_images', type=int, default=1, help="Integer > 0: number of saved images per attack, 0: do not save)")
     parser.add_argument('--verbose', type=utils.str2bool, nargs='?', const=False, default=False, help="Verbose output")
