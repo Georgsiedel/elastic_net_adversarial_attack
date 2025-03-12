@@ -208,16 +208,6 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
 
         start_time = time.time()
 
-        criterion = torch.nn.CrossEntropyLoss(reduction='none')
-
-        logits = fb_net(x)
-        loss_indiv = criterion(logits, y)
-
-        grad = torch.autograd.grad(loss_indiv, [x])[0].detach()
-        print('fb loss', grad)
-
-        print('art loss', art_net.loss_gradient(x, y))
-
         if attack_type == 'pgd_early_stopping':
             assert x.shape[0] == 1
             x_adversarial = attack_with_early_stopping(art_net=art_net,

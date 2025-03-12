@@ -86,15 +86,5 @@
         "attack_success_rate_in_epsilon_l1": 51.9,
         "attack_success_rate_in_epsilon_l2": 5.7,
         "average_sparsity": 0.99994
-    },
-    "exp_attack_l1": {
-        "mean_runtime_per_image": 9.,
-        "attack_success_rate": 37.9,
-        "attack_success_rate_in_epsilon_l0": 0.2,
-        "attack_success_rate_in_epsilon_l1": 37.9,
-        "attack_success_rate_in_epsilon_l2": 0.0,
-        "mean_adv_distance_l1": 11.928027580784619,
-        "mean_adv_distance_l2": 1.7038818928056783,
-        "average_sparsity": 0.9581409410729991
     }
 }
