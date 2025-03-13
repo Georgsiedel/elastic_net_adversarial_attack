@@ -89,6 +89,9 @@ def get_model(dataset, modelname, norm=None):
     elif modelname == 'standard' and dataset == 'imagenet':
         from torchvision.models import resnet50, ResNet50_Weights
         net = resnet50(weights=ResNet50_Weights.DEFAULT)
+    elif modelname == 'vgg19' and dataset == 'imagenet':
+        from torchvision.models import vgg19_bn, VGG19_BN_Weights
+        net = vgg19_bn(weights=VGG19_BN_Weights.DEFAULT)
     elif modelname == 'ViT_revisiting' and dataset == 'imagenet':
         #get your ViT-B 50 epochs checkpoint from here: https://github.com/nmndeep/revisiting-at
         net = timm.models.vision_transformer.vit_base_patch16_224(pretrained=False)
