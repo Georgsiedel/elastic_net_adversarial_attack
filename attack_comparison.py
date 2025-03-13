@@ -35,7 +35,7 @@ def main(dataset, samplesize_accuracy, samplesize_attack, validation_run, datase
     # Attack comparison
     results_dict_attack_comparison = Experiment.attack_comparison(attack_types, **kwargs)
 
-    json_file_path = f'./results/attack_comparison_{alias}_{samplesize_attack}samples_l1-epsilon-{epsilon_l1}.json'
+    json_file_path = f'./results/attack_comparison_{alias}_{samplesize_attack}samples_l1-epsilon-{epsilon_l1}_{max_iterations}_iters.json'
     with open(json_file_path, 'w') as f:
         json.dump(results_dict_attack_comparison, f, indent=4)
     print(f'Evaluation results are saved under "{json_file_path}".')
@@ -44,20 +44,20 @@ if __name__ == "__main__":
     #os.environ["CUDA_LAUNCH_BLOCKING"] = "1" #prevents "CUDA error: unspecified launch failure" and is recommended for some illegal memory access errors #increases train time by ~15%
 
     parser = argparse.ArgumentParser(description="Hyperparameter Sweep Script")
-    parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'imagenet'],
+    parser.add_argument('--dataset', type=str, default='imagenet', choices=['cifar10', 'imagenet'],
                         help="Dataset to use")
     parser.add_argument('--samplesize_accuracy', type=int, default=10000, help="Split size for test accuracy evaluation")
     parser.add_argument('--samplesize_attack', type=int, default=1000, help="Split size for attack evaluation")
     parser.add_argument('--validation_run', type=utils.str2bool, nargs='?', const=False, default=False, 
                         help="True for validation/tuning, False for testing. Selects attackset from the front or the back")
     parser.add_argument('--dataset_root', type=str, default='../data', help="data folder relative root")
-    parser.add_argument('--model', type=str, default='standard',
+    parser.add_argument('--model', type=str, default='vgg19',
                         help="Model name (e.g., standard,ViT_revisiting,ConvNext_iso_CvSt_revisiting,Salman2020Do_R50,corruption_robust,MainiAVG...)")
     parser.add_argument('--model_norm', type=str, default='Linf',
                         help="Attack Norm the selected model was trained with. Only necessary if you load robustbench models")
     parser.add_argument('--attack_types', type=str, nargs='+',
-                        default=['projected_gradient_descent',
-                                #'sparseL1pgd_fb',
+                        default=['pgd',
+                                'SLIDE',
                                 'custom_apgd',
                                 'ead_fb',
                                 'ead_fb_L1_rule_higher_beta',
@@ -65,7 +65,7 @@ if __name__ == "__main__":
                                 #'exp_attack',
                                  ], 
                         choices=['fast_gradient_method',
-                                'projected_gradient_descent', #batch
+                                'pgd', #batch
                                 'pgd_early_stopping',
                                 'apgd_art',
                                 'AutoAttack',
@@ -87,7 +87,7 @@ if __name__ == "__main__":
                                 'exp_attack_l1_blackbox',
                                 'exp_attack_l1',
                                 'L1pgd_fb',
-                                'sparseL1pgd_fb',
+                                'SLIDE',
                                 'ead_fb',
                                 'ead_fb_L1_rule_higher_beta'], 
                         help="List of attack types for comparison (space-separated). ")
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     parser.add_argument('--attack_norm', type=int, default=1, choices=[1, 2, float('inf')],
                         help="Attack norm type (1, 2, float('inf'))")
     parser.add_argument('--max_iterations', type=int, default=500, help="Maximum iterations for attacks")
-    parser.add_argument('--max_batchsize', type=int, default=10, help="Maximum Batchsize to run every adversarial attack on." \
+    parser.add_argument('--max_batchsize', type=int, default=25, help="Maximum Batchsize to run every adversarial attack on." \
                         "If attack is not optimized or not working with batches, will be returned by attacks.AdversarialAttacks class.")
     parser.add_argument('--save_images', type=int, default=1, help="Integer > 0: number of saved images per attack, 0: do not save)")
     parser.add_argument('--verbose', type=utils.str2bool, nargs='?', const=False, default=False, help="Verbose output")

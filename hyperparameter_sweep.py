@@ -40,7 +40,7 @@ def main(dataset, samplesize_accuracy, samplesize_attack, validation_run, datase
         **kwargs
     )
 
-    json_file_path = f'./results/hyperparameter_sweep_{hyperparameter}_{attack_type}_{alias}_{samplesize_attack}samples_l1-epsilon-{epsilon_l1}.json'
+    json_file_path = f'./results/hyperparameter_sweep_{hyperparameter}_{attack_type}_{alias}_{samplesize_attack}samples_l1-epsilon-{epsilon_l1}_{max_iterations}_iters.json'
     with open(json_file_path, 'w') as f:
         json.dump(results_dict_hyperparameter_sweep, f, indent=4)
     print(f'Evaluation results are saved under "{json_file_path}".')

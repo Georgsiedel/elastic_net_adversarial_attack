@@ -91,7 +91,23 @@ def get_model(dataset, modelname, norm=None):
         net = resnet50(weights=ResNet50_Weights.DEFAULT)
     elif modelname == 'vgg19' and dataset == 'imagenet':
         from torchvision.models import vgg19_bn, VGG19_BN_Weights
-        net = vgg19_bn(weights=VGG19_BN_Weights.DEFAULT)
+
+        class VGG19WithNormalization(nn.Module):
+            def __init__(self):
+                super(VGG19WithNormalization, self).__init__()
+                self.model = vgg19_bn(weights=VGG19_BN_Weights.DEFAULT)
+                # Define the normalization transform
+                self.normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                    std=[0.229, 0.224, 0.225])
+
+            def forward(self, x):
+                # Apply normalization
+                x = self.normalize(x)
+                # Pass normalized input through the model
+                return self.model(x)
+            
+        net = VGG19WithNormalization()
+
     elif modelname == 'ViT_revisiting' and dataset == 'imagenet':
         #get your ViT-B 50 epochs checkpoint from here: https://github.com/nmndeep/revisiting-at
         net = timm.models.vision_transformer.vit_base_patch16_224(pretrained=False)

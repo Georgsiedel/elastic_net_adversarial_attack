@@ -48,7 +48,7 @@ class AdversarialAttacks:
                                 norm=self.norm,
                                 batch_size=max_batchsize,
                                 ), max_batchsize
-    elif attack_type=='projected_gradient_descent':
+    elif attack_type=='pgd':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         
         stepsize_madry = 0.025 * self.epsilon
@@ -122,7 +122,7 @@ class AdversarialAttacks:
     elif attack_type=='L1pgd_fb':
         att = fb.attacks.SparseL1DescentAttack(steps=self.max_iterations, quantile=0.0, random_start=False)
         return att, max_batchsize
-    elif attack_type=='sparseL1pgd_fb':
+    elif attack_type=='SLIDE':
         att = fb.attacks.SparseL1DescentAttack(steps=self.max_iterations, quantile=0.99, random_start=False)
         return att, max_batchsize
     elif attack_type=='ead_fb':
