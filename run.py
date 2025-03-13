@@ -14,6 +14,8 @@ if __name__ == '__main__':
 
     os.system("python attack_comparison.py --dataset=imagenet --model=Salman2020Do_R50 --epsilon_l1=50")
 
+    os.system("python attack_comparison.py --dataset=imagenet --model=Salman2020Do_R50 --epsilon_l1=75")
+
     os.system("python attack_comparison.py --dataset=imagenet --model=ConvNext_iso_CvSt_revisiting --epsilon_l1=25")
 
     os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --max_batchsize=10 --epsilon_l1=25")
