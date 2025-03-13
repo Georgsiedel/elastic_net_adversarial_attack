@@ -50,9 +50,12 @@ class AdversarialAttacks:
                                 ), max_batchsize
     elif attack_type=='projected_gradient_descent':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
+        
+        stepsize_madry = 0.025 * self.epsilon
+
         return ProjectedGradientDescentNumpy(self.art_net,
                                              eps=self.epsilon,
-                                             eps_step=self.eps_iter,
+                                             eps_step=stepsize_madry,
                                              max_iter=self.max_iterations,
                                              norm=self.norm,
                                              batch_size=max_batchsize,
@@ -117,10 +120,10 @@ class AdversarialAttacks:
                                                init_attack=fb.attacks.SaltAndPepperNoiseAttack(steps=5000, across_channels=False))
         return att, max_batchsize
     elif attack_type=='L1pgd_fb':
-        att = fb.attacks.L1ProjectedGradientDescentAttack(abs_stepsize=self.eps_iter, steps=self.max_iterations, random_start=False)
+        att = fb.attacks.SparseL1DescentAttack(steps=self.max_iterations, quantile=0.0, random_start=False)
         return att, max_batchsize
     elif attack_type=='sparseL1pgd_fb':
-        att = fb.attacks.SparseL1DescentAttack(abs_stepsize=self.eps_iter, steps=self.max_iterations, random_start=False)
+        att = fb.attacks.SparseL1DescentAttack(steps=self.max_iterations, quantile=0.99, random_start=False)
         return att, max_batchsize
     elif attack_type=='ead_fb':
         att = fb.attacks.EADAttack(steps=self.max_iterations, regularization=0.001)
