@@ -87,10 +87,10 @@ if __name__ == '__main__':
     os.system("python attack_comparison.py --dataset=imagenet --model=ConvNext_iso_CvSt_revisiting --epsilon_l1=50 --max_iterations=100")
     os.system("python attack_comparison.py --dataset=imagenet --model=ConvNext_iso_CvSt_revisiting --epsilon_l1=75 --max_iterations=100")
 
-    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --epsilon_l1=12 --max_iterations=100")
-    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --epsilon_l1=25 --max_iterations=100")
-    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --epsilon_l1=50 --max_iterations=100")
-    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --epsilon_l1=75 --max_iterations=100")
+    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --max_batchsize=10 --epsilon_l1=12 --max_iterations=100")
+    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --max_batchsize=10 --epsilon_l1=25 --max_iterations=100")
+    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --max_batchsize=10 --epsilon_l1=50 --max_iterations=100")
+    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --max_batchsize=10 --epsilon_l1=75 --max_iterations=100")
 
     os.system("python attack_comparison.py --dataset=imagenet --model=vgg19 --epsilon_l1=12 --max_iterations=100")
     os.system("python attack_comparison.py --dataset=imagenet --model=vgg19 --epsilon_l1=25 --max_iterations=100")
@@ -127,10 +127,10 @@ if __name__ == '__main__':
     os.system("python attack_comparison.py --dataset=imagenet --model=ConvNext_iso_CvSt_revisiting --epsilon_l1=50 --max_iterations=300")
     os.system("python attack_comparison.py --dataset=imagenet --model=ConvNext_iso_CvSt_revisiting --epsilon_l1=75 --max_iterations=300")
 
-    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --epsilon_l1=12 --max_iterations=300")
-    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --epsilon_l1=25 --max_iterations=300")
-    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --epsilon_l1=50 --max_iterations=300")
-    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --epsilon_l1=75 --max_iterations=300")
+    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --max_batchsize=10 --epsilon_l1=12 --max_iterations=300")
+    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --max_batchsize=10 --epsilon_l1=25 --max_iterations=300")
+    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --max_batchsize=10 --epsilon_l1=50 --max_iterations=300")
+    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --max_batchsize=10 --epsilon_l1=75 --max_iterations=300")
 
     os.system("python attack_comparison.py --dataset=imagenet --model=vgg19 --epsilon_l1=12 --max_iterations=300")
     os.system("python attack_comparison.py --dataset=imagenet --model=vgg19 --epsilon_l1=25 --max_iterations=300")

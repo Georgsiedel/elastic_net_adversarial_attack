@@ -1,0 +1,52 @@
+{
+    "pgd": {
+        "mean_runtime_per_image": 0.2244150004386902,
+        "attack_success_rate": 10.5,
+        "attack_success_rate_in_epsilon_l0": 0.3,
+        "attack_success_rate_in_epsilon_l1": 10.5,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 3.999999945504325,
+        "mean_adv_distance_l2": 0.7962702444621494,
+        "average_sparsity": 0.9851438492063496
+    },
+    "SLIDE": {
+        "mean_runtime_per_image": 0.24665285515785218,
+        "attack_success_rate": 12.0,
+        "attack_success_rate_in_epsilon_l0": 0.0,
+        "attack_success_rate_in_epsilon_l1": 12.0,
+        "attack_success_rate_in_epsilon_l2": 0.2,
+        "mean_adv_distance_l1": 3.9999999622503917,
+        "mean_adv_distance_l2": 0.7104280958573024,
+        "average_sparsity": 0.9825222439236108
+    },
+    "custom_apgd": {
+        "mean_runtime_per_image": 0.2591127274036408,
+        "attack_success_rate": 12.9,
+        "attack_success_rate_in_epsilon_l0": 0.4,
+        "attack_success_rate_in_epsilon_l1": 12.9,
+        "attack_success_rate_in_epsilon_l2": 0.2,
+        "mean_adv_distance_l1": 4.000000024026678,
+        "mean_adv_distance_l2": 0.7367980838284012,
+        "average_sparsity": 0.9829972141472867
+    },
+    "ead_fb": {
+        "mean_runtime_per_image": 0.7906337430477143,
+        "attack_success_rate": 7.8,
+        "attack_success_rate_in_epsilon_l0": 0.2,
+        "attack_success_rate_in_epsilon_l1": 7.8,
+        "attack_success_rate_in_epsilon_l2": 7.8,
+        "mean_adv_distance_l1": 2.128153694745822,
+        "mean_adv_distance_l2": 0.1589702000387777,
+        "average_sparsity": 0.8275532518696581
+    },
+    "ead_fb_L1_rule_higher_beta": {
+        "mean_runtime_per_image": 0.5946352112293244,
+        "attack_success_rate": 12.7,
+        "attack_success_rate_in_epsilon_l0": 2.6,
+        "attack_success_rate_in_epsilon_l1": 12.7,
+        "attack_success_rate_in_epsilon_l2": 9.1,
+        "mean_adv_distance_l1": 1.943838921236241,
+        "mean_adv_distance_l2": 0.40089789352665733,
+        "average_sparsity": 0.9812658915682413
+    }
+}
