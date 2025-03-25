@@ -108,6 +108,30 @@ def get_model(dataset, modelname, norm=None):
             
         net = VGG19WithNormalization()
 
+    elif modelname == 'DVCE_R50' and dataset == 'imagenet':
+        #downloaded from https://github.com/valentyn1boreiko/DVCEs/tree/main, 
+        #which is a tuned Resnet50 based on this receipe: https://github.com/fra31/robust-finetuning
+        from torchvision.models import resnet50
+
+        class R50WithNormalization(nn.Module):
+            def __init__(self):
+                super(R50WithNormalization, self).__init__()
+                self.model = resnet50()
+                ckpt = torch.load(f'./models/pretrained_models/{modelname}.pt', map_location=device, weights_only=True) #['model']
+
+                self.model.load_state_dict(ckpt, strict=True)
+                # Define the normalization transform
+                self.normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                    std=[0.229, 0.224, 0.225])
+
+            def forward(self, x):
+                # Apply normalization
+                x = self.normalize(x)
+                # Pass normalized input through the model
+                return self.model(x)
+            
+        net = R50WithNormalization()
+
     elif modelname == 'ViT_revisiting' and dataset == 'imagenet':
         #get your ViT-B 50 epochs checkpoint from here: https://github.com/nmndeep/revisiting-at
         net = timm.models.vision_transformer.vit_base_patch16_224(pretrained=False)
