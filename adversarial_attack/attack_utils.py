@@ -223,7 +223,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
         elif attack_type in ['sparse_rs_blackbox', 'sparse_rs_custom_L1_blackbox']:
             _, x_adversarial = attacker.perturb(x, y)
             x_adversarial = x_adversarial.cpu()    
-        elif attack_type in ['custom_apgd', 'AutoAttack']:
+        elif attack_type in ['custom_apgd', 'AutoAttack', 'square_l1_blackbox']:
             x_adversarial = attacker.run_standard_evaluation(x, y)
             x_adversarial = x_adversarial.cpu()
         else:             

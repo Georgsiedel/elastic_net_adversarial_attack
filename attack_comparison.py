@@ -77,6 +77,7 @@ if __name__ == "__main__":
                                 'hopskipjump_blackbox',
                                 'sparse_rs_blackbox', #batch (+better results ??)
                                 'sparse_rs_custom_L1_blackbox', #batch (+better results ??)
+                                'square_l1_blackbox',
                                 'geoda_blackbox',
                                 'carlini_wagner_l2', #worse in batches
                                 'ead', #batch (little advantage)
