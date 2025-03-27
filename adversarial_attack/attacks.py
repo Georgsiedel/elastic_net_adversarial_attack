@@ -146,6 +146,16 @@ class AdversarialAttacks:
                            max_iter=64, 
                            **relevant_kwargs
                            ), max_batchsize
+    elif attack_type=='square_l1_blackbox':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
+        attack= AutoAttack(self.net, 
+                                   norm='L1', 
+                                   eps=self.epsilon,
+                                   device=device,
+                                   version='custom',
+                                   attacks_to_run=['square'],
+                                   **relevant_kwargs)
+        return attack, max_batchsize
     elif attack_type=='sparse_rs_custom_L1_blackbox':
         #https://ojs.aaai.org/index.php/AAAI/article/view/20595/20354
         assert self.norm == 1, "only norm=1 translates correctly into sparse_rs attack budget"
