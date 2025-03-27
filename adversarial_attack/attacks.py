@@ -4,6 +4,7 @@ from art.attacks.evasion import (FastGradientMethod,
                                  ProjectedGradientDescentNumpy,
                                  AutoProjectedGradientDescent,
                                  CarliniL2Method,
+                                 CarliniL0Method,
                                  DeepFool,
                                  ElasticNet,
                                  HopSkipJump)
@@ -189,6 +190,12 @@ class AdversarialAttacks:
     elif attack_type=='carlini_wagner_l2':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return CarliniL2Method(self.art_net,
+                               max_iter=self.max_iterations,
+                               **relevant_kwargs
+                               ), max_batchsize
+    elif attack_type=='carlini_wagner_l0':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
+        return CarliniL0Method(self.art_net,
                                max_iter=self.max_iterations,
                                **relevant_kwargs
                                ), max_batchsize

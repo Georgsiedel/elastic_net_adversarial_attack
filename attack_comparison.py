@@ -65,22 +65,23 @@ if __name__ == "__main__":
                                 #'exp_attack',
                                  ], 
                         choices=['fast_gradient_method',
-                                'pgd', #batch
+                                'pgd',
                                 'pgd_early_stopping',
                                 'apgd_art',
                                 'AutoAttack',
                                 'custom_apgd',
                                 'deep_fool',
-                                'brendel_bethge', #batch 
-                                'pointwise_blackbox', #batch (+better results ??)
+                                'brendel_bethge',
+                                'pointwise_blackbox',
                                 'boundary_blackbox',
                                 'hopskipjump_blackbox',
-                                'sparse_rs_blackbox', #batch (+better results ??)
-                                'sparse_rs_custom_L1_blackbox', #batch (+better results ??)
+                                'sparse_rs_blackbox',
+                                'sparse_rs_custom_L1_blackbox',
                                 'square_l1_blackbox',
                                 'geoda_blackbox',
-                                'carlini_wagner_l2', #worse in batches
-                                'ead', #batch (little advantage)
+                                'carlini_wagner_l2',
+                                'carlini_wagner_l0',
+                                'ead',
                                 'ead_L1_rule_higher_beta',
                                 'exp_attack', 
                                 'exp_attack_blackbox', 
