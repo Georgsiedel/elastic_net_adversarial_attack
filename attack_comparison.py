@@ -35,7 +35,7 @@ def main(dataset, samplesize_accuracy, samplesize_attack, validation_run, datase
     # Attack comparison
     results_dict_attack_comparison = Experiment.attack_comparison(attack_types, **kwargs)
 
-    json_file_path = f'./results/attack_comparison_{alias}_{samplesize_attack}samples_l1-epsilon-{epsilon_l1}.json'
+    json_file_path = f'./results/attack_comparison_{alias}_{samplesize_attack}samples_l1-epsilon-{epsilon_l1}_{max_iterations}_iters.json'
     with open(json_file_path, 'w') as f:
         json.dump(results_dict_attack_comparison, f, indent=4)
     print(f'Evaluation results are saved under "{json_file_path}".')
@@ -46,55 +46,55 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hyperparameter Sweep Script")
     parser.add_argument('--dataset', type=str, default='imagenet', choices=['cifar10', 'imagenet'],
                         help="Dataset to use")
-
-    parser.add_argument('--samplesize_accuracy', type=int, default=2000, help="Split size for test accuracy evaluation")
+    parser.add_argument('--samplesize_accuracy', type=int, default=10000, help="Split size for test accuracy evaluation")
     parser.add_argument('--samplesize_attack', type=int, default=1000, help="Split size for attack evaluation")
     parser.add_argument('--validation_run', type=utils.str2bool, nargs='?', const=False, default=False, 
                         help="True for validation/tuning, False for testing. Selects attackset from the front or the back")
     parser.add_argument('--dataset_root', type=str, default='../data', help="data folder relative root")
-    parser.add_argument('--model', type=str, default='ConvNext_iso_CvSt_revisiting',
-                        help="Model name (e.g., standard, ViT_revisiting, ConvNext_iso_CvSt_revisiting,Salman2020Do_R50, corruption_robust, MainiAVG...)")
+    parser.add_argument('--model', type=str, default='vgg19',
+                        help="Model name (e.g., standard,ViT_revisiting,ConvNext_iso_CvSt_revisiting,Salman2020Do_R50,corruption_robust,MainiAVG...)")
     parser.add_argument('--model_norm', type=str, default='Linf',
                         help="Attack Norm the selected model was trained with. Only necessary if you load robustbench models")
     parser.add_argument('--attack_types', type=str, nargs='+',
-                        default=[#'projected_gradient_descent',
-                                #'custom_apgd',
-                                'AutoAttack',
+                        default=['pgd',
+                                'SLIDE',
+                                'custom_apgd',
+                                'ead_fb',
+                                'ead_fb_L1_rule_higher_beta',
                                 #'exp_attack_l1',
-                                #'brendel_bethge',
-                                #'boundary_blackbox',
-                                #'geoda_blackbox',
-                                #'sparse_rs_blackbox',
+                                #'exp_attack',
                                  ], 
                         choices=['fast_gradient_method',
-                                'projected_gradient_descent', #batch
+                                'pgd',
                                 'pgd_early_stopping',
-                                'autopgd_art',
+                                'apgd_art',
                                 'AutoAttack',
                                 'custom_apgd',
                                 'deep_fool',
-                                'brendel_bethge', #batch 
-                                'pointwise_blackbox', #batch (+better results ??)
+                                'brendel_bethge',
+                                'pointwise_blackbox',
                                 'boundary_blackbox',
                                 'hopskipjump_blackbox',
-                                'sparse_rs_blackbox', #batch (+better results ??)
-                                'sparse_rs_custom_L1_blackbox', #batch (+better results ??)
+                                'sparse_rs_blackbox',
+                                'sparse_rs_custom_L1_blackbox',
+                                'square_l1_blackbox',
                                 'geoda_blackbox',
-                                'carlini_wagner_l2', #worse in batches
-                                'elastic_net', #batch (little advantage)
-                                'elastic_net_L1_rule_higher_beta',
+                                'carlini_wagner_l2',
+                                'carlini_wagner_l0',
+                                'ead',
+                                'ead_L1_rule_higher_beta',
                                 'exp_attack', 
                                 'exp_attack_blackbox', 
                                 'exp_attack_blackbox_L1_rule_higher_beta',
                                 'exp_attack_l1_blackbox',
                                 'exp_attack_l1',
-                                'exp_attack_l1_ada',
-                                'exp_attack_l1_fb',
-                                'exp_attack_l0'
-                                ], 
+                                'L1pgd_fb',
+                                'SLIDE',
+                                'ead_fb',
+                                'ead_fb_L1_rule_higher_beta'], 
                         help="List of attack types for comparison (space-separated). ")
     parser.add_argument('--epsilon_l0', type=float, default=25, help="L0 epsilon, translates to overall number of input features altered")
-    parser.add_argument('--epsilon_l1', type=float, default=75, help="L1 norm epsilon (default: 12 for CIFAR10)")
+    parser.add_argument('--epsilon_l1', type=float, default=12, help="L1 norm epsilon (default: 12 for CIFAR10)")
     parser.add_argument('--epsilon_l2', type=float, default=0.5, help="L2 norm epsilon")
     parser.add_argument('--eps_iter', type=float, default=0.1, help="Step size for manual iterative attacks")
     parser.add_argument('--learning_rate', type=float, help="Learning rate for exp attacks")
@@ -102,7 +102,7 @@ if __name__ == "__main__":
     parser.add_argument('--attack_norm', type=int, default=1, choices=[1, 2, float('inf')],
                         help="Attack norm type (1, 2, float('inf'))")
     parser.add_argument('--max_iterations', type=int, default=500, help="Maximum iterations for attacks")
-    parser.add_argument('--max_batchsize', type=int, default=1000, help="Maximum Batchsize to run every adversarial attack on." \
+    parser.add_argument('--max_batchsize', type=int, default=25, help="Maximum Batchsize to run every adversarial attack on." \
                         "If attack is not optimized or not working with batches, will be returned by attacks.AdversarialAttacks class.")
     parser.add_argument('--save_images', type=int, default=1, help="Integer > 0: number of saved images per attack, 0: do not save)")
     parser.add_argument('--verbose', type=utils.str2bool, nargs='?', const=False, default=False, help="Verbose output")

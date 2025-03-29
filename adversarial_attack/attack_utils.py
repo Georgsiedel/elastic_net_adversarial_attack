@@ -63,7 +63,11 @@ class Experiment_class():
                                                                 **kwargs)
             
             print(f'\nTotal runtime: {len(self.ytest) * results_dict[hyperparameter+str(value)]["mean_runtime_per_image"]: .4f} seconds\n')
-            print(hyperparameter+str(value), 'attack success rate in epsilon (L1 / L2): ',
+            print(hyperparameter+str(value), 'attack success rate in epsilon (Overall / L0 / L1 / L2): ',
+                round(results_dict[hyperparameter+str(value)]["attack_success_rate"], 4),
+                ' / ',
+                round(results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l0"], 4),
+                ' / ',
                 round(results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l1"], 4),
                 ' / ',
                 round(results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l2"], 4))           
@@ -73,7 +77,7 @@ class Experiment_class():
                    round(results_dict[hyperparameter+str(value)]["mean_adv_distance_l2"], 5))
         
             if adv_images:
-                image_dir = f'./results/hyperparameter_sweep_{attack_type}_{self.alias}_images'
+                image_dir = f'./results/hyperparameter_sweep_{attack_type}_{self.alias}_eps{self.epsilon_l1}_{self.max_iterations}_iters_images'
                 os.makedirs(image_dir, exist_ok=True)
                 for i, img in enumerate(adv_images):
                     if img.dim() == 3:  
@@ -117,7 +121,11 @@ class Experiment_class():
                                                                 **kwargs)
             
             print(f'\nTotal runtime: {len(self.ytest) * results_dict[attack_type]["mean_runtime_per_image"]: .4f} seconds\n')
-            print('attack success rate in epsilon (L1 / L2): ',
+            print('attack success rate in epsilon (Overall / L0 / L1 / L2): ',
+                  round(results_dict[attack_type]["attack_success_rate"], 4), 
+                  ' / ',
+                  round(results_dict[attack_type]["attack_success_rate_in_epsilon_l0"], 4),
+                  ' / ',
                 round(results_dict[attack_type]["attack_success_rate_in_epsilon_l1"], 4),
                 ' / ',
                 round(results_dict[attack_type]["attack_success_rate_in_epsilon_l2"], 4))           
@@ -127,7 +135,7 @@ class Experiment_class():
                    round(results_dict[attack_type]["mean_adv_distance_l2"], 5))
         
             if adv_images:
-                image_dir = f'./results/attack_comparison_{self.alias}_images'
+                image_dir = f'./results/attack_comparison_{self.alias}_eps{self.epsilon_l1}_{self.max_iterations}_iters_images'
                 os.makedirs(image_dir, exist_ok=True)
                 for i, img in enumerate(adv_images):
                     if img.dim() == 3:  
@@ -210,14 +218,15 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
                                                                 attacker=attacker,
                                                                 verbose = verbose)
             x_adversarial = torch.from_numpy(x_adversarial)
-        elif attack_type in ['brendel_bethge', 'pointwise_blackbox', 'boundary_blackbox']:
+        elif attack_type in ['brendel_bethge', 'pointwise_blackbox', 'boundary_blackbox', 'L1pgd_fb', 'SLIDE', 'ead_fb', 'ead_fb_L1_rule_higher_beta']:
             _, x_adversarial, _ = attacker(fb_net, x, criterion=y, epsilons=[epsilon_l1])
             x_adversarial = x_adversarial[0].cpu()    
         elif attack_type in ['sparse_rs_blackbox', 'sparse_rs_custom_L1_blackbox']:
             _, x_adversarial = attacker.perturb(x, y)
             x_adversarial = x_adversarial.cpu()    
-        elif attack_type in ['custom_apgd', 'AutoAttack']:
-            x_adversarial = attacker.run_standard_evaluation(x, y,bs=250)
+
+        elif attack_type in ['custom_apgd', 'AutoAttack', 'square_l1_blackbox']:
+            x_adversarial = attacker.run_standard_evaluation(x, y)
             x_adversarial = x_adversarial.cpu()
         else:             
             x_adversarial = attacker.generate(x.cpu().numpy(), y.cpu().numpy())
@@ -254,10 +263,10 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
                 distance_list_l1.append(distance_l1[j].item())
                 distance_list_l2.append(distance_l2[j].item())
                 
-                attack_successes_in_epsilon_l0 += (round(distance_l0[j].item(), 3) <= epsilon_l0)
-                attack_successes_in_epsilon_l1 += (round(distance_l1[j].item(), 3) <= epsilon_l1)
-                attack_successes_in_epsilon_l2 += (round(distance_l2[j].item(), 3) <= epsilon_l2)
-                attack_successes_in_en += ((round(distance_l2[j].item(), 3) <= epsilon_l2) or (round(distance_l1[j].item(), 3) <= epsilon_l1))
+                attack_successes_in_epsilon_l0 += (round(distance_l0[j].item(), 1) <= epsilon_l0)
+                attack_successes_in_epsilon_l1 += (round(distance_l1[j].item(), 1) <= epsilon_l1)
+                attack_successes_in_epsilon_l2 += (round(distance_l2[j].item(), 1) <= epsilon_l2)
+                attack_successes_in_en += ((round(distance_l2[j].item(), 1) <= epsilon_l2) or (round(distance_l1[j].item(), 1) <= epsilon_l1))
                 attack_successes += 1
 
                 #dim = torch.numel(delta[j])

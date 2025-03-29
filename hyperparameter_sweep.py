@@ -40,7 +40,7 @@ def main(dataset, samplesize_accuracy, samplesize_attack, validation_run, datase
         **kwargs
     )
 
-    json_file_path = f'./results/hyperparameter_sweep_{hyperparameter}_{attack_type}_{alias}_{samplesize_attack}samples_l1-epsilon-{epsilon_l1}.json'
+    json_file_path = f'./results/hyperparameter_sweep_{hyperparameter}_{attack_type}_{alias}_{samplesize_attack}samples_l1-epsilon-{epsilon_l1}_{max_iterations}_iters.json'
     with open(json_file_path, 'w') as f:
         json.dump(results_dict_hyperparameter_sweep, f, indent=4)
     print(f'Evaluation results are saved under "{json_file_path}".')
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     parser.add_argument('--beta', type=float, help="Beta for exp_attack_l1, exp_attack, EAD")
     parser.add_argument('--attack_norm', type=int, default=1, choices=[1, 2, float('inf')],
                         help="Attack norm type (1, 2, float('inf'))")
-    parser.add_argument('--max_iterations', type=int, default=300, help="Maximum iterations for attacks")
+    parser.add_argument('--max_iterations', type=int, default=100, help="Maximum iterations for attacks")
     parser.add_argument('--max_batchsize', type=int, default=100, help="Maximum Batchsize to run every adversarial attack on." \
                         "If attack is not optimized or not working with batches, will be returned by attacks.AdversarialAttacks class.")
     parser.add_argument('--save_images', type=int, default=1, help="Integer > 0: number of saved images per attack, 0: do not save)")
