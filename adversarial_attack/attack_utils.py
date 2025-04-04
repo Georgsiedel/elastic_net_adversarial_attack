@@ -10,6 +10,7 @@ from PIL import Image
 art.config.ART_NUMPY_DTYPE=numpy.float64
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device_cpu = torch.device('cpu')
 
 class Experiment_class():
     def __init__(self, art_net, fb_net, net, xtest, ytest, alias, epsilon_l0, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations, max_batchsize, save_images):
@@ -223,6 +224,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
         elif attack_type in ['sparse_rs_blackbox', 'sparse_rs_custom_L1_blackbox']:
             _, x_adversarial = attacker.perturb(x, y)
             x_adversarial = x_adversarial.cpu()    
+
         elif attack_type in ['custom_apgd', 'AutoAttack', 'square_l1_blackbox']:
             x_adversarial = attacker.run_standard_evaluation(x, y)
             x_adversarial = x_adversarial.cpu()
@@ -240,7 +242,8 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
 
         # Adversarial distance calculation: if no AE found, save 0.0 as distance
         delta = x.cpu() - x_adversarial.cpu()
-        distance_l0 = torch.count_nonzero(delta.view(delta.size(0), -1), dim=1) # Batch-wise L0 distance = number of input features changed
+        #distance_l0 = torch.count_nonzero(delta.view(delta.size(0), -1), dim=1) # Batch-wise L0 distance = number of input features changed
+        distance_l0 = torch.sum(torch.max(torch.abs(delta),dim=1).values, dim=(1,2)) # Batch-wise L0 distance = number of input features changed
         distance_l1 = torch.norm(delta.view(delta.size(0), -1), p=1, dim=1)  # Batch-wise L1 distance
         distance_l2 = torch.norm(delta.view(delta.size(0), -1), p=2, dim=1)  # Batch-wise L2 distance
 
@@ -266,10 +269,14 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
                 attack_successes_in_en += ((round(distance_l2[j].item(), 1) <= epsilon_l2) or (round(distance_l1[j].item(), 1) <= epsilon_l1))
                 attack_successes += 1
 
-                dim = torch.numel(delta[j])
-                sparsity = (dim - torch.count_nonzero(delta[j]).item()) / dim
-                sparsity_list.append(sparsity)
+                #dim = torch.numel(delta[j])
+                #sparsity = (dim - torch.count_nonzero(delta[j]).item()) / dim
+                #sparsity_list.append(sparsity)
 
+                dim = delta.shape[0]*delta.shape[2]*delta.shape[3]
+                #sparsity = (dim - torch.count_nonzero(torch.max(torch.abs(delta[j]),dim=1).values).item()) / dim
+                sparsity = torch.count_nonzero(torch.max(torch.abs(delta[j]),dim=0).values).item()
+                sparsity_list.append(sparsity)
                 if verbose:
                     print(f'Image {i + j}\t\tSuccesful attack with adversarial_distance (L1 / L2): {distance_l1[j]:.4f} / {distance_l2[j]:.5f}')
 
@@ -293,6 +300,6 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
     mean_sparsity=sum(sparsity_list)/attack_successes if attack_successes else 0.0
     mean_runtime=sum(runtime_list) / len(xtest)
 
-    print(f'\naverage sparsity: {mean_sparsity*100:.3f}%\n')
+    print(f'\naverage pixel l0: {mean_sparsity:.3f}\n')
 
     return distance_list_l1, distance_list_l2, mean_runtime, attack_success_rate, attack_success_rate_in_epsilon_l0,  attack_success_rate_in_epsilon_l1, attack_success_rate_in_epsilon_l2, mean_adv_distance_l1, mean_adv_distance_l2, saved_images, mean_sparsity
