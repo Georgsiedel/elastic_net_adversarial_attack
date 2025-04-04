@@ -134,7 +134,7 @@ class AdversarialAttacks:
         return att, max_batchsize
     elif attack_type=='pointwise_blackbox':
         #https://openreview.net/pdf?id=S1EHOsC9tX
-        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.SaltAndPepperNoiseAttack(steps=5000, across_channels=False))
+        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.SaltAndPepperNoiseAttack(steps=20000, across_channels=False))
         att._distance = fb.distances.l1
         return att, max_batchsize
     elif attack_type=='boundary_blackbox':
@@ -185,6 +185,7 @@ class AdversarialAttacks:
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return GeoDA(self.art_net,
                      max_iter=10000,
+                     norm=self.norm,
                         **relevant_kwargs
                         ), max_batchsize
     elif attack_type=='carlini_wagner_l2':
