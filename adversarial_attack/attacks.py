@@ -12,7 +12,7 @@ from adversarial_attack.geometric_decision_based_attack import GeoDA
 from adversarial_attack.rs_attacks import RSAttack
 from adversarial_attack.exp_attack import ExpAttack
 from adversarial_attack.exp_attack_l1 import ExpAttackL1
-from adversarial_attack.exp_grad_l1_linf import ExpAttackL1Linf
+#from adversarial_attack.exp_grad_l1_linf import ExpAttackL1Linf
 #from adversarial_attack.acc_exp_attack import AccExpAttack
 #from auto_attack import AutoAttack
 from adversarial_attack.auto_attack.autoattack_custom import AutoAttack_Custom as AutoAttack
@@ -103,7 +103,7 @@ class AdversarialAttacks:
                                    **relevant_kwargs)
         attack.apgd.n_restarts=1
         attack.apgd.n_iter=self.max_iterations
-        attack.apgd.verbose=True
+        attack.apgd.verbose=False
         attack.apgd.use_largereps=False
         attack.apgd.eot_iter=1
         attack.apgd.use_rs = False
@@ -141,7 +141,7 @@ class AdversarialAttacks:
         att._distance = fb.distances.l1
         return att, max_batchsize
     elif attack_type=='boundary_blackbox':
-        att = fb.attacks.boundary_attack.BoundaryAttack(steps=25000, init_attack=fb.attacks.blended_noise.LinearSearchBlendedUniformNoiseAttack(steps=50, distance=fb.distances.l1))
+        att = fb.attacks.boundary_attack.BoundaryAttack(steps=25000, init_attack=fb.attacks.blended_noise.LinearSearchBlendedUniformNoiseAttack(distance=fb.distances.l1))
         att._distance = fb.distances.l1
         return att, max_batchsize
     elif attack_type=='hopskipjump_blackbox':
