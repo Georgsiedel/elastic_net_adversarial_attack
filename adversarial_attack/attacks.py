@@ -266,7 +266,7 @@ class AdversarialAttacks:
                       perturbation_blackbox=0.001,
                       samples_blackbox=100,
                       **kwargs
-                      ), max_batchsize
+                      ), 1
     elif attack_type=='exp_attack_l1_blackbox_rademacher':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ExpAttackL1(self.art_net,
@@ -277,7 +277,7 @@ class AdversarialAttacks:
                       perturbation_blackbox=0.001,
                       samples_blackbox=100,
                       **kwargs
-                      ), max_batchsize
+                      ), 1
     elif attack_type=='exp_attack_l1_blackbox_uniform':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ExpAttackL1(self.art_net,
@@ -288,7 +288,7 @@ class AdversarialAttacks:
                       perturbation_blackbox=0.001,
                       samples_blackbox=100,
                       **kwargs
-                      ), max_batchsize
+                      ), 1
     elif attack_type=='exp_attack_l1_blackbox_l1':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ExpAttackL1(self.art_net,
@@ -299,7 +299,7 @@ class AdversarialAttacks:
                       perturbation_blackbox=0.1,
                       samples_blackbox=100,
                       **kwargs
-                      ), max_batchsize
+                      ), 1
     elif attack_type=='exp_attack_l1_ada_bb':
         return ExpAttackL1Ada(self.art_net,
                         max_iter=self.max_iterations,
