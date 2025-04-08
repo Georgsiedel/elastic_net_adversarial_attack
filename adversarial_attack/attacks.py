@@ -261,10 +261,10 @@ class AdversarialAttacks:
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
                       epsilon=self.epsilon,
-                      learning_rate=0.1,
+                      learning_rate=0.5,
                       estimator_blackbox='gaussian_nes',
                       perturbation_blackbox=0.001,
-                      samples_blackbox=1000,
+                      samples_blackbox=100,
                       **kwargs
                       ), max_batchsize
     elif attack_type=='exp_attack_l1_blackbox_rademacher':
@@ -272,10 +272,10 @@ class AdversarialAttacks:
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
                       epsilon=self.epsilon,
-                      learning_rate=0.25,
+                      learning_rate=0.5,
                       estimator_blackbox='rademacher',
                       perturbation_blackbox=0.001,
-                      samples_blackbox=1000,
+                      samples_blackbox=100,
                       **kwargs
                       ), max_batchsize
     elif attack_type=='exp_attack_l1_blackbox_uniform':
@@ -283,10 +283,10 @@ class AdversarialAttacks:
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
                       epsilon=self.epsilon,
-                        learning_rate=0.25,
+                        learning_rate=0.5,
                       estimator_blackbox='uniform',
                       perturbation_blackbox=0.001,
-                      samples_blackbox=1000,
+                      samples_blackbox=100,
                       **kwargs
                       ), max_batchsize
     elif attack_type=='exp_attack_l1_blackbox_l1':
@@ -294,10 +294,10 @@ class AdversarialAttacks:
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
                       epsilon=self.epsilon,
-                        learning_rate=0.25,
+                        learning_rate=0.5,
                       estimator_blackbox='l1',
-                      perturbation_blackbox=1.0,
-                      samples_blackbox=1000,
+                      perturbation_blackbox=0.1,
+                      samples_blackbox=100,
                       **kwargs
                       ), max_batchsize
     elif attack_type=='exp_attack_l1_ada_bb':

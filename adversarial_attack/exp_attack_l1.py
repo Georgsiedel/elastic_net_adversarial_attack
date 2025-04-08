@@ -67,7 +67,7 @@ class ExpAttackL1(EvasionAttack):
         estimator_blackbox:str='None',
         perturbation_blackbox:float=0.0,
         samples_blackbox:int=100,
-        max_batchsize_blackbox:int=100
+        max_batchsize_blackbox:int=500
     ) -> None:
         """
         Create an ElasticNet attack instance.
@@ -525,6 +525,6 @@ class ExpAttackL1(EvasionAttack):
         """
         l1dist = np.sum(np.abs(x - x_adv).reshape(x.shape[0], -1), axis=1)
         predictions = self.estimator.predict(np.array(x_adv, dtype=ART_NUMPY_DTYPE), batch_size=self.batch_size)
-        loss = self.estimator.compute_loss(x_adv, y_batch)
-        print(loss, l1dist)
+        #loss = self.estimator.compute_loss(x_adv, y_batch)
+        #print(loss, l1dist)
         return np.argmax(predictions, axis=1), l1dist
