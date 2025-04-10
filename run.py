@@ -15,3 +15,5 @@ if __name__ == '__main__':
 
     os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --epsilon_l1=255 --max_iterations=300 --attack_types ead_fb ead_fb_L1_rule_higher_beta")
     os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --epsilon_l1=255 --max_iterations=500")
+    
+    os.system("python attack_comparison.py --verbose=True --max_iterations=30 --dataset=imagenet --model=ConvNext_iso_CvSt_revisiting --epsilon_l1=75 --samplesize_attack=100 --attack_types pointwise_blackbox square_l1_blackbox sparse_rs_custom_L1_blackbox geoda_blackbox")
