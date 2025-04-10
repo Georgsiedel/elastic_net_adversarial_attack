@@ -64,9 +64,9 @@ class ExpAttackL1(EvasionAttack):
         epsilon:float=12,
         quantile:float=0.0,
         loss_type= "cross_entropy",
-        estimator_blackbox:str='None',
+        estimator_blackbox:str='gaussian_nes',
         perturbation_blackbox:float=0.0,
-        samples_blackbox:int=100,
+        samples_blackbox:int=50,
         max_batchsize_blackbox:int=500
     ) -> None:
         """
@@ -321,7 +321,7 @@ class ExpAttackL1(EvasionAttack):
         #print(f"initial loss {self.estimator.compute_loss(x_adv.astype(ART_NUMPY_DTYPE),y_batch)}")
         for i_iter in range(self.max_iter):            
             
-            if self.estimator_blackbox != 'None' and self.perturbation_blackbox > 0:
+            if self.perturbation_blackbox > 0:
                 grad = -self._estimate_gradient_blackbox(x_adv.astype(ART_NUMPY_DTYPE), y_batch, self.estimator_blackbox) * (1 - 2 * int(self.targeted))
             else:
                 grad = -self.estimator.loss_gradient(x_adv.astype(ART_NUMPY_DTYPE), y_batch) * (1 - 2 * int(self.targeted))
