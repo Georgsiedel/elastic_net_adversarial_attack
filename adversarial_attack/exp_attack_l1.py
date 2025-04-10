@@ -310,7 +310,7 @@ class ExpAttackL1(EvasionAttack):
             print('[m] iteration: 0 - loss: {:.6f}'.format(np.sum(_loss_val)))
         self.eta=np.zeros(shape=(x_0.shape[0],1,1,1))
         if self.perturbation_blackbox > 0:
-            grad = -self._estimate_gradient_blackbox(x_adv.astype(ART_NUMPY_DTYPE), y_batch) * (1 - 2 * int(self.targeted))
+            grad = -self._estimate_gradient_blackbox(x_adv.astype(ART_NUMPY_DTYPE), y_batch, estimator=self.estimator_blackbox) * (1 - 2 * int(self.targeted))
         else:
             grad = -self.estimator.loss_gradient(x_adv.astype(ART_NUMPY_DTYPE), y_batch,reduction= "sum") * (1 - 2 * int(self.targeted))
         self.tol=np.max(np.abs(grad),axis=(1,2,3))[:, np.newaxis, np.newaxis, np.newaxis]
