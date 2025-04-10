@@ -55,10 +55,10 @@ class ExpAttack(ElasticNet):
         learning_rate: float = 1.0,
         binary_search_steps: int = 9,
         max_iter: int = 100,
-        l1: float = 1e-3,
-        beta:float=0.1,
+        l1: float = 100,
+        beta:float=1.0,
         initial_const: float = 1e-3,
-        batch_size: int = 1,
+        batch_size: int = 250,
         decision_rule: str = "EN",
         verbose: bool = True,
         perturbation_blackbox:float=0.0,
@@ -131,7 +131,7 @@ class ExpAttack(ElasticNet):
 
         # Compute adversarial examples with implicit batching
         nb_batches = int(np.ceil(x_adv.shape[0] / float(self.batch_size)))
-        for batch_id in trange(nb_batches, desc="ExpAttack", disable=not self.verbose):
+        for batch_id in trange(nb_batches, desc="Exp Gradient for Elastic Net", disable=not self.verbose):
             batch_index_1, batch_index_2 = batch_id * self.batch_size, (batch_id + 1) * self.batch_size
             x_batch = x_adv[batch_index_1:batch_index_2]
             y_batch = y[batch_index_1:batch_index_2]
@@ -191,9 +191,6 @@ class ExpAttack(ElasticNet):
                 y_batch, best_label, c_current, c_lower_bound, c_upper_bound
             )
 
-        if self.final_quantile > 0.0:
-            o_best_attack = self._sparsify_attack(o_best_attack, x_batch, self.final_quantile)
-
         return o_best_attack
     
     def _generate_bss(self, x_batch: np.ndarray, y_batch: np.ndarray, c_batch: np.ndarray) -> tuple:
@@ -221,17 +218,24 @@ class ExpAttack(ElasticNet):
         upper=1.0-x_0
         lower=0.0-x_0
         x_adv=x_0+delta
-        self.eta=0.0
+
+
+        self.eta=np.zeros(shape=(x_0.shape[0],1,1,1))
+        grad = self._gradient_of_loss(target=y_batch, x=x_batch, x_adv=x_adv.astype(ART_NUMPY_DTYPE), c_weight=c_batch)
+        self.tol=np.max(np.abs(grad),axis=(1,2,3))[:, np.newaxis, np.newaxis, np.newaxis]
+
+
+
         for i_iter in range(self.max_iter):
             logger.debug("Iteration step %i out of %i", i_iter, self.max_iter)
             # updating rule
-            grad = self._gradient_of_loss(target=y_batch, x=x_batch, x_adv=x_adv.astype(np.float32), c_weight=c_batch)
-            
-            delta = self._md(grad,delta,lower,upper)
-            
+            grad = self._gradient_of_loss(target=y_batch, x=x_batch, x_adv=x_adv.astype(ART_NUMPY_DTYPE), c_weight=c_batch)
+             
+            delta = self._md(grad,delta, lower,upper)
+
             x_adv=x_0+delta
             # Adjust the best result
-            (logits, l1dist, l2dist, endist) = self._loss(x=x_batch, x_adv=x_adv.astype(np.float32))
+            (logits, l1dist, l2dist, endist) = self._loss(x=x_batch, x_adv=x_adv.astype(ART_NUMPY_DTYPE))
 
             if self.decision_rule == "EN":
                 zip_set = zip(endist, logits)
@@ -253,16 +257,8 @@ class ExpAttack(ElasticNet):
     def _md(self,g,x,lower,upper):
         beta = self.beta
         dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
-        
-        if self.eta==0.0:
-            eta_t=np.max(np.abs(g))/self.learning_rate
-            v=self._md_const(g,x,lower,upper,eta_t)
-            dual_v= (np.log(np.abs(v) / beta + 1.0)) * np.sign(v)
-            dist=(eta_t**2)*np.vdot(x-v,dual_x-dual_v)
-            eta_t=np.sqrt(dist)/self.learning_rate   
-        else:
-            eta_t=np.sqrt(self.eta)/self.learning_rate
-
+        self.eta+=np.max(g**2,axis=(1,2,3))[:, np.newaxis, np.newaxis, np.newaxis]
+        eta_t=np.sqrt(self.eta)/self.learning_rate
         dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
         z=dual_x- g/eta_t
         v_sgn = np.sign(z)
@@ -274,27 +270,24 @@ class ExpAttack(ElasticNet):
         v = v_sgn * v_val
         v = np.clip(v, lower, upper)
 
-        dual_v= (np.log(np.abs(v) / beta + 1.0)) * np.sign(v)
-        dist=(eta_t**2)*np.vdot(x-v,dual_x-dual_v)
-        
-        self.eta+=dist
-        eta_t_1=np.sqrt(self.eta)/self.learning_rate
-        v=(1.0-eta_t/eta_t_1)*x+eta_t/eta_t_1*v
+        #divergence=self._bd(v,x,beta)[:, np.newaxis, np.newaxis, np.newaxis]
+        #dist=(eta_t**2)*divergence
+        #self.eta+=dist 
+        #eta_t_1=(np.maximum(np.sqrt(self.eta),self.tol)/self.learning_rate)
+        #gamma=eta_t/eta_t_1
+        #v=(1.0-gamma)*x+gamma*v 
         return v
     
-    def _md_const(self,g,x,lower,upper,eta):
-        beta = self.beta
-        dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
-        z=dual_x- g/eta
-        v_sgn = np.sign(z)
-        a = beta
-        b = 2.0/eta
-        c = np.minimum(self.l1/eta- np.abs(z),0.0)
-        abc=-c+np.log(a*b)+a*b
-        v_val = np.where(abc>=15.0,np.log(abc)-np.log(np.log(abc))+np.log(np.log(abc))/np.log(abc), lambertw( np.exp(abc), k=0).real)/b-a
-        v = v_sgn * v_val
-        v = np.clip(v, lower, upper)
-        return v
+
+    def _bd(self,x: np.ndarray,y:  np.ndarray,beta :float) -> np.ndarray:
+        return self._reg(x,beta)-self._reg(y,beta)-np.sum(self._reg_prim(y,beta)*(x-y),axis=(1,2,3))
+    
+    def _reg(self,x: np.ndarray,beta :float)-> np.ndarray:
+        return np.sum(np.log(np.abs(x)/beta+1.0)*(np.abs(x)+beta)-abs(x),axis=(1,2,3))
+    
+    def _reg_prim(self,x: np.ndarray, beta :float)-> np.ndarray:
+        return np.log(np.abs(x)/beta+1.0)*np.sign(x)
+    
     
     def _gradient_of_loss(
         self,
@@ -342,15 +335,10 @@ class ExpAttack(ElasticNet):
 
 
         loss_gradient *= c_mult
-        if self.smooth:
-        #loss_gradient += 2 * (x_adv - x)
-            loss_gradient=loss_gradient-np.exp(-cost)/(1.0+np.exp(-cost))*loss_gradient
-        # Set gradients where loss is constant to zero
-        else:
-            cond = (
-                predictions[np.arange(x.shape[0]), i_add] - predictions[np.arange(x.shape[0]), i_sub] + self.confidence
-            ) < 0
-            loss_gradient[cond] = 0.0
+        cond = (
+            predictions[np.arange(x.shape[0]), i_add] - predictions[np.arange(x.shape[0]), i_sub] + self.confidence
+        ) < 0
+        loss_gradient[cond] = 0.0
 
         return loss_gradient
     

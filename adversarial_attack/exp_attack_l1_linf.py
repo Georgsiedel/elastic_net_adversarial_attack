@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class ExpAttackL1(EvasionAttack):
+class ExpAttackL1Linf(EvasionAttack):
     attack_params = EvasionAttack.attack_params + [
         "targeted",
         "learning_rate",
@@ -53,7 +53,7 @@ class ExpAttackL1(EvasionAttack):
         estimator: PyTorchClassifier,
         targeted: bool = False,
         learning_rate: float =1.0,
-        max_iter: int = 300,
+        max_iter: int = 100,
         beta: float =1.0,
         batch_size: int = 50,
         verbose: bool = True,
@@ -224,6 +224,7 @@ class ExpAttackL1(EvasionAttack):
         self.beta = beta
         self.batch_size = batch_size
         self.verbose = verbose
+        self.eta=0.0
         self.epsilon=epsilon
         self._check_params()
         self.loss_type=loss_type
@@ -273,7 +274,6 @@ class ExpAttackL1(EvasionAttack):
         # Apply clip
         if self.estimator.clip_values is not None:
             x_adv = np.clip(x_adv, self.estimator.clip_values[0], self.estimator.clip_values[1])
-
         # Compute success rate of the EAD attack
         logger.info(
             "Success rate of exp attack: %.2f%%",
@@ -297,27 +297,29 @@ class ExpAttackL1(EvasionAttack):
         best_loss = np.zeros(x_batch.shape[0])[:, np.newaxis, np.newaxis, np.newaxis]
         best_attack = x_batch.copy()
         x_0=x_batch.copy()
+        #upper=np.ones(x_0.shape)
+        #lower=-np.ones(x_0.shape)
         upper=1.0-x_0
         lower=0.0-x_0
+        
         delta=np.zeros(x_0.shape)
-        _loss_val=None
         x_adv=x_0+delta
         if self.verbose:
-            _loss_val=self.estimator.compute_loss(x_adv.astype(ART_NUMPY_DTYPE), y_batch,reduction= "none")
+            _loss_val=self.estimator.compute_loss(x_adv.astype(ART_NUMPY_DTYPE), y_batch,reduction= "sum")
             print('[m] iteration: 0 - loss: {:.6f}'.format(np.sum(_loss_val)))
         self.eta=np.zeros(shape=(x_0.shape[0],1,1,1))
         if self.perturbation_blackbox > 0:
             grad = -self._estimate_gradient_blackbox(x_adv.astype(ART_NUMPY_DTYPE), y_batch) * (1 - 2 * int(self.targeted))
         else:
             grad = -self.estimator.loss_gradient(x_adv.astype(ART_NUMPY_DTYPE), y_batch,reduction= "sum") * (1 - 2 * int(self.targeted))
-        self.tol=np.max(np.abs(grad),axis=(1,2,3))[:, np.newaxis, np.newaxis, np.newaxis]
+        
         for i_iter in range(self.max_iter):
             beta=self.beta
             if self.perturbation_blackbox > 0:
                 grad = -self._estimate_gradient_blackbox(x_adv.astype(ART_NUMPY_DTYPE), y_batch) * (1 - 2 * int(self.targeted))
             else:
                 grad = -self.estimator.loss_gradient(x_adv.astype(ART_NUMPY_DTYPE), y_batch,reduction= "sum") * (1 - 2 * int(self.targeted))
-            self.tol=np.max(np.abs(grad),axis=(1,2,3))[:, np.newaxis, np.newaxis, np.newaxis]
+
             delta = self._md(grad,delta,lower,upper,beta)
             x_adv=x_0+delta
             
@@ -326,8 +328,8 @@ class ExpAttackL1(EvasionAttack):
             best_attack=np.where(_loss_val>best_loss,x_adv,best_attack)
             best_loss=np.where(_loss_val>best_loss,_loss_val,best_loss)
             if self.verbose:
-                best_loss_val=np.sum(best_loss)
-                print('[m] iteration: {} - loss: {:.6f}'.format(i_iter+1,np.sum(best_loss_val)))
+                _loss_val=np.sum(best_loss)
+                print('[m] iteration: {} - loss: {:.6f}'.format(i_iter+1,_loss_val))
         return best_attack
     
     def _estimate_gradient_blackbox(self, x_adv, y_batch):
@@ -374,7 +376,7 @@ class ExpAttackL1(EvasionAttack):
         return gradient_estimate
 
     def _md(self,g: np.ndarray,x: np.ndarray,lower: np.ndarray,upper: np.ndarray,beta:float)-> np.ndarray:
-        dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
+        dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)        
         self.eta+=np.max(g**2,axis=(1,2,3))[:, np.newaxis, np.newaxis, np.newaxis]
         eta_t=np.sqrt(self.eta)/self.learning_rate
         descent=g/eta_t
@@ -382,35 +384,8 @@ class ExpAttackL1(EvasionAttack):
         z_sgn=np.sign(z)
         z_val=np.abs(z)
         v = np.stack([self._project(z_sgn[d],z_val[d],beta,self.epsilon,lower[d],upper[d]) for d in range(dual_x.shape[0])], axis=0)
-        #divergence=self._bd(v,x,beta)[:, np.newaxis, np.newaxis, np.newaxis]
-        #dist=(eta_t**2)*divergence
-        #self.eta+=dist 
-        #eta_t_1=(np.maximum(np.sqrt(self.eta),1.0)/self.learning_rate)
-        #gamma=eta_t/eta_t_1
-        #v=(1.0-gamma)*x+gamma*v 
-        return v
     
-    def _md_bt(self,g: np.ndarray,x_0: np.ndarray,x: np.ndarray,y: np.ndarray,lower: np.ndarray,upper: np.ndarray,beta:float)-> np.ndarray:
-        dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
-        f_t=-self.estimator.compute_loss((x_0+x).astype(ART_NUMPY_DTYPE), y,reduction= "none")
-        v=np.zeros(x.shape)
-        mask=np.ones(self.eta.shape[0],dtype=bool)
-        eta_t=self.eta.copy()
-        while np.any(mask) :
-            descent=g[mask]/eta_t[mask]
-            z=dual_x[mask] -descent
-            z_sgn=np.sign(z)
-            z_val=np.abs(z)
-            v_mask= np.stack([self._project(z_sgn[d],z_val[d],beta,self.epsilon,lower[mask][d],upper[mask][d]) for d in range(mask[mask].shape[0])], axis=0)
-            v[mask,:]=v_mask
-            divergence=self._bd(v[mask],x[mask],beta)[:, np.newaxis, np.newaxis, np.newaxis]
-            dist=eta_t[mask]*divergence
-            f_t_1=-self.estimator.compute_loss((x_0[mask]+v[mask]).astype(ART_NUMPY_DTYPE), y[mask],reduction= "none")
-            order_1=np.sum(g[mask]*(v[mask]-x[mask]),axis=(1,2,3))
-            mask[mask]=np.logical_and((f_t_1>f_t[mask]+order_1+dist[:,0,0,0]),(eta_t[mask]<1e6)[:,0,0,0]) 
-            eta_t[mask]= eta_t[mask]*2.0
         return v
-    
 
     def _bd(self,x: np.ndarray,y:  np.ndarray,beta :float) -> np.ndarray:
         return self._reg(x,beta)-self._reg(y,beta)-np.sum(self._reg_prim(y,beta)*(x-y),axis=(1,2,3))
@@ -423,7 +398,66 @@ class ExpAttackL1(EvasionAttack):
 
 
     
-    def _project(self, y_sgn: np.ndarray,dual_y_val: np.ndarray, beta:float, D:float,l: np.ndarray,u: np.ndarray)-> np.ndarray:
+    def _project(self, y_sgn_full: np.ndarray,dual_y_val_full: np.ndarray, beta:float, D:float,l_full: np.ndarray,u_full: np.ndarray)-> np.ndarray:
+        #upper bound optimal value
+
+        
+        c_full=np.where(y_sgn_full<=0,np.abs(l_full),u_full)
+        dual_c_full=np.log(c_full/beta+1.0)
+        max_idx=np.argmax(np.minimum(dual_y_val_full,dual_c_full),axis=0)
+        
+        width=dual_y_val_full.shape[1]
+        height=dual_y_val_full.shape[2]
+
+        dual_y_val=dual_y_val_full[max_idx, np.arange(width)[:, None], np.arange(height)]
+        dual_c=dual_c_full[max_idx, np.arange(width)[:, None], np.arange(height)]
+        c=c_full[max_idx, np.arange(width)[:, None], np.arange(height)]
+
+
+        #y lies outside hyper cube
+        phi_0=beta*np.exp(np.maximum(np.minimum(dual_y_val,dual_c),0.0))-beta
+        if np.sum(phi_0)<=D:
+            v=phi_0
+        else:
+            z=np.sort(np.stack((dual_y_val,dual_y_val-dual_c)).reshape(-1))
+            z=z[z>=0]
+            idx_l=0
+            idx_u=z.size-1
+            while idx_u-idx_l>1:
+                idx=(idx_u+idx_l)//2
+                lam=z[idx]
+                phi=np.sum(beta*np.exp(np.maximum(np.minimum(dual_y_val-lam,dual_c),0.0))-beta)
+                if phi>D:
+                    idx_l=idx
+                elif phi<D:
+                    idx_u=idx
+                else:
+                    idx_u=idx
+                    idx_l=idx-1
+            lam_lower=z[idx_u]
+            lam_upper=z[idx_l]
+            phi_upper=np.sum(beta*np.exp(np.maximum(np.minimum(dual_y_val-lam_upper,dual_c),0.0))-beta)
+            if phi_upper==D:
+                v=beta*np.exp(np.maximum(np.minimum(dual_y_val-lam_upper,dual_c),0.0))-beta
+            else:
+                lam=(lam_lower+lam_upper)/2.0
+                idx_clip=dual_y_val-lam>=dual_c
+                idx_active=np.logical_and((dual_y_val-lam)<dual_c , (dual_y_val-lam)>0)
+                v=np.where(idx_clip,c,0.0)
+                num_active=np.sum(idx_active)
+                if num_active!=0:
+                    sum_active=D-np.sum(c[idx_clip])
+                    normaliser=(sum_active+beta*num_active)/np.sum(beta*np.exp(dual_y_val)[idx_active])
+                    v=np.where(idx_active,beta*np.exp(dual_y_val)*normaliser-beta,v)
+        #v=v[np.newaxis, :, :]
+        _y_val_full=beta*np.exp(np.minimum(dual_y_val_full,dual_c_full))-beta
+        v_full=np.minimum(_y_val_full,v)
+        #print(f"group norm {np.sum(np.max(np.abs(v_full),axis=0))}, 1 norm {np.sum(np.abs(v))}")
+        
+        return v_full*y_sgn_full
+        
+    
+    def _project_l1(self, y_sgn: np.ndarray,dual_y_val: np.ndarray, beta:float, D:float,l: np.ndarray,u: np.ndarray)-> np.ndarray:
         #upper bound optimal value
         c=np.where(y_sgn<=0,np.abs(l),u)
         dual_c=np.log(c/beta+1.0)
@@ -459,10 +493,10 @@ class ExpAttackL1(EvasionAttack):
             num_active=np.sum(idx_active)
             if num_active!=0:
                 sum_active=D-np.sum(c[idx_clip])
-                max_dual_y=np.max((dual_y_val)[idx_active])
-                normaliser=(sum_active+beta*num_active)/np.sum(beta*np.exp(dual_y_val[idx_active]-max_dual_y))
-                v[idx_active]=beta*np.exp(dual_y_val[idx_active]-max_dual_y)*normaliser-beta
+                normaliser=(sum_active+beta*num_active)/np.sum(beta*np.exp(dual_y_val)[idx_active])
+                v=np.where(idx_active,beta*np.exp(dual_y_val)*normaliser-beta,v)
         return v*y_sgn
+
 
     def _get_descent(self,g:np.ndarray,l:np.ndarray,u:np.ndarray)-> np.ndarray:
         c=np.where(g<0.0,u,l)
