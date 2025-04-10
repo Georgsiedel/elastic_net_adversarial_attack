@@ -85,6 +85,9 @@ def get_model(dataset, modelname, norm=None):
         state_dict = model["model_state_dict"]
         new_state_dict = {key.replace("module.", ""): value for key, value in state_dict.items()}
         net.load_state_dict(new_state_dict, strict=True)
+    elif modelname in ['NoisyMix'] and dataset == 'cifar10':
+        net = load_model(model_name='', dataset=dataset, threat_model=norm) #'Wang2023Better_WRN-28-10'
+        modelname = modelname + '_' + norm
 
     elif modelname == 'standard' and dataset == 'imagenet':
         from torchvision.models import resnet50, ResNet50_Weights

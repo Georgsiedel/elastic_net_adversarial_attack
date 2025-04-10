@@ -230,7 +230,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
             x_adversarial = x_adversarial.cpu()
         else:             
             x_adversarial = attacker.generate(x.cpu().numpy(), y.cpu().numpy())
-            x_adversarial = torch.from_numpy(x_adversarial)
+            x_adversarial = torch.from_numpy(x_adversarial).float()
         
         end_time = time.time()
         runtime = end_time - start_time

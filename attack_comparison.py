@@ -86,7 +86,10 @@ if __name__ == "__main__":
                                 'exp_attack', 
                                 'exp_attack_blackbox', 
                                 'exp_attack_blackbox_L1_rule_higher_beta',
-                                'exp_attack_l1_blackbox',
+                                'exp_attack_l1_blackbox_gaussian_nes',
+                                 'exp_attack_l1_blackbox_uniform',
+                                 'exp_attack_l1_blackbox_rademacher',
+                                 'exp_attack_l1_blackbox_l1',
                                 'exp_attack_l1',
                                 'exp_attack_l1_linf',
                                 'exp_attack_l1_ada',
@@ -105,6 +108,7 @@ if __name__ == "__main__":
                         help="Attack norm type (1, 2, float('inf'))")
     parser.add_argument('--max_iterations', type=int, default=500, help="Maximum iterations for attacks")
     parser.add_argument('--max_batchsize', type=int, default=50, help="Maximum Batchsize to run every adversarial attack on." \
+
                         "If attack is not optimized or not working with batches, will be returned by attacks.AdversarialAttacks class.")
     parser.add_argument('--save_images', type=int, default=1, help="Integer > 0: number of saved images per attack, 0: do not save)")
     parser.add_argument('--verbose', type=utils.str2bool, nargs='?', const=False, default=False, help="Verbose output")
