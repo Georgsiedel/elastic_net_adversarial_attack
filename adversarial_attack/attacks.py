@@ -264,7 +264,7 @@ class AdversarialAttacks:
                       learning_rate=0.5,
                       estimator_blackbox='gaussian_nes',
                       perturbation_blackbox=0.001,
-                      samples_blackbox=100,
+                      samples_blackbox=50,
                       **kwargs
                       ), 1
     elif attack_type=='exp_attack_l1_blackbox_rademacher':
@@ -275,7 +275,7 @@ class AdversarialAttacks:
                       learning_rate=0.5,
                       estimator_blackbox='rademacher',
                       perturbation_blackbox=0.001,
-                      samples_blackbox=100,
+                      samples_blackbox=50,
                       **kwargs
                       ), 1
     elif attack_type=='exp_attack_l1_blackbox_uniform':
@@ -286,7 +286,7 @@ class AdversarialAttacks:
                         learning_rate=0.5,
                       estimator_blackbox='uniform',
                       perturbation_blackbox=0.001,
-                      samples_blackbox=100,
+                      samples_blackbox=50,
                       **kwargs
                       ), 1
     elif attack_type=='exp_attack_l1_blackbox_l1':
@@ -297,7 +297,7 @@ class AdversarialAttacks:
                         learning_rate=0.5,
                       estimator_blackbox='l1',
                       perturbation_blackbox=0.1,
-                      samples_blackbox=100,
+                      samples_blackbox=50,
                       **kwargs
                       ), 1
     elif attack_type=='exp_attack_l1_ada_bb':
@@ -305,7 +305,7 @@ class AdversarialAttacks:
                         max_iter=self.max_iterations,
                         epsilon=self.epsilon,
                         perturbation_blackbox=0.001,
-                        samples_blackbox=100,
+                        samples_blackbox=50,
                         quantile=0.0,
                         **kwargs
                         ), 1
