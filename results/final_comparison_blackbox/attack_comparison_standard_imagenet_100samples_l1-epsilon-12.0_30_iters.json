@@ -28,5 +28,15 @@
         "mean_adv_distance_l1": 11.06368,
         "mean_adv_distance_l2": 2.64606,
         "average_sparsity": 7.684
+    },
+    "geoda_blackbox": {
+        "mean_runtime_per_image": 45.294967918396,
+        "attack_success_rate": 100.0,
+        "attack_success_rate_in_epsilon_l0": 0.0,
+        "attack_success_rate_in_epsilon_l1": 0.0,
+        "attack_success_rate_in_epsilon_l2": 1.0,
+        "mean_adv_distance_l1": 18549.59784339905,
+        "mean_adv_distance_l2": 60.51692818850279,
+        "average_sparsity": 50134.06
     }
 }
