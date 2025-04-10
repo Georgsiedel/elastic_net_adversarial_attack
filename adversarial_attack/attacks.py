@@ -292,7 +292,7 @@ class AdversarialAttacks:
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
                       epsilon=self.epsilon,
-                      #learning_rate=0.5,
+                      learning_rate=0.5,
                       estimator_blackbox='gaussian_nes',
                       perturbation_blackbox=0.001,
                       samples_blackbox=50,
