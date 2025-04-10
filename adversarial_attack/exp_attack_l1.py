@@ -63,7 +63,7 @@ class ExpAttackL1(EvasionAttack):
         estimator_blackbox:str='gaussian_nes',
         perturbation_blackbox:float=0.0,
         samples_blackbox:int=50,
-        max_batchsize_blackbox:int=500
+        max_batchsize_blackbox:int=100
     ) -> None:
         """
         Create an ElasticNet attack instance.

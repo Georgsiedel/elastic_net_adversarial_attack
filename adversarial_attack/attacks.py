@@ -8,6 +8,7 @@ from art.attacks.evasion import (FastGradientMethod,
                                  DeepFool,
                                  ElasticNet,
                                  HopSkipJump)
+from adversarial_attack.blackbox_pgd import BlackBoxProjectedGradientDescentNumpy
 from adversarial_attack.geometric_decision_based_attack import GeoDA
 from adversarial_attack.rs_attacks import RSAttack
 from adversarial_attack.exp_attack import ExpAttack
@@ -135,6 +136,21 @@ class AdversarialAttacks:
     elif attack_type=='ead_fb_L1_rule_higher_beta':
         att = fb.attacks.EADAttack(steps=self.max_iterations, regularization=0.01, decision_rule='L1')
         return att, max_batchsize
+    elif attack_type=='pgd_blackbox':
+            relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
+            
+            stepsize_madry = 0.025 * self.epsilon
+
+            return BlackBoxProjectedGradientDescentNumpy(self.art_net,
+                                                eps=self.epsilon,
+                                                eps_step=stepsize_madry,
+                                                max_iter=self.max_iterations,
+                                                norm=self.norm,
+                                                batch_size=max_batchsize,
+                                                perturbation_blackbox=0.001,
+                                                samples_blackbox=50,
+                                                 **relevant_kwargs
+                                                ), 1
     elif attack_type=='pointwise_blackbox':
         #https://openreview.net/pdf?id=S1EHOsC9tX
         att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.SaltAndPepperNoiseAttack(steps=20000, across_channels=False))
@@ -223,6 +239,14 @@ class AdversarialAttacks:
                       max_iter=self.max_iterations,
                       **relevant_kwargs
                       ), max_batchsize
+    elif attack_type=='exp_attack_L1_rule_higher_beta':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
+        return ExpAttack(self.art_net,
+                      max_iter=self.max_iterations,
+                      decision_rule='L1',
+                      l1=0.01,
+                      **relevant_kwargs
+                      ), max_batchsize
     elif attack_type=='exp_attack_blackbox':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ExpAttack(self.art_net,
@@ -263,47 +287,14 @@ class AdversarialAttacks:
                       epsilon=self.epsilon,
                       **relevant_kwargs
                       ), max_batchsize
-    elif attack_type=='exp_attack_l1_blackbox_gaussian_nes':
+    elif attack_type=='exp_attack_l1_blackbox':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
                       epsilon=self.epsilon,
-                      learning_rate=0.5,
+                      #learning_rate=0.5,
                       estimator_blackbox='gaussian_nes',
                       perturbation_blackbox=0.001,
-                      samples_blackbox=50,
-                      **kwargs
-                      ), 1
-    elif attack_type=='exp_attack_l1_blackbox_rademacher':
-        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
-        return ExpAttackL1(self.art_net,
-                      max_iter=self.max_iterations,
-                      epsilon=self.epsilon,
-                      learning_rate=0.5,
-                      estimator_blackbox='rademacher',
-                      perturbation_blackbox=0.001,
-                      samples_blackbox=50,
-                      **kwargs
-                      ), 1
-    elif attack_type=='exp_attack_l1_blackbox_uniform':
-        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
-        return ExpAttackL1(self.art_net,
-                      max_iter=self.max_iterations,
-                      epsilon=self.epsilon,
-                        learning_rate=0.5,
-                      estimator_blackbox='uniform',
-                      perturbation_blackbox=0.001,
-                      samples_blackbox=50,
-                      **kwargs
-                      ), 1
-    elif attack_type=='exp_attack_l1_blackbox_l1':
-        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
-        return ExpAttackL1(self.art_net,
-                      max_iter=self.max_iterations,
-                      epsilon=self.epsilon,
-                        learning_rate=0.5,
-                      estimator_blackbox='l1',
-                      perturbation_blackbox=0.1,
                       samples_blackbox=50,
                       **kwargs
                       ), 1

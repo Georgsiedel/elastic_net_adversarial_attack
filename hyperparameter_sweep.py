@@ -74,15 +74,15 @@ if __name__ == "__main__":
     parser.add_argument('--beta', type=float, help="Beta for exp_attack_l1, exp_attack, EAD")
     parser.add_argument('--attack_norm', type=int, default=1, choices=[1, 2, float('inf')],
                         help="Attack norm type (1, 2, float('inf'))")
-    parser.add_argument('--max_iterations', type=int, default=100, help="Maximum iterations for attacks")
-    parser.add_argument('--max_batchsize', type=int, default=100, help="Maximum Batchsize to run every adversarial attack on." \
+    parser.add_argument('--max_iterations', type=int, default=1000, help="Maximum iterations for attacks")
+    parser.add_argument('--max_batchsize', type=int, default=50, help="Maximum Batchsize to run every adversarial attack on." \
                         "If attack is not optimized or not working with batches, will be returned by attacks.AdversarialAttacks class.")
     parser.add_argument('--save_images', type=int, default=1, help="Integer > 0: number of saved images per attack, 0: do not save)")
     parser.add_argument('--verbose', type=utils.str2bool, nargs='?', const=False, default=False, help="Verbose output")
 
     args = parser.parse_args()
     # Convert Namespace to dictionary and filter some arguments to kwargs
-    filtered_kwargs = {"verbose", "beta", "verbose"}
+    filtered_kwargs = {"verbose", "beta"}
     kwargs = {k: v for k, v in vars(args).items() if k in filtered_kwargs and v is not None}
 
     main(
