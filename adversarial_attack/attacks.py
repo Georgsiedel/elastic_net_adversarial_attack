@@ -256,21 +256,56 @@ class AdversarialAttacks:
                       epsilon=self.epsilon,
                       **relevant_kwargs
                       ), max_batchsize
-    elif attack_type=='exp_attack_l1_blackbox':
+    elif attack_type=='exp_attack_l1_blackbox_gaussian_nes':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
                       epsilon=self.epsilon,
+                      learning_rate=0.5,
+                      estimator_blackbox='gaussian_nes',
                       perturbation_blackbox=0.001,
-                      samples_blackbox=100,
+                      samples_blackbox=50,
                       **kwargs
-                      ), max_batchsize
+                      ), 1
+    elif attack_type=='exp_attack_l1_blackbox_rademacher':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
+        return ExpAttackL1(self.art_net,
+                      max_iter=self.max_iterations,
+                      epsilon=self.epsilon,
+                      learning_rate=0.5,
+                      estimator_blackbox='rademacher',
+                      perturbation_blackbox=0.001,
+                      samples_blackbox=50,
+                      **kwargs
+                      ), 1
+    elif attack_type=='exp_attack_l1_blackbox_uniform':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
+        return ExpAttackL1(self.art_net,
+                      max_iter=self.max_iterations,
+                      epsilon=self.epsilon,
+                        learning_rate=0.5,
+                      estimator_blackbox='uniform',
+                      perturbation_blackbox=0.001,
+                      samples_blackbox=50,
+                      **kwargs
+                      ), 1
+    elif attack_type=='exp_attack_l1_blackbox_l1':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
+        return ExpAttackL1(self.art_net,
+                      max_iter=self.max_iterations,
+                      epsilon=self.epsilon,
+                        learning_rate=0.5,
+                      estimator_blackbox='l1',
+                      perturbation_blackbox=0.1,
+                      samples_blackbox=50,
+                      **kwargs
+                      ), 1
     elif attack_type=='exp_attack_l1_ada_bb':
         return ExpAttackL1Ada(self.art_net,
                         max_iter=self.max_iterations,
                         epsilon=self.epsilon,
                         perturbation_blackbox=0.001,
-                        samples_blackbox=100,
+                        samples_blackbox=50,
                         quantile=0.0,
                         **kwargs
                         ), 1

@@ -9,6 +9,7 @@ from cmath import inf
 from scipy.special import lambertw
 import numpy as np
 from tqdm.auto import trange
+import time
 
 from art.estimators.estimator import BaseEstimator, LossGradientsMixin
 from art.estimators.classification.classifier import ClassifierMixin
@@ -42,6 +43,7 @@ class ExpAttackL1(EvasionAttack):
         "decision_rule",
         "verbose",
         "quantile",
+        'estimator_blackbox',
         "perturbation_blackbox",
         "samples_blackbox",
         "max_batchsize_blackbox"
@@ -62,9 +64,10 @@ class ExpAttackL1(EvasionAttack):
         epsilon:float=12,
         quantile:float=0.0,
         loss_type= "cross_entropy",
+        estimator_blackbox:str='None',
         perturbation_blackbox:float=0.0,
         samples_blackbox:int=100,
-        max_batchsize_blackbox:int=100
+        max_batchsize_blackbox:int=500
     ) -> None:
         """
         Create an ElasticNet attack instance.
@@ -234,6 +237,7 @@ class ExpAttackL1(EvasionAttack):
         self._check_params()
         self.loss_type=loss_type
         self.perturbation_blackbox = abs(perturbation_blackbox)
+        self.estimator_blackbox = estimator_blackbox
         self.samples_blackbox = samples_blackbox
         self.max_batchsize_blackbox = max_batchsize_blackbox
 
@@ -315,13 +319,12 @@ class ExpAttackL1(EvasionAttack):
         self.eta=np.zeros(x_0.shape[0])
         #self.beta=self.epsilon/x_0.size
         #print(f"initial loss {self.estimator.compute_loss(x_adv.astype(ART_NUMPY_DTYPE),y_batch)}")
-        for i_iter in range(self.max_iter):
+        for i_iter in range(self.max_iter):            
             
-            if self.perturbation_blackbox > 0:
-                grad = -self._estimate_gradient_blackbox(x_adv.astype(ART_NUMPY_DTYPE), y_batch) * (1 - 2 * int(self.targeted))
+            if self.estimator_blackbox != 'None' and self.perturbation_blackbox > 0:
+                grad = -self._estimate_gradient_blackbox(x_adv.astype(ART_NUMPY_DTYPE), y_batch, self.estimator_blackbox) * (1 - 2 * int(self.targeted))
             else:
                 grad = -self.estimator.loss_gradient(x_adv.astype(ART_NUMPY_DTYPE), y_batch) * (1 - 2 * int(self.targeted))
-            
             
             for i in range(grad.shape[0]):
                 #grad_val=np.abs(grad[i])
@@ -329,54 +332,89 @@ class ExpAttackL1(EvasionAttack):
                 #grad[i][grad_val<topk_val]=0.0             
                 delta[i] = self._md(grad[i],delta[i], lower[i],upper[i],i)
             
-
             logger.debug("Iteration step %i out of %i", i_iter, self.max_iter)
             x_adv=x_0+delta
-            (logits, l1dist) = self._loss(x=x_batch, x_adv=x_adv.astype(ART_NUMPY_DTYPE))
+            (logits, l1dist) = self._loss(x=x_batch, x_adv=x_adv.astype(ART_NUMPY_DTYPE), y_batch=y_batch)
             zip_set = zip(l1dist, logits)
             for j, (distance, label) in enumerate(zip_set):
                 if distance < best_dist[j] and compare(label, np.argmax(y_batch[j])):
                     best_dist[j] = distance
                     best_attack[j] = x_adv[j]
                     best_label[j] = label
+
         return best_attack
-    def _estimate_gradient_blackbox(self, x_adv, y_batch):
+    
+    def _estimate_gradient_blackbox(self, x_adv, y_batch, estimator='gaussian_nes'):
         """
         Efficient batched gradient estimation using black-box sampling.
         """
         # Initialize the gradient estimate
         gradient_estimate = np.zeros_like(x_adv)
 
-        # Extend x_adv to a batch with size equal to self.samples_blackbox
-        x_adv_extended = np.repeat(x_adv, self.samples_blackbox, axis=0)
-        
-        # Generate Rademacher samples (±1) for the extended batch
-        vi = np.random.choice([-1, 1], size=x_adv_extended.shape).astype(np.float32)
+        # Determine the effective number of perturbation samples
+        if estimator == 'gaussian_nes':
+            half_samples = self.samples_blackbox // 2  # only half noise vectors
+            # Extend x_adv to a batch with size equal to half_samples
+            x_adv_extended = np.repeat(x_adv, half_samples, axis=0)
+        else:
+            x_adv_extended = np.repeat(x_adv, self.samples_blackbox, axis=0)
 
-        # Compute perturbed inputs for all samples in the extended batch
-        rand_perturbed_inputs = np.clip(x_adv_extended + self.perturbation_blackbox * vi, 0.0, 1.0)
+        try:
+            if estimator == 'rademacher':
+                # Generate Rademacher samples (±1) for the extended batch
+                vi = np.random.choice([-1, 1], size=x_adv_extended.shape).astype(np.float32)
+            elif estimator == 'uniform':
+                vi = np.random.uniform(size=x_adv_extended.shape).astype(np.float32)
+            elif estimator == 'gaussian_nes':
+                vi = np.random.normal(size=x_adv_extended.shape).astype(np.float32)
+            elif estimator == 'l1':
+                exp_samples = np.random.exponential(scale=1.0, size=x_adv_extended.shape).astype(np.float32)
+                norm = np.sum(exp_samples, axis=1, keepdims=True)
+                signs = np.random.choice([-1, 1], size=x_adv_extended.shape).astype(np.float32)
+                vi = signs * exp_samples / norm
+            else:
+                raise ValueError("Invalid estimator_blackbox. Valid options are: 'rademacher', 'uniform', 'gaussian_nes', 'l1'.")
+        except ValueError as e:
+            print(e)
+
+        if estimator == 'gaussian_nes': #antithetic samples, no clipping (see https://arxiv.org/pdf/1804.08598)
+            rand_perturbed_inputs = x_adv_extended + self.perturbation_blackbox * vi
+            anti_rand_perturbed_inputs = x_adv_extended - self.perturbation_blackbox * vi
+            total_samples = half_samples
+        else:
+            # Compute perturbed inputs for all samples in the extended batch, clip inputs and perturbations
+            rand_perturbed_inputs = np.clip(x_adv_extended + self.perturbation_blackbox * vi, 0.0, 1.0)
+            vi = (rand_perturbed_inputs - x_adv_extended) / self.perturbation_blackbox
+            total_samples = self.samples_blackbox
 
         # Split into batches of size self.max_batchsize_blackbox
-        num_batches = int(np.ceil(self.samples_blackbox / self.max_batchsize_blackbox))
+        num_batches = int(np.ceil(total_samples / self.max_batchsize_blackbox))
         
         for batch_idx in range(num_batches):
             # Determine the range of indices for this batch
             start_idx = batch_idx * self.max_batchsize_blackbox
-            end_idx = min((batch_idx + 1) * self.max_batchsize_blackbox, self.samples_blackbox)
+            end_idx = min((batch_idx + 1) * self.max_batchsize_blackbox, total_samples)
             batch_size = end_idx - start_idx
             
             # Slice the current batch
             batch_perturbed_inputs = rand_perturbed_inputs[start_idx:end_idx]
             batch_vi = vi[start_idx:end_idx]
+            repeated_y = np.repeat(y_batch, batch_size, axis=0)
 
-            # Compute loss for the perturbed inputs and original inputs
-            loss_perturbed = self.estimator.compute_loss(batch_perturbed_inputs, np.repeat(y_batch, batch_size, axis=0))
-            loss_original = self.estimator.compute_loss(x_adv, y_batch)
-
-            # Compute delta loss with broadcasting
-            delta_loss = (loss_perturbed - loss_original) / self.perturbation_blackbox
-            # Accumulate the gradient estimate
-            gradient_estimate += np.sum(batch_vi * delta_loss[:, None, None, None], axis=0)
+            # Compute losses
+            loss_perturbed = self.estimator.compute_loss(batch_perturbed_inputs, repeated_y)
+    
+            if estimator == 'gaussian_nes':
+                #estimation between noise and reversed noise (antithetic samples https://arxiv.org/pdf/1804.08598)
+                anti_batch_perturbed_inputs = anti_rand_perturbed_inputs[start_idx:end_idx]
+                second_loss = self.estimator.compute_loss(anti_batch_perturbed_inputs, repeated_y)
+            else:
+                #estimation between noise and original point
+                second_loss = self.estimator.compute_loss(x_adv, y_batch)
+            
+            # Compute delta loss and accumulate the gradient estimate with broadcasting
+            delta_loss = (loss_perturbed - second_loss) / self.perturbation_blackbox
+            gradient_estimate += np.sum(batch_vi * np.atleast_1d(delta_loss)[:, None, None, None], axis=0)
 
         # Average the accumulated gradient estimate over the total number of samples
         gradient_estimate /= self.samples_blackbox
@@ -476,8 +514,7 @@ class ExpAttackL1(EvasionAttack):
         return phi
     
 
-
-    def _loss(self, x: np.ndarray, x_adv: np.ndarray) -> tuple:
+    def _loss(self, x: np.ndarray, x_adv: np.ndarray, y_batch: np.ndarray) -> tuple:
         """
         Compute the loss function values.
 
@@ -488,4 +525,6 @@ class ExpAttackL1(EvasionAttack):
         """
         l1dist = np.sum(np.abs(x - x_adv).reshape(x.shape[0], -1), axis=1)
         predictions = self.estimator.predict(np.array(x_adv, dtype=ART_NUMPY_DTYPE), batch_size=self.batch_size)
+        #loss = self.estimator.compute_loss(x_adv, y_batch)
+        #print(loss, l1dist)
         return np.argmax(predictions, axis=1), l1dist
