@@ -273,7 +273,6 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
                 #sparsity = (dim - torch.count_nonzero(delta[j]).item()) / dim
                 #sparsity_list.append(sparsity)
 
-                dim = delta.shape[0]*delta.shape[2]*delta.shape[3]
                 #sparsity = (dim - torch.count_nonzero(torch.max(torch.abs(delta[j]),dim=1).values).item()) / dim
                 sparsity = torch.count_nonzero(torch.max(torch.abs(delta[j]),dim=0).values).item()
                 sparsity_list.append(sparsity)
