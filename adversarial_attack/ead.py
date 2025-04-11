@@ -68,6 +68,8 @@ class EADAttack(MinimizationAttack):
         self.abort_early = abort_early
         self.decision_rule = decision_rule
         self.track_c = track_c
+        if track_c:
+            self.c_list =[]
 
     def run(
         self,
@@ -207,13 +209,14 @@ class EADAttack(MinimizationAttack):
         if self.track_c is not None:
             
             consts_list = consts.raw.tolist()  # EagerPy to list
+            self.c_list.extend(consts_list)
             # Create dictionary
-            data = {"final_c": consts_list}
+            c_dict = {"final_c": self.c_list}
 
-            json_file_path = f'./results/c_values_ead/{self.track_c}.json'
-            os.makedirs(json_file_path, exist_ok=True)
+            json_file_path = f'./results/c_values_ead/{self.track_c}_{self.decision_rule}.json'
+            os.makedirs('./results/c_values_ead', exist_ok=True)
             with open(json_file_path, 'w') as json_file:
-                json.dump(data, json_file)
+                json.dump(c_dict, json_file)
 
         return restore_type(best_advs)
 
