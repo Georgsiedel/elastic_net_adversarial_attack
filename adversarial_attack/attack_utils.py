@@ -97,13 +97,13 @@ class Experiment_class():
 
         return results_dict
 
-    def attack_comparison(self, attack_types, **kwargs):
+    def attack_comparison(self, attack_types, track_distance, **kwargs):
         results_dict = {}
 
         for attack_type in attack_types:
             results_dict[attack_type] = {}
             print(f'\t\t-------------------------- Processing Attack: {attack_type} --------------------------\n')
-            _,_, results_dict[attack_type]["mean_runtime_per_image"], results_dict[attack_type]["attack_success_rate"], results_dict[attack_type]["attack_success_rate_in_epsilon_l0"], results_dict[attack_type]["attack_success_rate_in_epsilon_l1"], results_dict[attack_type]["attack_success_rate_in_epsilon_l2"], results_dict[attack_type]["mean_adv_distance_l1"], results_dict[attack_type]["mean_adv_distance_l2"], adv_images, results_dict[attack_type]["average_sparsity"] = calculation(
+            distance_list_l1,_, results_dict[attack_type]["mean_runtime_per_image"], results_dict[attack_type]["attack_success_rate"], results_dict[attack_type]["attack_success_rate_in_epsilon_l0"], results_dict[attack_type]["attack_success_rate_in_epsilon_l1"], results_dict[attack_type]["attack_success_rate_in_epsilon_l2"], results_dict[attack_type]["mean_adv_distance_l1"], results_dict[attack_type]["mean_adv_distance_l2"], adv_images, results_dict[attack_type]["average_sparsity"] = calculation(
                                                                 art_net=self.art_net,
                                                                 fb_net=self.fb_net,
                                                                 net = self.net,
@@ -119,7 +119,12 @@ class Experiment_class():
                                                                 max_batchsize=self.max_batchsize,
                                                                 save_images=self.save_images,
                                                                 **kwargs)
-            
+            if track_distance:
+                results_dict[attack_type]["distance_list_l1"] = distance_list_l1
+                for eps in [2, 4, 12, 25, 50, 75, 255]:
+                    string = f'ASR_in_L1={eps}'
+                    results_dict[attack_type][string] = sum(1 for v in distance_list_l1 if v > eps) / len(self.x_test)
+
             print(f'\nTotal runtime: {len(self.ytest) * results_dict[attack_type]["mean_runtime_per_image"]: .4f} seconds\n')
             print('attack success rate in epsilon (Overall / L0 / L1 / L2): ',
                   round(results_dict[attack_type]["attack_success_rate"], 4), 
@@ -218,9 +223,12 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
                                                                 attacker=attacker,
                                                                 verbose = verbose)
             x_adversarial = torch.from_numpy(x_adversarial)
-        elif attack_type in ['brendel_bethge', 'pointwise_blackbox', 'boundary_blackbox', 'L1pgd_fb', 'SLIDE', 'ead_fb', 'ead_fb_L1_rule_higher_beta']:
+        elif attack_type in ['L1pgd_fb', 'SLIDE']:
             _, x_adversarial, _ = attacker(fb_net, x, criterion=y, epsilons=[epsilon_l1])
             x_adversarial = x_adversarial[0].cpu()    
+        elif attack_type in ['brendel_bethge', 'pointwise_blackbox', 'boundary_blackbox', 'ead_fb', 'ead_fb_L1_rule_higher_beta']:
+            _, x_adversarial, _ = attacker(fb_net, x, criterion=y, epsilons=None)
+            x_adversarial = x_adversarial[0].cpu()
         elif attack_type in ['sparse_rs_blackbox', 'sparse_rs_custom_L1_blackbox']:
             _, x_adversarial = attacker.perturb(x, y)
             x_adversarial = x_adversarial.cpu()    

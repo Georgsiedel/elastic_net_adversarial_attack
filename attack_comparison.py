@@ -6,7 +6,7 @@ import torch
 import os
 
 def main(dataset, samplesize_accuracy, samplesize_attack, validation_run, dataset_root, model, model_norm, attack_types, epsilon_l0, epsilon_l1, epsilon_l2, 
-         eps_iter, norm, max_iterations, max_batchsize, save_images, **kwargs):
+         eps_iter, norm, max_iterations, max_batchsize, save_images, track_distance, **kwargs):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Load dataset
@@ -33,7 +33,7 @@ def main(dataset, samplesize_accuracy, samplesize_attack, validation_run, datase
     )
 
     # Attack comparison
-    results_dict_attack_comparison = Experiment.attack_comparison(attack_types, **kwargs)
+    results_dict_attack_comparison = Experiment.attack_comparison(attack_types, track_distance=track_distance, **kwargs)
 
     json_file_path = f'./results/attack_comparison_{alias}_{samplesize_attack}samples_l1-epsilon-{epsilon_l1}_{max_iterations}_iters.json'
     with open(json_file_path, 'w') as f:
@@ -111,6 +111,7 @@ if __name__ == "__main__":
                         "If attack is not optimized or not working with batches, will be returned by attacks.AdversarialAttacks class.")
     parser.add_argument('--save_images', type=int, default=1, help="Integer > 0: number of saved images per attack, 0: do not save)")
     parser.add_argument('--verbose', type=utils.str2bool, nargs='?', const=False, default=False, help="Verbose output")
+    parser.add_argument('--track_distance', type=utils.str2bool, nargs='?', const=False, default=False, help="Whether to track all images L1-distance")
 
     args = parser.parse_args()
 
@@ -120,5 +121,5 @@ if __name__ == "__main__":
 
     main(
         args.dataset, args.samplesize_accuracy, args.samplesize_attack, args.validation_run, args.dataset_root, args.model, args.model_norm, args.attack_types, args.epsilon_l0,
-        args.epsilon_l1, args.epsilon_l2, args.eps_iter, args.attack_norm, args.max_iterations, args.max_batchsize, args.save_images, **kwargs
+        args.epsilon_l1, args.epsilon_l2, args.eps_iter, args.attack_norm, args.max_iterations, args.max_batchsize, args.save_images, args.track_distance, **kwargs
     )
