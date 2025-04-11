@@ -14,6 +14,7 @@ from adversarial_attack.rs_attacks import RSAttack
 from adversarial_attack.exp_attack import ExpAttack
 from adversarial_attack.exp_attack_l1 import ExpAttackL1
 from adversarial_attack.exp_attack_l1_linf import ExpAttackL1Linf
+from adversarial_attack.ead import EADAttack
 #from adversarial_attack.acc_exp_attack import AccExpAttack
 #from auto_attack import AutoAttack
 from adversarial_attack.auto_attack.autoattack_custom import AutoAttack_Custom as AutoAttack
@@ -132,11 +133,11 @@ class AdversarialAttacks:
         return att, max_batchsize
     elif attack_type=='ead_fb':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["track_c"]}
-        att = fb.attacks.EADAttack(steps=self.max_iterations, regularization=0.001, **relevant_kwargs)
+        att = EADAttack(steps=self.max_iterations, regularization=0.001, **relevant_kwargs)
         return att, max_batchsize
     elif attack_type=='ead_fb_L1_rule_higher_beta':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["track_c"]}
-        att = fb.attacks.EADAttack(steps=self.max_iterations, regularization=0.01, decision_rule='L1', **relevant_kwargs)
+        att = EADAttack(steps=self.max_iterations, regularization=0.01, decision_rule='L1', **relevant_kwargs)
         return att, max_batchsize
     elif attack_type=='pgd_blackbox':
             relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
