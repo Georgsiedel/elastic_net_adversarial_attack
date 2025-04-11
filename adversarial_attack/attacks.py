@@ -131,10 +131,12 @@ class AdversarialAttacks:
         att = fb.attacks.SparseL1DescentAttack(steps=self.max_iterations, quantile=0.99, random_start=False)
         return att, max_batchsize
     elif attack_type=='ead_fb':
-        att = fb.attacks.EADAttack(steps=self.max_iterations, regularization=0.001)
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["track_c"]}
+        att = fb.attacks.EADAttack(steps=self.max_iterations, regularization=0.001, **relevant_kwargs)
         return att, max_batchsize
     elif attack_type=='ead_fb_L1_rule_higher_beta':
-        att = fb.attacks.EADAttack(steps=self.max_iterations, regularization=0.01, decision_rule='L1')
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["track_c"]}
+        att = fb.attacks.EADAttack(steps=self.max_iterations, regularization=0.01, decision_rule='L1', **relevant_kwargs)
         return att, max_batchsize
     elif attack_type=='pgd_blackbox':
             relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
@@ -292,7 +294,7 @@ class AdversarialAttacks:
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
                       epsilon=self.epsilon,
-                      learning_rate=0.5,
+                      #learning_rate=0.5,
                       estimator_blackbox='gaussian_nes',
                       perturbation_blackbox=0.001,
                       samples_blackbox=50,

@@ -45,7 +45,7 @@ class Experiment_class():
 
             results_dict[hyperparameter+str(value)] = {}
             print(f'\t\t-------------- Hyperparameter Sweep for Attack: {attack_type}: {hyperparameter} = {value} ----------------\n')
-            _, _, results_dict[hyperparameter+str(value)]["mean_runtime_per_image"], results_dict[hyperparameter+str(value)]["attack_success_rate"], results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l0"], results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l1"], results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l2"], results_dict[hyperparameter+str(value)]["mean_adv_distance_l1"], results_dict[hyperparameter+str(value)]["mean_adv_distance_l2"], adv_images, results_dict[hyperparameter+str(value)]["average_sparsity"] = calculation(
+            _, _, results_dict[hyperparameter+str(value)]["mean_runtime_per_image"], results_dict[hyperparameter+str(value)]["attack_success_rate"], results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l0"], results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l1"], results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l1_linf"], results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l2"], results_dict[hyperparameter+str(value)]["mean_adv_distance_l1"], results_dict[hyperparameter+str(value)]["mean_adv_distance_l2"], adv_images, results_dict[hyperparameter+str(value)]["average_sparsity"], results_dict[hyperparameter+str(value)]["average_sparsity_l1_linf"] = calculation(
                                                                 art_net=self.art_net,
                                                                 fb_net=self.fb_net,
                                                                 net = self.net,
@@ -103,7 +103,7 @@ class Experiment_class():
         for attack_type in attack_types:
             results_dict[attack_type] = {}
             print(f'\t\t-------------------------- Processing Attack: {attack_type} --------------------------\n')
-            distance_list_l1,_, results_dict[attack_type]["mean_runtime_per_image"], results_dict[attack_type]["attack_success_rate"], results_dict[attack_type]["attack_success_rate_in_epsilon_l0"], results_dict[attack_type]["attack_success_rate_in_epsilon_l1"], results_dict[attack_type]["attack_success_rate_in_epsilon_l2"], results_dict[attack_type]["mean_adv_distance_l1"], results_dict[attack_type]["mean_adv_distance_l2"], adv_images, results_dict[attack_type]["average_sparsity"] = calculation(
+            distance_list_l1,_, results_dict[attack_type]["mean_runtime_per_image"], results_dict[attack_type]["attack_success_rate"], results_dict[attack_type]["attack_success_rate_in_epsilon_l0"], results_dict[attack_type]["attack_success_rate_in_epsilon_l1"], results_dict[attack_type]["attack_success_rate_in_epsilon_l1_linf"], results_dict[attack_type]["attack_success_rate_in_epsilon_l2"], results_dict[attack_type]["mean_adv_distance_l1"], results_dict[attack_type]["mean_adv_distance_l2"], adv_images, results_dict[attack_type]["average_sparsity"], results_dict[attack_type]["average_sparsity_l1_linf"] = calculation(
                                                                 art_net=self.art_net,
                                                                 fb_net=self.fb_net,
                                                                 net = self.net,
@@ -123,7 +123,7 @@ class Experiment_class():
                 results_dict[attack_type]["distance_list_l1"] = distance_list_l1
                 for eps in [2, 4, 12, 25, 50, 75, 255]:
                     string = f'ASR_in_L1={eps}'
-                    results_dict[attack_type][string] = sum(1 for v in distance_list_l1 if v > eps) / len(self.x_test)
+                    results_dict[attack_type][string] = sum(1 for v in distance_list_l1 if v < eps) / len(self.xtest)
 
             print(f'\nTotal runtime: {len(self.ytest) * results_dict[attack_type]["mean_runtime_per_image"]: .4f} seconds\n')
             print('attack success rate in epsilon (Overall / L0 / L1 / L2): ',
@@ -181,7 +181,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
                 attack_type, max_batchsize = 1, learning_rate = None, beta = None, quantile = None, 
                 max_iterations_sweep = None, save_images: int = 0, **kwargs):
 
-    sparsity_list, distance_list_l0, distance_list_l1, distance_list_l2, runtime_list = [], [], [], [], []
+    sparsity_list, sparsity_list_l1_linf, distance_list_l0, distance_list_l1, distance_list_l1_linf, distance_list_l2, runtime_list = [], [], [], [], [], [], []
     assert save_images <= len(xtest), "Number of images to be saved is larger than the number processed"
     saved_images = []
 
@@ -203,6 +203,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
                           max_iterations_sweep=max_iterations_sweep,
                           **kwargs)
     attack_successes_in_epsilon_l0 = 0
+    attack_successes_in_epsilon_l1_linf = 0
     attack_successes_in_epsilon_l1 = 0
     attack_successes_in_epsilon_l2 = 0
     attack_successes_in_en = 0
@@ -228,7 +229,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
             x_adversarial = x_adversarial[0].cpu()    
         elif attack_type in ['brendel_bethge', 'pointwise_blackbox', 'boundary_blackbox', 'ead_fb', 'ead_fb_L1_rule_higher_beta']:
             _, x_adversarial, _ = attacker(fb_net, x, criterion=y, epsilons=None)
-            x_adversarial = x_adversarial[0].cpu()
+            x_adversarial = x_adversarial.cpu()
         elif attack_type in ['sparse_rs_blackbox', 'sparse_rs_custom_L1_blackbox']:
             _, x_adversarial = attacker.perturb(x, y)
             x_adversarial = x_adversarial.cpu()    
@@ -247,11 +248,10 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
         # Adversarial accuracy calculation
         output_adversarial = art_net.predict(x_adversarial)
         _, predicted_adversarial = torch.max(torch.tensor(output_adversarial).data, 1)
-
         # Adversarial distance calculation: if no AE found, save 0.0 as distance
         delta = x.cpu() - x_adversarial.cpu()
-        #distance_l0 = torch.count_nonzero(delta.view(delta.size(0), -1), dim=1) # Batch-wise L0 distance = number of input features changed
-        distance_l0 = torch.sum(torch.max(torch.abs(delta),dim=1).values, dim=(1,2)) # Batch-wise L0 distance = number of input features changed
+        distance_l0 = torch.count_nonzero(delta.view(delta.size(0), -1), dim=1) # Batch-wise L0 distance = number of input features changed
+        distance_l1_linf = torch.sum(torch.max(torch.abs(delta),dim=1).values, dim=(1,2)) # sum of max pixelwise distance (L1 in pixelspace)
         distance_l1 = torch.norm(delta.view(delta.size(0), -1), p=1, dim=1)  # Batch-wise L1 distance
         distance_l2 = torch.norm(delta.view(delta.size(0), -1), p=2, dim=1)  # Batch-wise L2 distance
 
@@ -269,21 +269,22 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
 
                 distance_list_l0.append(distance_l0[j].item())
                 distance_list_l1.append(distance_l1[j].item())
+                distance_list_l1_linf.append(distance_l1_linf[j].item())
                 distance_list_l2.append(distance_l2[j].item())
                 
                 attack_successes_in_epsilon_l0 += (round(distance_l0[j].item(), 1) <= epsilon_l0)
                 attack_successes_in_epsilon_l1 += (round(distance_l1[j].item(), 1) <= epsilon_l1)
+                attack_successes_in_epsilon_l1_linf += (round(distance_l1_linf[j].item(), 1) <= epsilon_l1)
                 attack_successes_in_epsilon_l2 += (round(distance_l2[j].item(), 1) <= epsilon_l2)
                 attack_successes_in_en += ((round(distance_l2[j].item(), 1) <= epsilon_l2) or (round(distance_l1[j].item(), 1) <= epsilon_l1))
                 attack_successes += 1
 
-                #dim = torch.numel(delta[j])
-                #sparsity = (dim - torch.count_nonzero(delta[j]).item()) / dim
-                #sparsity_list.append(sparsity)
-
-                #sparsity = (dim - torch.count_nonzero(torch.max(torch.abs(delta[j]),dim=1).values).item()) / dim
-                sparsity = torch.count_nonzero(torch.max(torch.abs(delta[j]),dim=0).values).item()
+                dim = torch.numel(delta[j])
+                sparsity = (dim - torch.count_nonzero(delta[j]).item()) / dim
                 sparsity_list.append(sparsity)
+
+                sparsity_l1_linf = torch.count_nonzero(torch.max(torch.abs(delta[j]),dim=0).values).item()
+                sparsity_list_l1_linf.append(sparsity_l1_linf)
                 if verbose:
                     print(f'Image {i + j}\t\tSuccesful attack with adversarial_distance (L1 / L2): {distance_l1[j]:.4f} / {distance_l2[j]:.5f}')
 
@@ -300,13 +301,15 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
     attack_success_rate = (attack_successes / len(xtest)) * 100
     attack_success_rate_in_epsilon_l0 = (attack_successes_in_epsilon_l0 / len(xtest)) * 100
     attack_success_rate_in_epsilon_l1 = (attack_successes_in_epsilon_l1 / len(xtest)) * 100
+    attack_success_rate_in_epsilon_l1_linf = (attack_successes_in_epsilon_l1_linf / len(xtest)) * 100
     attack_success_rate_in_epsilon_l2 = (attack_successes_in_epsilon_l2 / len(xtest)) * 100
     attack_success_rate_in_epsilon_en = (attack_successes_in_en / len(xtest)) * 100
     mean_adv_distance_l1 = (sum(distance_list_l1) / attack_successes) if attack_successes!=0 else 0.0
     mean_adv_distance_l2 = (sum(distance_list_l2) / attack_successes) if attack_successes!=0 else 0.0
     mean_sparsity=sum(sparsity_list)/attack_successes if attack_successes else 0.0
+    mean_sparsity_l1_linf=sum(sparsity_list_l1_linf)/attack_successes if attack_successes else 0.0
     mean_runtime=sum(runtime_list) / len(xtest)
 
     print(f'\naverage pixel l0: {mean_sparsity:.3f}\n')
 
-    return distance_list_l1, distance_list_l2, mean_runtime, attack_success_rate, attack_success_rate_in_epsilon_l0,  attack_success_rate_in_epsilon_l1, attack_success_rate_in_epsilon_l2, mean_adv_distance_l1, mean_adv_distance_l2, saved_images, mean_sparsity
+    return distance_list_l1, distance_list_l2, mean_runtime, attack_success_rate, attack_success_rate_in_epsilon_l0,  attack_success_rate_in_epsilon_l1, attack_success_rate_in_epsilon_l1_linf, attack_success_rate_in_epsilon_l2, mean_adv_distance_l1, mean_adv_distance_l2, saved_images, mean_sparsity, mean_sparsity_l1_linf

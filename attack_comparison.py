@@ -46,7 +46,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hyperparameter Sweep Script")
     parser.add_argument('--dataset', type=str, default='imagenet', choices=['cifar10', 'imagenet'],
                         help="Dataset to use")
-    parser.add_argument('--samplesize_accuracy', type=int, default=2000, help="Split size for test accuracy evaluation")
+    parser.add_argument('--samplesize_accuracy', type=int, default=10000, help="Split size for test accuracy evaluation")
     parser.add_argument('--samplesize_attack', type=int, default=1000, help="Split size for attack evaluation")
     parser.add_argument('--validation_run', type=utils.str2bool, nargs='?', const=False, default=False, 
                         help="True for validation/tuning, False for testing. Selects attackset from the front or the back")
@@ -112,12 +112,20 @@ if __name__ == "__main__":
     parser.add_argument('--save_images', type=int, default=1, help="Integer > 0: number of saved images per attack, 0: do not save)")
     parser.add_argument('--verbose', type=utils.str2bool, nargs='?', const=False, default=False, help="Verbose output")
     parser.add_argument('--track_distance', type=utils.str2bool, nargs='?', const=False, default=False, help="Whether to track all images L1-distance")
+    parser.add_argument('--track_c', type=utils.str2bool, nargs='?', const=False, default=False, help="Whether to track all images L1-distance")
 
     args = parser.parse_args()
 
     # Convert Namespace to dictionary and filter some arguments to kwargs
     filtered_kwargs = {"learning_rate", "beta", "verbose"}
     kwargs = {k: v for k, v in vars(args).items() if k in filtered_kwargs and v is not None}
+    
+    if args.track_c:
+        def add_argument_to_kwargs(kwargs, key, value):
+            kwargs[key] = value
+            return kwargs
+
+        kwargs = add_argument_to_kwargs(kwargs, "track_c", f"c_values_{args.model}_{args.dataset}_{args.max_iterations}_iters")
 
     main(
         args.dataset, args.samplesize_accuracy, args.samplesize_attack, args.validation_run, args.dataset_root, args.model, args.model_norm, args.attack_types, args.epsilon_l0,

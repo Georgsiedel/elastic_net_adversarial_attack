@@ -55,7 +55,7 @@ class ExpAttack(ElasticNet):
         learning_rate: float = 1.0,
         binary_search_steps: int = 9,
         max_iter: int = 100,
-        l1: float = 100,
+        l1: float = 0.001,
         beta:float=1.0,
         initial_const: float = 1e-3,
         batch_size: int = 250,
