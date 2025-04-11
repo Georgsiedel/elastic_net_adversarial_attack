@@ -1,0 +1,22 @@
+{
+    "exp_attack_l1": {
+        "mean_runtime_per_image": 0.7584053473472595,
+        "attack_success_rate": 77.4,
+        "attack_success_rate_in_epsilon_l0": 77.4,
+        "attack_success_rate_in_epsilon_l1": 77.4,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 24.999999965500155,
+        "mean_adv_distance_l2": 2.2636999067410017,
+        "average_sparsity": 129.31912144702844
+    },
+    "exp_attack_l1_linf": {
+        "mean_runtime_per_image": 0.6138282904624939,
+        "attack_success_rate": 99.5,
+        "attack_success_rate_in_epsilon_l0": 99.5,
+        "attack_success_rate_in_epsilon_l1": 0.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 71.55875599156673,
+        "mean_adv_distance_l2": 4.33874283268224,
+        "average_sparsity": 156.10753768844222
+    }
+}
