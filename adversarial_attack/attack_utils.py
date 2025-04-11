@@ -77,7 +77,7 @@ class Experiment_class():
                    round(results_dict[hyperparameter+str(value)]["mean_adv_distance_l2"], 5))
         
             if adv_images:
-                image_dir = f'./results/hyperparameter_sweep_{attack_type}_{self.alias}_eps{self.epsilon_l1}_{self.max_iterations}_iters_images'
+                image_dir = f'./results/images/hyperparameter_sweep_{attack_type}_{self.alias}_eps{self.epsilon_l1}_{self.max_iterations}_iters_images'
                 os.makedirs(image_dir, exist_ok=True)
                 for i, img in enumerate(adv_images):
                     if img.dim() == 3:  
@@ -140,7 +140,7 @@ class Experiment_class():
                    round(results_dict[attack_type]["mean_adv_distance_l2"], 5))
         
             if adv_images:
-                image_dir = f'./results/attack_comparison_{self.alias}_eps{self.epsilon_l1}_{self.max_iterations}_iters_images'
+                image_dir = f'./results/images/attack_comparison_{self.alias}_eps{self.epsilon_l1}_{self.max_iterations}_iters_images'
                 os.makedirs(image_dir, exist_ok=True)
                 for i, img in enumerate(adv_images):
                     if img.dim() == 3:  
