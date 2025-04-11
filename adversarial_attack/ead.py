@@ -2,7 +2,7 @@ from typing import Union, Tuple, Any, Optional
 from typing_extensions import Literal
 
 import math
-
+import os
 import eagerpy as ep
 
 from ..models import Model
@@ -211,6 +211,7 @@ class EADAttack(MinimizationAttack):
             data = {"final_c": consts_list}
 
             json_file_path = f'./results/c_values_ead/{self.track_c}.json'
+            os.makedirs(json_file_path, exist_ok=True)
             with open(json_file_path, 'w') as json_file:
                 json.dump(data, json_file)
 
