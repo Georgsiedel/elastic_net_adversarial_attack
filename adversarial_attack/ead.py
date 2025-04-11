@@ -5,7 +5,7 @@ import math
 import os
 import eagerpy as ep
 
-from ..models import Model
+from foolbox.models import Model
 from foolbox.criteria import Misclassification, TargetedMisclassification
 
 from foolbox.distances import l1
