@@ -63,12 +63,15 @@ class Experiment_class():
                                                                 **kwargs)
             
             print(f'\nTotal runtime: {len(self.ytest) * results_dict[hyperparameter+str(value)]["mean_runtime_per_image"]: .4f} seconds\n')
-            print(hyperparameter+str(value), 'attack success rate in epsilon (Overall / L0 / L1 / L2): ',
+            print(f'\nAverage sparsity (pixel-channels / L0-Linf): {results_dict[hyperparameter+str(value)]["average_sparsity"]: .5f} / {results_dict[hyperparameter+str(value)]["average_sparsity_l1_linf"]: .3f}\n')
+            print(hyperparameter+str(value), 'attack success rate in epsilon (Overall / L0 / L1 / L1-Linf / L2): ',
                 round(results_dict[hyperparameter+str(value)]["attack_success_rate"], 4),
                 ' / ',
                 round(results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l0"], 4),
                 ' / ',
                 round(results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l1"], 4),
+                ' / ',
+                round(results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l1_linf"], 4),
                 ' / ',
                 round(results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l2"], 4))           
             print('mean adv. distance (L1 / L2): ', 
@@ -126,12 +129,15 @@ class Experiment_class():
                     results_dict[attack_type][string] = sum(1 for v in distance_list_l1 if v < eps) / len(self.xtest)
 
             print(f'\nTotal runtime: {len(self.ytest) * results_dict[attack_type]["mean_runtime_per_image"]: .4f} seconds\n')
-            print('attack success rate in epsilon (Overall / L0 / L1 / L2): ',
+            print(f'\nAverage sparsity (pixel-channels / L0-Linf): {results_dict[attack_type]["average_sparsity"]: .5f} / {results_dict[attack_type]["average_sparsity_l1_linf"]: .3f}\n')
+            print('attack success rate in epsilon (Overall / L0 / L1 / L1-Linf / L2): ',
                   round(results_dict[attack_type]["attack_success_rate"], 4), 
                   ' / ',
                   round(results_dict[attack_type]["attack_success_rate_in_epsilon_l0"], 4),
                   ' / ',
                 round(results_dict[attack_type]["attack_success_rate_in_epsilon_l1"], 4),
+                ' / ',
+                round(results_dict[attack_type]["attack_success_rate_in_epsilon_l1_linf"], 4),
                 ' / ',
                 round(results_dict[attack_type]["attack_success_rate_in_epsilon_l2"], 4))           
             print('mean adv. distance (L1 / L2): ', 
@@ -309,7 +315,5 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
     mean_sparsity=sum(sparsity_list)/attack_successes if attack_successes else 0.0
     mean_sparsity_l1_linf=sum(sparsity_list_l1_linf)/attack_successes if attack_successes else 0.0
     mean_runtime=sum(runtime_list) / len(xtest)
-
-    print(f'\naverage pixel l0: {mean_sparsity:.3f}\n')
 
     return distance_list_l1, distance_list_l2, mean_runtime, attack_success_rate, attack_success_rate_in_epsilon_l0,  attack_success_rate_in_epsilon_l1, attack_success_rate_in_epsilon_l1_linf, attack_success_rate_in_epsilon_l2, mean_adv_distance_l1, mean_adv_distance_l2, saved_images, mean_sparsity, mean_sparsity_l1_linf
