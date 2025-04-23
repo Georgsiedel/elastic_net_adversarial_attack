@@ -5,12 +5,14 @@ import numpy as np
 from art.attacks.evasion import ElasticNet
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from cmath import inf
 from scipy.special import lambertw
 import numpy as np
 import six
 from tqdm.auto import trange
+import json
+import os
 
 from art.config import ART_NUMPY_DTYPE
 from art.attacks.attack import EvasionAttack
@@ -63,7 +65,8 @@ class ExpAttack(ElasticNet):
         verbose: bool = True,
         perturbation_blackbox:float=0.0,
         samples_blackbox:int=100,
-        max_batchsize_blackbox:int=100
+        max_batchsize_blackbox:int=100,
+        track_c: Optional[str] = None,
     ) -> None:
         """
         Create an ElasticNet attack instance.
@@ -100,7 +103,27 @@ class ExpAttack(ElasticNet):
         self.perturbation_blackbox = abs(perturbation_blackbox)
         self.samples_blackbox = samples_blackbox
         self.max_batchsize_blackbox = max_batchsize_blackbox
+        self.track_c=track_c
+        if self.track_c:
+            self.final_c_list = self.load_c_list(track_c, decision_rule)
+        else:
+            self.final_c_list = None
         self._check_params()
+
+    def load_c_list(self, track_c, decision_rule):
+        # Construct the file path
+        json_file_path = f'./results/c_values_ead/{track_c}_{decision_rule}.json'
+        
+        # Check if the file exists
+        if not os.path.exists(json_file_path):
+            raise FileNotFoundError(f"File not found: {json_file_path}")
+        
+        # Load the JSON data
+        with open(json_file_path, 'r') as json_file:
+            c_dict = json.load(json_file)
+        
+        # Extract and return the list
+        return c_dict.get("final_c", None)
 
     def generate(self, x: np.ndarray, y: np.ndarray | None = None, **kwargs) -> np.ndarray:
         """
@@ -165,6 +188,20 @@ class ExpAttack(ElasticNet):
         c_current = self.initial_const * np.ones(x_batch.shape[0])
         c_lower_bound = np.zeros(x_batch.shape[0])
         c_upper_bound = 10e10 * np.ones(x_batch.shape[0])
+
+        if self.final_c_list is not None:
+            # Reduce bss to 1
+            self.binary_search_steps = 1
+            batchsize = x_batch.shape[0]
+            # Ensure there are enough constants for the batch
+            if len(self.final_c_list) < batchsize:
+                raise ValueError("Not enough constants in final_c_list for the batch size.")
+
+            # Extract the first numbers for the current batch
+            c_current = np.array(self.final_c_list[:batchsize])
+
+            # Remove these numbers from the list
+            self.final_c_list = self.final_c_list[batchsize:]
 
         # Initialize the best distortions and best attacks globally
         o_best_dist = np.inf * np.ones(x_batch.shape[0])
