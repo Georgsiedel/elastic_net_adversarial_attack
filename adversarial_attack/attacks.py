@@ -237,13 +237,13 @@ class AdversarialAttacks:
                       **relevant_kwargs
                       ), max_batchsize
     elif attack_type=='exp_attack':
-        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta", "track_c"]}
         return ExpAttack(self.art_net,
                       max_iter=self.max_iterations,
                       **relevant_kwargs
                       ), max_batchsize
     elif attack_type=='exp_attack_L1_rule_higher_beta':
-        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta", "track_c"]}
         return ExpAttack(self.art_net,
                       max_iter=self.max_iterations,
                       decision_rule='L1',
@@ -251,7 +251,7 @@ class AdversarialAttacks:
                       **relevant_kwargs
                       ), max_batchsize
     elif attack_type=='exp_attack_blackbox':
-        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta", "track_c"]}
         return ExpAttack(self.art_net,
                       max_iter=self.max_iterations,
                       perturbation_blackbox=0.001,
@@ -260,7 +260,7 @@ class AdversarialAttacks:
                       **kwargs
                       ), 1
     elif attack_type=='exp_attack_blackbox_L1_rule_higher_beta':
-        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta", "track_c"]}
         return ExpAttack(self.art_net,
                       max_iter=self.max_iterations,
                       decision_rule='L1',
