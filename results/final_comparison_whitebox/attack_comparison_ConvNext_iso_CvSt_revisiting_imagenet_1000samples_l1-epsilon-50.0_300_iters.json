@@ -29,24 +29,28 @@
         "mean_adv_distance_l2": 5.066651637213571,
         "average_sparsity": 0.9989238745417003
     },
-    "ead_fb": {
-        "mean_runtime_per_image": 5.949582367658615,
-        "attack_success_rate": 18.0,
+    "exp_attack_l1": {
+        "mean_runtime_per_image": 9.100626653671265,
+        "attack_success_rate": 34.0,
         "attack_success_rate_in_epsilon_l0": 0.0,
-        "attack_success_rate_in_epsilon_l1": 18.0,
-        "attack_success_rate_in_epsilon_l2": 3.9,
-        "mean_adv_distance_l1": 26.01254261467192,
-        "mean_adv_distance_l2": 1.2218838556980094,
-        "average_sparsity": 0.9827842660501697
+        "attack_success_rate_in_epsilon_l1": 34.0,
+        "attack_success_rate_in_epsilon_l1_linf": 34.0,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 50.00000007853789,
+        "mean_adv_distance_l2": 4.872534786953645,
+        "average_sparsity": 0.9987397302671072,
+        "average_sparsity_l1_linf": 145.38529411764705
     },
-    "ead_fb_L1_rule_higher_beta": {
-        "mean_runtime_per_image": 4.721487873077392,
-        "attack_success_rate": 36.199999999999996,
-        "attack_success_rate_in_epsilon_l0": 2.6,
-        "attack_success_rate_in_epsilon_l1": 36.199999999999996,
-        "attack_success_rate_in_epsilon_l2": 0.8999999999999999,
-        "mean_adv_distance_l1": 22.978266456509164,
-        "mean_adv_distance_l2": 2.685929959979505,
-        "average_sparsity": 0.9984070620219769
+    "exp_attack_l1_linf": {
+        "mean_runtime_per_image": 6.626314520597458,
+        "attack_success_rate": 54.800000000000004,
+        "attack_success_rate_in_epsilon_l0": 0.0,
+        "attack_success_rate_in_epsilon_l1": 0.0,
+        "attack_success_rate_in_epsilon_l1_linf": 54.800000000000004,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 132.22986281179163,
+        "mean_adv_distance_l2": 7.367073967509026,
+        "average_sparsity": 0.9959014342507083,
+        "average_sparsity_l1_linf": 205.65510948905109
     }
 }

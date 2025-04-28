@@ -74,16 +74,24 @@ if __name__ == "__main__":
     parser.add_argument('--beta', type=float, help="Beta for exp_attack_l1, exp_attack, EAD")
     parser.add_argument('--attack_norm', type=int, default=1, choices=[1, 2, float('inf')],
                         help="Attack norm type (1, 2, float('inf'))")
-    parser.add_argument('--max_iterations', type=int, default=1000, help="Maximum iterations for attacks")
+    parser.add_argument('--max_iterations', type=int, default=100, help="Maximum iterations for attacks")
     parser.add_argument('--max_batchsize', type=int, default=50, help="Maximum Batchsize to run every adversarial attack on." \
                         "If attack is not optimized or not working with batches, will be returned by attacks.AdversarialAttacks class.")
     parser.add_argument('--save_images', type=int, default=1, help="Integer > 0: number of saved images per attack, 0: do not save)")
     parser.add_argument('--verbose', type=utils.str2bool, nargs='?', const=False, default=False, help="Verbose output")
+    parser.add_argument('--track_c', type=utils.str2bool, nargs='?', const=False, default=False, help="Whether to track all images L1-distance")
 
     args = parser.parse_args()
     # Convert Namespace to dictionary and filter some arguments to kwargs
-    filtered_kwargs = {"verbose", "beta"}
+    filtered_kwargs = {"verbose", "beta", "learning_rate"}
     kwargs = {k: v for k, v in vars(args).items() if k in filtered_kwargs and v is not None}
+   
+    if args.track_c:
+        def add_argument_to_kwargs(kwargs, key, value):
+            kwargs[key] = value
+            return kwargs
+
+        kwargs = add_argument_to_kwargs(kwargs, "track_c", f"c_values_hyperparameter_sweep_{args.model}_{args.dataset}_{args.max_iterations}_iters")
 
     main(
         args.dataset, args.samplesize_accuracy, args.samplesize_attack, args.validation_run, args.dataset_root, args.model, args.model_norm, args.hyperparameter, 

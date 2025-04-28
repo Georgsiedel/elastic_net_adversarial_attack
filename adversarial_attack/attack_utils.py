@@ -40,7 +40,7 @@ class Experiment_class():
         results_dict = {}
         for value in range:
             
-            #this sets the hyperparameter into kwargs, even if you accidently passed it before, it should overwrite it
+            #this sets the hyperparameter into kwargs, even if you accidently passed it separately before, it should overwrite it
             kwargs[hyperparameter] = value
 
             results_dict[hyperparameter+str(value)] = {}
