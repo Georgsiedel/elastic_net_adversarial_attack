@@ -8,8 +8,6 @@ if __name__ == '__main__':
     import importlib
     os.environ["CUDA_LAUNCH_BLOCKING"] = "1" #prevents "CUDA error: unspecified launch failure" and is recommended for some illegal memory access errors #increases train time by ~15%
 
-    os.system("python hyperparameter_sweep.py --track_c=True --hyperparameter=learning_rate --hyperparameter_range 0.1 --dataset=imagenet --model=Salman2020Do_R50 --attack_type ead_fb --epsilon_l1=12 --max_iterations=100")
-    os.system("python hyperparameter_sweep.py --track_c=True --hyperparameter=learning_rate --hyperparameter_range 0.1 --dataset=imagenet --model=Salman2020Do_R50 --attack_type ead_fb_L1_rule_higher_beta --epsilon_l1=12 --max_iterations=100")
     os.system("python hyperparameter_sweep.py --track_c=True --hyperparameter=learning_rate --hyperparameter_range 0.1 --dataset=imagenet --model=Salman2020Do_R50 --attack_type ead_fb --epsilon_l1=12 --max_iterations=300")
     os.system("python hyperparameter_sweep.py --track_c=True --hyperparameter=learning_rate --hyperparameter_range 0.1 --dataset=imagenet --model=Salman2020Do_R50 --attack_type ead_fb_L1_rule_higher_beta --epsilon_l1=12 --max_iterations=300")
 
