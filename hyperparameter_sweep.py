@@ -16,7 +16,7 @@ def main(dataset, samplesize_accuracy, samplesize_attack, validation_run, datase
     net, art_net, fb_net, alias = utils.get_model(dataset=dataset, modelname=model, norm=model_norm)
 
     # calculate accuracy, select a subset from the correctly classified images
-    correct_map = utils.test_accuracy(net, xtest, ytest)
+    correct_map = utils.test_accuracy(net, xtest, ytest, batch_size=50)
     xtest, ytest = utils.subset(correct_map, xtest, ytest, attack_samples=samplesize_attack, valid=validation_run)
 
     # Experiment setup
