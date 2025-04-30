@@ -12,6 +12,26 @@ art.config.ART_NUMPY_DTYPE=numpy.float64
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device_cpu = torch.device('cpu')
 
+def extract_2nd_and_3rd(kwargs: dict) -> str:
+    """
+    From kwargs dict return a string of
+      key2-value2-key3-value3
+    if the 2nd and 3rd items exist.  
+    If only a 2nd item exists, returns "key2-value2".  
+    Otherwise returns empty string.
+    """
+    items = list(kwargs.items())
+    out_parts = []
+    # if there is a 2nd item
+    if len(items) > 1:
+        k2, v2 = items[1]
+        out_parts.extend([str(k2), str(v2)])
+    # if there is a 3rd item
+    if len(items) > 2:
+        k3, v3 = items[2]
+        out_parts.extend([str(k3), str(v3)])
+    return "-".join(out_parts)
+
 class Experiment_class():
     def __init__(self, art_net, fb_net, net, xtest, ytest, alias, epsilon_l0, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations, max_batchsize, save_images):
         self.art_net = art_net
@@ -29,74 +49,62 @@ class Experiment_class():
         self.max_batchsize=max_batchsize
         self.save_images = save_images
 
-    def hyperparameter_sweep(self, hyperparameter, range, attack_type, **kwargs):
+    def hyperparameter_sweep(self, attack_type, **kwargs):
         
-        '''
-        hyperparameter sweep. Pick only one model.
-        hyperparameter = 'learning_rate', 'beta' , 'quantile', 'max_iterations_sweep' (overwrites max_iterations)
-        hyperparameter_range: iterable
-        '''
-            
         results_dict = {}
-        for value in range:
-            
-            #this sets the hyperparameter into kwargs, even if you accidently passed it separately before, it should overwrite it
-            kwargs[hyperparameter] = value
 
-            results_dict[hyperparameter+str(value)] = {}
-            print(f'\t\t-------------- Hyperparameter Sweep for Attack: {attack_type}: {hyperparameter} = {value} ----------------\n')
-            _, _, results_dict[hyperparameter+str(value)]["mean_runtime_per_image"], results_dict[hyperparameter+str(value)]["attack_success_rate"], results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l0"], results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l1"], results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l1_linf"], results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l2"], results_dict[hyperparameter+str(value)]["mean_adv_distance_l1"], results_dict[hyperparameter+str(value)]["mean_adv_distance_l2"], adv_images, results_dict[hyperparameter+str(value)]["average_sparsity"], results_dict[hyperparameter+str(value)]["average_sparsity_l1_linf"] = calculation(
-                                                                art_net=self.art_net,
-                                                                fb_net=self.fb_net,
-                                                                net = self.net,
-                                                                xtest=self.xtest,
-                                                                ytest=self.ytest,
-                                                                epsilon_l1=self.epsilon_l1,
-                                                                epsilon_l2=self.epsilon_l2,
-                                                                epsilon_l0 = self.epsilon_l0,
-                                                                eps_iter=self.eps_iter,
-                                                                norm=self.norm,
-                                                                max_iterations=self.max_iterations,
-                                                                attack_type=attack_type,
-                                                                max_batchsize=self.max_batchsize,
-                                                                save_images=self.save_images,
-                                                                **kwargs)
-            
-            print(f'\nTotal runtime: {len(self.ytest) * results_dict[hyperparameter+str(value)]["mean_runtime_per_image"]: .4f} seconds\n')
-            print(f'\nAverage sparsity (pixel-channels / L0-Linf): {results_dict[hyperparameter+str(value)]["average_sparsity"]: .5f} / {results_dict[hyperparameter+str(value)]["average_sparsity_l1_linf"]: .3f}\n')
-            print(hyperparameter+str(value), 'attack success rate in epsilon (Overall / L0 / L1 / L1-Linf / L2): ',
-                round(results_dict[hyperparameter+str(value)]["attack_success_rate"], 4),
-                ' / ',
-                round(results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l0"], 4),
-                ' / ',
-                round(results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l1"], 4),
-                ' / ',
-                round(results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l1_linf"], 4),
-                ' / ',
-                round(results_dict[hyperparameter+str(value)]["attack_success_rate_in_epsilon_l2"], 4))           
-            print('mean adv. distance (L1 / L2): ', 
-                   round(results_dict[hyperparameter+str(value)]["mean_adv_distance_l1"], 5), 
-                   ' / ', 
-                   round(results_dict[hyperparameter+str(value)]["mean_adv_distance_l2"], 5))
+        _, _, results_dict["mean_runtime_per_image"], results_dict["attack_success_rate"], results_dict["attack_success_rate_in_epsilon_l0"], results_dict["attack_success_rate_in_epsilon_l1"], results_dict["attack_success_rate_in_epsilon_l1_linf"], results_dict["attack_success_rate_in_epsilon_l2"], results_dict["mean_adv_distance_l1"], results_dict["mean_adv_distance_l2"], adv_images, results_dict["average_sparsity"], results_dict["average_sparsity_l1_linf"] = calculation(
+                                                            art_net=self.art_net,
+                                                            fb_net=self.fb_net,
+                                                            net = self.net,
+                                                            xtest=self.xtest,
+                                                            ytest=self.ytest,
+                                                            epsilon_l1=self.epsilon_l1,
+                                                            epsilon_l2=self.epsilon_l2,
+                                                            epsilon_l0 = self.epsilon_l0,
+                                                            eps_iter=self.eps_iter,
+                                                            norm=self.norm,
+                                                            max_iterations=self.max_iterations,
+                                                            attack_type=attack_type,
+                                                            max_batchsize=self.max_batchsize,
+                                                            save_images=self.save_images,
+                                                            **kwargs)
         
-            if adv_images:
-                image_dir = f'./results/images/hyperparameter_sweep_{attack_type}_{self.alias}_eps{self.epsilon_l1}_{self.max_iterations}_iters_images'
-                os.makedirs(image_dir, exist_ok=True)
-                for i, img in enumerate(adv_images):
-                    if img.dim() == 3:  
-                        img = img.permute(1, 2, 0)
+        print(f'\nTotal runtime: {len(self.ytest) * results_dict["mean_runtime_per_image"]: .4f} seconds\n')
+        print(f'\nAverage sparsity (pixel-channels / L0-Linf): {results_dict["average_sparsity"]: .5f} / {results_dict["average_sparsity_l1_linf"]: .3f}\n')
+        print('attack success rate in epsilon (Overall / L0 / L1 / L1-Linf / L2): ',
+            round(results_dict["attack_success_rate"], 4),
+            ' / ',
+            round(results_dict["attack_success_rate_in_epsilon_l0"], 4),
+            ' / ',
+            round(results_dict["attack_success_rate_in_epsilon_l1"], 4),
+            ' / ',
+            round(results_dict["attack_success_rate_in_epsilon_l1_linf"], 4),
+            ' / ',
+            round(results_dict["attack_success_rate_in_epsilon_l2"], 4))           
+        print('mean adv. distance (L1 / L2): ', 
+                round(results_dict["mean_adv_distance_l1"], 5), 
+                ' / ', 
+                round(results_dict["mean_adv_distance_l2"], 5))
+    
+        if adv_images:
+            image_dir = f'./results/images/hyperparameter_sweep_{attack_type}_{self.alias}_eps{self.epsilon_l1}_images'
+            os.makedirs(image_dir, exist_ok=True)
+            for i, img in enumerate(adv_images):
+                if img.dim() == 3:  
+                    img = img.permute(1, 2, 0)
 
-                    #validation.validate_image.validate_tensor(img)
+                #validation.validate_image.validate_tensor(img)
 
-                    img = (img * 255).clamp(0, 255).byte().numpy()
-                    img = Image.fromarray(img)
+                img = (img * 255).clamp(0, 255).byte().numpy()
+                img = Image.fromarray(img)
 
-                    if i % 3 == 0:
-                        img.save(os.path.join(image_dir, f'{hyperparameter}={value}_{i}_original.png'))
-                    if i % 3 == 1:
-                        img.save(os.path.join(image_dir, f'{hyperparameter}={value}_{i}_adversarial.png'))                    
-                    if i % 3 == 2:
-                        img.save(os.path.join(image_dir, f'{hyperparameter}={value}_{i}_delta.png'))
+                if i % 3 == 0:
+                    img.save(os.path.join(image_dir, f'{extract_2nd_and_3rd(kwargs)}_{i}_original.png'))
+                if i % 3 == 1:
+                    img.save(os.path.join(image_dir, f'{extract_2nd_and_3rd(kwargs)}_{i}_adversarial.png'))                    
+                if i % 3 == 2:
+                    img.save(os.path.join(image_dir, f'{extract_2nd_and_3rd(kwargs)}_{i}_delta.png'))
 
         return results_dict
 

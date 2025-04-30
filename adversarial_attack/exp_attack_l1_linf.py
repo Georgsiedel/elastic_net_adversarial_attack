@@ -54,7 +54,7 @@ class ExpAttackL1Linf(EvasionAttack):
         targeted: bool = False,
         learning_rate: float =0.1,
         max_iter: int = 100,
-        beta: float =0.2,
+        beta: float =0.1,
         batch_size: int = 50,
         verbose: bool = True,
         epsilon:float=12,
