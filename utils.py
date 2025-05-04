@@ -203,6 +203,7 @@ def test_accuracy(model, xtest, ytest, batch_size=100):
     """
     model.eval()
     correct_list = []  # To store correctness of each sample
+    print('device: ', device)
 
     with torch.no_grad():
         for i in range(0, len(xtest), batch_size):

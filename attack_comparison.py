@@ -16,7 +16,7 @@ def main(dataset, samplesize_accuracy, samplesize_attack, validation_run, datase
     net, art_net, fb_net, alias = utils.get_model(dataset=dataset, modelname=model, norm=model_norm)
 
     # calculate accuracy, select a subset from the correctly classified images
-    correct_map = utils.test_accuracy(net, xtest, ytest)
+    correct_map = utils.test_accuracy(net, xtest, ytest, batch_size=100)
     xtest, ytest = utils.subset(correct_map, xtest, ytest, attack_samples=samplesize_attack, valid=validation_run)
 
     # Experiment setup
@@ -118,13 +118,16 @@ if __name__ == "__main__":
     # Convert Namespace to dictionary and filter some arguments to kwargs
     filtered_kwargs = {"learning_rate", "beta", "verbose"}
     kwargs = {k: v for k, v in vars(args).items() if k in filtered_kwargs and v is not None}
-    
-    if args.track_c:
-        def add_argument_to_kwargs(kwargs, key, value):
-            kwargs[key] = value
-            return kwargs
 
-        kwargs = add_argument_to_kwargs(kwargs, "track_c", f"c_values_{args.model}_{args.dataset}_{args.max_iterations}_iters")
+    if args.track_c:
+        dir = f"c_values_{args.model}_{args.dataset}_{args.max_iterations}_iters"
+    else:
+        dir = None
+    def add_argument_to_kwargs(kwargs, key, value):
+        kwargs[key] = value
+        return kwargs
+
+    kwargs = add_argument_to_kwargs(kwargs, "track_c", dir)
 
     main(
         args.dataset, args.samplesize_accuracy, args.samplesize_attack, args.validation_run, args.dataset_root, args.model, args.model_norm, args.attack_types, args.epsilon_l0,
