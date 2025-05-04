@@ -22,13 +22,13 @@ def extract_2nd_and_3rd(kwargs: dict) -> str:
     """
     items = list(kwargs.items())
     out_parts = []
-    # if there is a 2nd item
-    if len(items) > 1:
-        k2, v2 = items[1]
+    # if there is a 3nd item
+    if len(items) > 2:
+        k2, v2 = items[2]
         out_parts.extend([str(k2), str(v2)])
     # if there is a 3rd item
-    if len(items) > 2:
-        k3, v3 = items[2]
+    if len(items) > 3:
+        k3, v3 = items[3]
         out_parts.extend([str(k3), str(v3)])
     return "-".join(out_parts)
 
