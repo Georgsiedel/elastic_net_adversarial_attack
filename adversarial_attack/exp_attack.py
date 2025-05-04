@@ -190,13 +190,13 @@ class ExpAttack(ElasticNet):
         c_upper_bound = 10e10 * np.ones(x_batch.shape[0])
 
         if self.final_c_list is not None:
+            
             # Reduce bss to 1
             self.binary_search_steps = 1
             batchsize = x_batch.shape[0]
             # Ensure there are enough constants for the batch
             if len(self.final_c_list) < batchsize:
                 raise ValueError("Not enough constants in final_c_list for the batch size.")
-
             # Extract the first numbers for the current batch
             c_current = np.array(self.final_c_list[:batchsize])
 
