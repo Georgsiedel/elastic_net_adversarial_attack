@@ -117,11 +117,14 @@ if __name__ == "__main__":
     kwargs = {k: v for k, v in vars(args).items() if k in filtered_kwargs and v is not None}
    
     if args.track_c:
-        def add_argument_to_kwargs(kwargs, key, value):
-            kwargs[key] = value
-            return kwargs
+        dir = f"c_values_hyperparameter_sweep_{args.model}_{args.dataset}_{args.max_iterations}_iters"
+    else:
+        dir = None
+    def add_argument_to_kwargs(kwargs, key, value):
+        kwargs[key] = value
+        return kwargs
 
-        kwargs = add_argument_to_kwargs(kwargs, "track_c", f"c_values_hyperparameter_sweep_{args.model}_{args.dataset}_{args.max_iterations}_iters")
+    kwargs = add_argument_to_kwargs(kwargs, "track_c", dir)
 
     main(
         args.dataset, args.samplesize_accuracy, args.samplesize_attack, args.validation_run, args.dataset_root, args.model, args.model_norm, 
