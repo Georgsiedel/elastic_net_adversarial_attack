@@ -13,7 +13,10 @@ services:
       LD_LIBRARY_PATH: "/usr/local/lib:/usr/lib:/lib:$LD_LIBRARY_PATH"
     volumes:
       - /data/siedel/datasets:/data
+      - /home/siedel/data/ImageNet:/data/ImageNet
       - ./results:/workspace/results
+      - ./hyperparameter_sweep.py:/workspace/hyperparameter_sweep.py
+      - ./attack_comparison.py:/workspace/attack_comparison.py
       - ./run.py:/workspace/run.py
       - ./run_1.py:/workspace/run_1.py
       - ./run_2.py:/workspace/run_2.py
