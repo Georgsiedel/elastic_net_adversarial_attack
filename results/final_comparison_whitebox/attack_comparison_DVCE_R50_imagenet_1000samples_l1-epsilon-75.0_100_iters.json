@@ -41,6 +41,18 @@
         "average_sparsity": 0.9917117144476838,
         "average_sparsity_l1_linf": 415.8843537414966
     },
+    "exp_attack_l1": {
+        "mean_runtime_per_image": 2.8131898341178894,
+        "attack_success_rate": 13.5,
+        "attack_success_rate_in_epsilon_l0": 0.0,
+        "attack_success_rate_in_epsilon_l1": 13.5,
+        "attack_success_rate_in_epsilon_l1_linf": 13.5,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 75.0000005086263,
+        "mean_adv_distance_l2": 5.674368860103466,
+        "average_sparsity": 0.9975106883030984,
+        "average_sparsity_l1_linf": 265.55555555555554
+    },
     "ead_fb": {
         "mean_runtime_per_image": 1.681726867198944,
         "attack_success_rate": 6.9,

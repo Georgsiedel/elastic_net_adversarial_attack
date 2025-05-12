@@ -106,7 +106,7 @@ if __name__ == "__main__":
     parser.add_argument('--attack_norm', type=int, default=1, choices=[1, 2, float('inf')],
                         help="Attack norm type (1, 2, float('inf'))")
     parser.add_argument('--max_iterations', type=int, default=100, help="Maximum iterations for attacks")
-    parser.add_argument('--max_batchsize', type=int, default=200, help="Maximum Batchsize to run every adversarial attack on." \
+    parser.add_argument('--max_batchsize', type=int, default=100, help="Maximum Batchsize to run every adversarial attack on." \
                         "If attack is not optimized or not working with batches, will be returned by attacks.AdversarialAttacks class.")
     parser.add_argument('--save_images', type=int, default=1, help="Integer > 0: number of saved images per attack, 0: do not save)")
     parser.add_argument('--verbose', type=utils.str2bool, nargs='?', const=False, default=False, help="Verbose output")
