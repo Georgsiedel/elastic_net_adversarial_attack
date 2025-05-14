@@ -77,7 +77,7 @@ class AdversarialAttacks:
     elif attack_type=='AutoAttack':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return AutoAttack(self.net, 
-                                   norm=1, 
+                                   norm='L1', 
                                    eps=self.epsilon,
                                    device=device,
                                    version='standard',
@@ -133,11 +133,11 @@ class AdversarialAttacks:
         return att, max_batchsize
     elif attack_type=='ead_fb':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["track_c"]}
-        att = EADAttack(steps=self.max_iterations, regularization=0.001, **relevant_kwargs)
+        att = EADAttack(steps=self.max_iterations, regularization=0.001, abort_early=False, **relevant_kwargs)
         return att, max_batchsize
     elif attack_type=='ead_fb_L1_rule_higher_beta':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["track_c"]}
-        att = EADAttack(steps=self.max_iterations, regularization=0.01, decision_rule='L1', **relevant_kwargs)
+        att = EADAttack(steps=self.max_iterations, regularization=0.01, abort_early=False, decision_rule='L1', **relevant_kwargs)
         return att, max_batchsize
     elif attack_type=='pgd_blackbox':
             relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
@@ -226,6 +226,7 @@ class AdversarialAttacks:
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ElasticNet(self.art_net,
                       max_iter=self.max_iterations,
+                      batch_size=max_batchsize,
                       **relevant_kwargs
                       ), max_batchsize
     elif attack_type=='ead_L1_rule_higher_beta':
@@ -234,6 +235,7 @@ class AdversarialAttacks:
                       max_iter=self.max_iterations,
                       decision_rule='L1',
                       beta=0.01,
+                      batch_size=max_batchsize,
                       **relevant_kwargs
                       ), max_batchsize
     elif attack_type=='exp_attack':
