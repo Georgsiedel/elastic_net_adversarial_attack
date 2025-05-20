@@ -221,11 +221,7 @@ class ExpAttack(ElasticNet):
 
 
         self.eta=np.zeros(shape=(x_0.shape[0],1,1,1))
-        grad = self._gradient_of_loss(target=y_batch, x=x_batch, x_adv=x_adv.astype(ART_NUMPY_DTYPE), c_weight=c_batch)
-        self.tol=np.max(np.abs(grad),axis=(1,2,3))[:, np.newaxis, np.newaxis, np.newaxis]
-
-
-
+    
         for i_iter in range(self.max_iter):
             logger.debug("Iteration step %i out of %i", i_iter, self.max_iter)
             # updating rule

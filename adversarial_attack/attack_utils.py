@@ -176,7 +176,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
                 attack_type, max_batchsize = 1, learning_rate = None, beta = None, quantile = None, 
                 max_iterations_sweep = None, save_images: int = 0, **kwargs):
 
-    sparsity_list, distance_list_l0, distance_list_l1, distance_list_l2, runtime_list = [], [], [], [], []
+    sparsity_list, distance_list_l0, distance_list_l1, distance_list_l1_linf, distance_list_l2, runtime_list = [], [], [],[], [], []
     assert save_images <= len(xtest), "Number of images to be saved is larger than the number processed"
     saved_images = []
 
@@ -199,6 +199,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
                           **kwargs)
     attack_successes_in_epsilon_l0 = 0
     attack_successes_in_epsilon_l1 = 0
+    attack_successes_in_epsilon_l1_linf = 0
     attack_successes_in_epsilon_l2 = 0
     attack_successes_in_en = 0
     attack_successes = 0
@@ -225,7 +226,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
             _, x_adversarial = attacker.perturb(x, y)
             x_adversarial = x_adversarial.cpu()    
 
-        elif attack_type in ['custom_apgd', 'AutoAttack', 'square_l1_blackbox']:
+        elif attack_type in ['custom_apgd', 'custom_apgdg','AutoAttack', 'square_l1_blackbox']:
             x_adversarial = attacker.run_standard_evaluation(x, y)
             x_adversarial = x_adversarial.cpu()
         else:             
@@ -242,8 +243,8 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
 
         # Adversarial distance calculation: if no AE found, save 0.0 as distance
         delta = x.cpu() - x_adversarial.cpu()
-        #distance_l0 = torch.count_nonzero(delta.view(delta.size(0), -1), dim=1) # Batch-wise L0 distance = number of input features changed
-        distance_l0 = torch.sum(torch.max(torch.abs(delta),dim=1).values, dim=(1,2)) # Batch-wise L0 distance = number of input features changed
+        distance_l0 = torch.count_nonzero(delta.view(delta.size(0), -1), dim=1) # Batch-wise L0 distance = number of input features changed
+        distance_l1_linf = torch.sum(torch.max(torch.abs(delta),dim=1).values, dim=(1,2)) # Batch-wise L0 distance = number of input features changed
         distance_l1 = torch.norm(delta.view(delta.size(0), -1), p=1, dim=1)  # Batch-wise L1 distance
         distance_l2 = torch.norm(delta.view(delta.size(0), -1), p=2, dim=1)  # Batch-wise L2 distance
 
@@ -261,10 +262,12 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
 
                 distance_list_l0.append(distance_l0[j].item())
                 distance_list_l1.append(distance_l1[j].item())
+                distance_list_l1_linf.append(distance_l1_linf[j].item())
                 distance_list_l2.append(distance_l2[j].item())
-                
+
                 attack_successes_in_epsilon_l0 += (round(distance_l0[j].item(), 1) <= epsilon_l0)
                 attack_successes_in_epsilon_l1 += (round(distance_l1[j].item(), 1) <= epsilon_l1)
+                attack_successes_in_epsilon_l1_linf += (round(distance_l1_linf[j].item(), 1) <= epsilon_l1)
                 attack_successes_in_epsilon_l2 += (round(distance_l2[j].item(), 1) <= epsilon_l2)
                 attack_successes_in_en += ((round(distance_l2[j].item(), 1) <= epsilon_l2) or (round(distance_l1[j].item(), 1) <= epsilon_l1))
                 attack_successes += 1
@@ -286,12 +289,14 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
                 f'{i+x.size(0)} images done. Current Attack Success Rate: Overall - {attack_successes * 100 / (i+x.size(0)):.2f}% / '
                 f'L0 - {attack_successes_in_epsilon_l0 * 100 / (i+x.size(0)):.2f}% / '
                 f'L1 - {attack_successes_in_epsilon_l1 * 100 / (i+x.size(0)):.2f}% / '
+                f'Pixel L1 - {attack_successes_in_epsilon_l1_linf * 100 / (i+x.size(0)):.2f}% / '
                 f'L2 - {attack_successes_in_epsilon_l2 * 100 / (i+x.size(0)):.2f}% / '
                 f'EN - {attack_successes_in_en * 100 / (i+x.size(0)):.2f}% / ')
 
     attack_success_rate = (attack_successes / len(xtest)) * 100
     attack_success_rate_in_epsilon_l0 = (attack_successes_in_epsilon_l0 / len(xtest)) * 100
     attack_success_rate_in_epsilon_l1 = (attack_successes_in_epsilon_l1 / len(xtest)) * 100
+    attack_successes_in_epsilon_l1_linf = (attack_successes_in_epsilon_l1_linf / len(xtest)) * 100
     attack_success_rate_in_epsilon_l2 = (attack_successes_in_epsilon_l2 / len(xtest)) * 100
     attack_success_rate_in_epsilon_en = (attack_successes_in_en / len(xtest)) * 100
     mean_adv_distance_l1 = (sum(distance_list_l1) / attack_successes) if attack_successes!=0 else 0.0

@@ -70,6 +70,7 @@ if __name__ == "__main__":
                                 'apgd_art',
                                 'AutoAttack',
                                 'custom_apgd',
+                                'custom_apgdg',
                                 'deep_fool',
                                 'brendel_bethge',
                                 'pointwise_blackbox',
