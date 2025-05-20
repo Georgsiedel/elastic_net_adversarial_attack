@@ -53,17 +53,17 @@ class ExpAttackL1(EvasionAttack):
         self,
         estimator: PyTorchClassifier,
         targeted: bool = False,
-        learning_rate: float =1.0,
+        learning_rate: float = 0.1,
         max_iter: int = 300,
-        beta: float =1.0,
+        beta: float = 0.1,
         batch_size: int = 50,
         verbose: bool = True,
         epsilon:float=12,
         loss_type= "cross_entropy",
-        estimator_blackbox:str='None',
+        estimator_blackbox:str='gaussian_nes',
         perturbation_blackbox:float=0.0,
-        samples_blackbox:int=100,
-        max_batchsize_blackbox:int=500
+        samples_blackbox:int=50,
+        max_batchsize_blackbox:int=100
     ) -> None:
         """
         Create an ElasticNet attack instance.
@@ -310,14 +310,14 @@ class ExpAttackL1(EvasionAttack):
             print('[m] iteration: 0 - loss: {:.6f}'.format(np.sum(_loss_val)))
         self.eta=np.zeros(shape=(x_0.shape[0],1,1,1))
         if self.perturbation_blackbox > 0:
-            grad = -self._estimate_gradient_blackbox(x_adv.astype(ART_NUMPY_DTYPE), y_batch) * (1 - 2 * int(self.targeted))
+            grad = -self._estimate_gradient_blackbox(x_adv.astype(ART_NUMPY_DTYPE), y_batch, estimator=self.estimator_blackbox) * (1 - 2 * int(self.targeted))
         else:
             grad = -self.estimator.loss_gradient(x_adv.astype(ART_NUMPY_DTYPE), y_batch,reduction= "sum") * (1 - 2 * int(self.targeted))
         self.tol=np.max(np.abs(grad),axis=(1,2,3))[:, np.newaxis, np.newaxis, np.newaxis]
         for i_iter in range(self.max_iter):
             beta=self.beta
             if self.perturbation_blackbox > 0:
-                grad = -self._estimate_gradient_blackbox(x_adv.astype(ART_NUMPY_DTYPE), y_batch) * (1 - 2 * int(self.targeted))
+                grad = -self._estimate_gradient_blackbox(x_adv.astype(ART_NUMPY_DTYPE), y_batch, self.estimator_blackbox) * (1 - 2 * int(self.targeted))
             else:
                 grad = -self.estimator.loss_gradient(x_adv.astype(ART_NUMPY_DTYPE), y_batch,reduction= "sum") * (1 - 2 * int(self.targeted))
             delta = self._md(grad,delta,lower,upper,beta)

@@ -29,24 +29,28 @@
         "mean_adv_distance_l2": 5.003894458590327,
         "average_sparsity": 0.9989140926640929
     },
-    "ead_fb": {
-        "mean_runtime_per_image": 2.7371197788715365,
-        "attack_success_rate": 15.4,
+    "exp_attack_l1": {
+        "mean_runtime_per_image": 2.8769736552238463,
+        "attack_success_rate": 33.4,
         "attack_success_rate_in_epsilon_l0": 0.0,
-        "attack_success_rate_in_epsilon_l1": 15.4,
-        "attack_success_rate_in_epsilon_l2": 4.1000000000000005,
-        "mean_adv_distance_l1": 25.98806713308607,
-        "mean_adv_distance_l2": 1.025001990596776,
-        "average_sparsity": 0.9786774795145328
+        "attack_success_rate_in_epsilon_l1": 33.4,
+        "attack_success_rate_in_epsilon_l1_linf": 33.4,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 50.00000013705499,
+        "mean_adv_distance_l2": 4.805731274410636,
+        "average_sparsity": 0.9986968028229252,
+        "average_sparsity_l1_linf": 150.0568862275449
     },
-    "ead_fb_L1_rule_higher_beta": {
-        "mean_runtime_per_image": 1.9552447345256805,
-        "attack_success_rate": 32.2,
-        "attack_success_rate_in_epsilon_l0": 2.0,
-        "attack_success_rate_in_epsilon_l1": 32.2,
-        "attack_success_rate_in_epsilon_l2": 1.0,
-        "mean_adv_distance_l1": 22.025710998392253,
-        "mean_adv_distance_l2": 2.526936221011677,
-        "average_sparsity": 0.9982827940473549
+    "exp_attack_l1_linf": {
+        "mean_runtime_per_image": 2.223353723049164,
+        "attack_success_rate": 54.300000000000004,
+        "attack_success_rate_in_epsilon_l0": 0.0,
+        "attack_success_rate_in_epsilon_l1": 0.0,
+        "attack_success_rate_in_epsilon_l1_linf": 54.300000000000004,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 133.22115515608814,
+        "mean_adv_distance_l2": 7.24256081783091,
+        "average_sparsity": 0.9956710757507424,
+        "average_sparsity_l1_linf": 217.21178637200737
     }
 }

@@ -5,15 +5,12 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 if __name__ == '__main__':
 
+
     import importlib
     os.environ["CUDA_LAUNCH_BLOCKING"] = "1" #prevents "CUDA error: unspecified launch failure" and is recommended for some illegal memory access errors #increases train time by ~15%
-    
-    #os.system("python hyperparameter_sweep.py --hyperparameter=beta --hyperparameter_range 0.5 1.5 2.5 3.0 5.0 7.0 10.0 20.0 --model=ConvNext_iso_CvSt_revisiting --dataset=imagenet --epsilon_l1=50")
 
-    #os.system("python attack_comparison.py --dataset=imagenet --model=Salman2020Do_R50 --epsilon_l1=25 --attack_types pgd SLIDE ead_fb ead_fb_L1_rule_higher_beta")
-    os.system("python attack_comparison.py --dataset=cifar10 --model=standard --epsilon_l1=12 --max_iterations=1000 --attack_types exp_attack_l1_blackbox_rademacher exp_attack_l1_blackbox_l1")
-
-    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --epsilon_l1=255 --max_iterations=300 --attack_types ead_fb ead_fb_L1_rule_higher_beta")
-    os.system("python attack_comparison.py --dataset=imagenet --model=ViT_revisiting --epsilon_l1=255 --max_iterations=500")
-    
-    os.system("python attack_comparison.py --verbose=True --max_iterations=30 --dataset=imagenet --model=ConvNext_iso_CvSt_revisiting --epsilon_l1=75 --samplesize_attack=100 --attack_types pointwise_blackbox square_l1_blackbox sparse_rs_custom_L1_blackbox geoda_blackbox")
+    os.system("python hyperparameter_sweep.py --track_c=True --hyperparameter_range1 0.05 --hyperparameter_range2 0.2 0.5 --dataset=imagenet --model=vgg19 --attack_type exp_attack_L1_rule_higher_beta --epsilon_l1=12 --max_iterations=100")
+    os.system("python hyperparameter_sweep.py --track_c=True --hyperparameter_range1 0.1 0.2 --hyperparameter_range2 0.1 0.2 0.5 --dataset=imagenet --model=vgg19 --attack_type exp_attack_L1_rule_higher_beta --epsilon_l1=12 --max_iterations=100")
+   
+    os.system("python attack_comparison.py --learning_rate=0.5 --beta=1.0 --track_distance=True --dataset=imagenet --model=Salman2020Do_R50 --epsilon_l1=75 --max_iterations=100 --attack_types exp_attack")
+    #os.system("python attack_comparison.py --learning_rate=0.5 --beta=1.0 --track_distance=True --dataset=imagenet --model=Salman2020Do_R50 --epsilon_l1=75 --max_iterations=300 --attack_types exp_attack")

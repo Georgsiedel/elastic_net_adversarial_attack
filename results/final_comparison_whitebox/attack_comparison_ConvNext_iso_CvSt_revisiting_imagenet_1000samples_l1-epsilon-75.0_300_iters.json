@@ -29,24 +29,28 @@
         "mean_adv_distance_l2": 6.168290806184155,
         "average_sparsity": 0.9983327153416763
     },
-    "ead_fb": {
-        "mean_runtime_per_image": 6.037874591588974,
-        "attack_success_rate": 26.200000000000003,
+    "exp_attack_l1": {
+        "mean_runtime_per_image": 8.511671588659286,
+        "attack_success_rate": 48.6,
         "attack_success_rate_in_epsilon_l0": 0.0,
-        "attack_success_rate_in_epsilon_l1": 26.200000000000003,
-        "attack_success_rate_in_epsilon_l2": 4.0,
-        "mean_adv_distance_l1": 36.81662685725525,
-        "mean_adv_distance_l2": 1.6088324830305714,
-        "average_sparsity": 0.979074446751506
+        "attack_success_rate_in_epsilon_l1": 48.6,
+        "attack_success_rate_in_epsilon_l1_linf": 48.6,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 74.99999949765304,
+        "mean_adv_distance_l2": 5.974635334171876,
+        "average_sparsity": 0.9981457997615204,
+        "average_sparsity_l1_linf": 212.57201646090536
     },
-    "ead_fb_L1_rule_higher_beta": {
-        "mean_runtime_per_image": 4.561837798595429,
-        "attack_success_rate": 46.800000000000004,
-        "attack_success_rate_in_epsilon_l0": 2.4,
-        "attack_success_rate_in_epsilon_l1": 46.800000000000004,
-        "attack_success_rate_in_epsilon_l2": 0.8999999999999999,
-        "mean_adv_distance_l1": 31.970316227302593,
-        "mean_adv_distance_l2": 3.1548117810589638,
-        "average_sparsity": 0.9978547024445462
+    "exp_attack_l1_linf": {
+        "mean_runtime_per_image": 6.738901575565338,
+        "attack_success_rate": 67.4,
+        "attack_success_rate_in_epsilon_l0": 0.0,
+        "attack_success_rate_in_epsilon_l1": 0.0,
+        "attack_success_rate_in_epsilon_l1_linf": 67.4,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 198.7939868553456,
+        "mean_adv_distance_l2": 8.979103105358272,
+        "average_sparsity": 0.9938432641927306,
+        "average_sparsity_l1_linf": 308.92284866468844
     }
 }
