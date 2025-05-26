@@ -71,7 +71,7 @@ class Experiment_class():
                                                             **kwargs)
         
         print(f'\nTotal runtime: {len(self.ytest) * results_dict["mean_runtime_per_image"]: .4f} seconds\n')
-        print(f'\nAverage sparsity (pixel-channels / L0-Linf): {results_dict["average_sparsity"]: .5f} / {results_dict["average_sparsity_l1_linf"]: .3f}\n')
+        print(f'\nAverage sparsity (pixel-channels / L1-Linf): {results_dict["average_sparsity"]: .5f} / {results_dict["average_sparsity_l1_linf"]: .3f}\n')
         print('attack success rate in epsilon (Overall / L0 / L1 / L1-Linf / L2): ',
             round(results_dict["attack_success_rate"], 4),
             ' / ',
@@ -137,7 +137,7 @@ class Experiment_class():
                     results_dict[attack_type][string] = sum(1 for v in distance_list_l1 if v < eps) / len(self.xtest)
 
             print(f'\nTotal runtime: {len(self.ytest) * results_dict[attack_type]["mean_runtime_per_image"]: .4f} seconds\n')
-            print(f'\nAverage sparsity (pixel-channels / L0-Linf): {results_dict[attack_type]["average_sparsity"]: .5f} / {results_dict[attack_type]["average_sparsity_l1_linf"]: .3f}\n')
+            print(f'\nAverage sparsity (pixel-channels / L1-Linf): {results_dict[attack_type]["average_sparsity"]: .5f} / {results_dict[attack_type]["average_sparsity_l1_linf"]: .3f}\n')
             print('attack success rate in epsilon (Overall / L0 / L1 / L1-Linf / L2): ',
                   round(results_dict[attack_type]["attack_success_rate"], 4), 
                   ' / ',

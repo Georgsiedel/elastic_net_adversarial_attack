@@ -16,8 +16,8 @@ from adversarial_attack.exp_attack_l1 import ExpAttackL1
 from adversarial_attack.exp_attack_l1_linf import ExpAttackL1Linf
 from adversarial_attack.ead import EADAttack
 #from adversarial_attack.acc_exp_attack import AccExpAttack
-#from auto_attack import AutoAttack
-from adversarial_attack.auto_attack.autoattack_custom import AutoAttack_Custom as AutoAttack
+from autoattack import AutoAttack
+from adversarial_attack.auto_attack.autoattack_custom import AutoAttack_Custom
 from adversarial_attack.exp_attack_l1_ada import ExpAttackL1Ada
 from adversarial_attack.exp_attack_l0 import ExpAttackL0
 #from adversarial_attack.exp_attack_pixel import ExpAttackPixel
