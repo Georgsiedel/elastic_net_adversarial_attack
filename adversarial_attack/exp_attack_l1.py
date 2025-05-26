@@ -320,11 +320,8 @@ class ExpAttackL1(EvasionAttack):
                 grad = -self._estimate_gradient_blackbox(x_adv.astype(ART_NUMPY_DTYPE), y_batch, self.estimator_blackbox) * (1 - 2 * int(self.targeted))
             else:
                 grad = -self.estimator.loss_gradient(x_adv.astype(ART_NUMPY_DTYPE), y_batch,reduction= "sum") * (1 - 2 * int(self.targeted))
-            self.tol=np.max(np.abs(grad),axis=(1,2,3))[:, np.newaxis, np.newaxis, np.newaxis]
             delta = self._md(grad,delta,lower,upper,beta)
             x_adv=x_0+delta
-            
-
             _loss_val=self.estimator.compute_loss(x_adv.astype(ART_NUMPY_DTYPE), y_batch,reduction= "none")[:, np.newaxis, np.newaxis, np.newaxis]
             best_attack=np.where(_loss_val>best_loss,x_adv,best_attack)
             best_loss=np.where(_loss_val>best_loss,_loss_val,best_loss)
@@ -423,6 +420,9 @@ class ExpAttackL1(EvasionAttack):
         v = np.stack([self._project(z_sgn[d],z_val[d],beta,self.epsilon,lower[d],upper[d]) for d in range(dual_x.shape[0])], axis=0)
         #divergence=self._bd(v,x,beta)[:, np.newaxis, np.newaxis, np.newaxis]
         #dist=(eta_t**2)*divergence
+        #dist=divergence
+        
+        
         #self.eta+=dist 
         #eta_t_1=(np.maximum(np.sqrt(self.eta),1.0)/self.learning_rate)
         #gamma=eta_t/eta_t_1

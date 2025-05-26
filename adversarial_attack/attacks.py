@@ -16,8 +16,10 @@ from adversarial_attack.exp_attack_l1 import ExpAttackL1
 from adversarial_attack.exp_attack_l1_linf import ExpAttackL1Linf
 from adversarial_attack.ead import EADAttack
 #from adversarial_attack.acc_exp_attack import AccExpAttack
-from autoattack import AutoAttack
-from adversarial_attack.auto_attack.autoattack_custom import AutoAttack_Custom
+#from auto_attack import AutoAttack
+
+import adversarial_attack.auto_attack.apgd_custom 
+from adversarial_attack.auto_attack.autoattack_custom import AutoAttack_Custom as AutoAttack
 from adversarial_attack.exp_attack_l1_ada import ExpAttackL1Ada
 from adversarial_attack.exp_attack_l0 import ExpAttackL0
 #from adversarial_attack.exp_attack_pixel import ExpAttackPixel
@@ -105,12 +107,28 @@ class AdversarialAttacks:
                                    **relevant_kwargs)
         attack.apgd.n_restarts=1
         attack.apgd.n_iter=self.max_iterations
-        attack.apgd.verbose=False
+        attack.apgd.verbose=True
         attack.apgd.use_largereps=False
         attack.apgd.eot_iter=1
         attack.apgd.use_rs = False
-        
-
+        adversarial_attack.auto_attack.apgd_custom.L1_projection=adversarial_attack.auto_attack.apgd_custom.L1_projection_pixel_channel
+        return attack, max_batchsize
+    elif attack_type=='custom_apgdg':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
+        attack= AutoAttack(self.net, 
+                                   norm='L1', 
+                                   eps=self.epsilon,
+                                   device=device,
+                                   version='custom',
+                                   attacks_to_run=['apgd-ce'],
+                                   **relevant_kwargs)
+        attack.apgd.n_restarts=1
+        attack.apgd.n_iter=self.max_iterations
+        attack.apgd.verbose=True
+        attack.apgd.use_largereps=False
+        attack.apgd.eot_iter=1
+        attack.apgd.use_rs = False
+        adversarial_attack.auto_attack.apgd_custom.L1_projection=adversarial_attack.auto_attack.apgd_custom.L1_projection_pixel
         return attack, max_batchsize
     
     elif attack_type=='deep_fool':

@@ -219,6 +219,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
     attack_successes_in_epsilon_l0 = 0
     attack_successes_in_epsilon_l1_linf = 0
     attack_successes_in_epsilon_l1 = 0
+    attack_successes_in_epsilon_l1_linf = 0
     attack_successes_in_epsilon_l2 = 0
     attack_successes_in_en = 0
     attack_successes = 0
@@ -248,7 +249,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
             _, x_adversarial = attacker.perturb(x, y)
             x_adversarial = x_adversarial.cpu()    
 
-        elif attack_type in ['custom_apgd', 'AutoAttack', 'square_l1_blackbox']:
+        elif attack_type in ['custom_apgd', 'custom_apgdg','AutoAttack', 'square_l1_blackbox']:
             x_adversarial = attacker.run_standard_evaluation(x, y)
             x_adversarial = x_adversarial.cpu()
         else:             
@@ -285,7 +286,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
                 distance_list_l1.append(distance_l1[j].item())
                 distance_list_l1_linf.append(distance_l1_linf[j].item())
                 distance_list_l2.append(distance_l2[j].item())
-                
+
                 attack_successes_in_epsilon_l0 += (round(distance_l0[j].item(), 1) <= epsilon_l0)
                 attack_successes_in_epsilon_l1 += (round(distance_l1[j].item(), 1) <= epsilon_l1)
                 attack_successes_in_epsilon_l1_linf += (round(distance_l1_linf[j].item(), 1) <= epsilon_l1)
@@ -309,6 +310,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
                 f'{i+x.size(0)} images done. Current Attack Success Rate: Overall - {attack_successes * 100 / (i+x.size(0)):.2f}% / '
                 f'L0 - {attack_successes_in_epsilon_l0 * 100 / (i+x.size(0)):.2f}% / '
                 f'L1 - {attack_successes_in_epsilon_l1 * 100 / (i+x.size(0)):.2f}% / '
+                f'Pixel L1 - {attack_successes_in_epsilon_l1_linf * 100 / (i+x.size(0)):.2f}% / '
                 f'L2 - {attack_successes_in_epsilon_l2 * 100 / (i+x.size(0)):.2f}% / '
                 f'EN - {attack_successes_in_en * 100 / (i+x.size(0)):.2f}% / ')
 
