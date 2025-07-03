@@ -229,7 +229,6 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
         x, y = xtest[i:min(i+batchsize, len(xtest))].clamp(0, 1), ytest[i:min(i+batchsize, len(xtest))]
 
         start_time = time.time()
-
         if attack_type == 'pgd_early_stopping':
             assert x.shape[0] == 1
             x_adversarial = attack_with_early_stopping(art_net=art_net,
@@ -239,7 +238,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
                                                                 attacker=attacker,
                                                                 verbose = verbose)
             x_adversarial = torch.from_numpy(x_adversarial)
-        elif attack_type in ['L1pgd_fb', 'SLIDE']:
+        elif attack_type in ['exp_attack_l1_fb', 'L1pgd_fb', 'SLIDE']:
             _, x_adversarial, _ = attacker(fb_net, x, criterion=y, epsilons=[epsilon_l1])
             x_adversarial = x_adversarial[0].cpu()    
         elif attack_type in ['brendel_bethge', 'pointwise_blackbox', 'boundary_blackbox', 'ead_fb', 'ead_fb_L1_rule_higher_beta']:
