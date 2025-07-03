@@ -220,12 +220,13 @@ class L1ExpGradient(FixedEpsilonAttack, ABC):
 
 
     def mirror_descent(self,descent: ep.Tensor,x: ep.Tensor,lower: ep.Tensor,upper: ep.Tensor,beta:float,epsilon:float)-> ep.Tensor:
-        beta=epsilon/x.shape[1]/x.shape[2]/x.shape[3]
+        #beta=epsilon/x.shape[1]/x.shape[2]/x.shape[3]
         dual_x=(ep.log(ep.abs(x) / beta + 1.0)) * ep.sign(x)
         z=dual_x -descent
         z_sgn=ep.sign(z)
         z_val=ep.abs(z)
         v =self.project(z_sgn,z_val,beta,epsilon,lower,upper) 
+        #v = ep.stack([self._project(z_sgn[d],z_val[d],beta,epsilon,lower[d],upper[d]) for d in range(dual_x.shape[0])], axis=0)
         return v
     
     def _project(self, y_sgn: ep.tensor,dual_y_val: ep.tensor, beta:float, D:float,l: ep.tensor,u: ep.tensor)-> ep.tensor:
@@ -313,24 +314,36 @@ class L1ExpGradient(FixedEpsilonAttack, ABC):
 
 
         phi_upper=ep.sum(beta*ep.exp(ep.maximum(ep.minimum(dual_y_val-lam_upper,dual_c),0.0))-beta,keepdims=True,axis=tuple(range(1, dual_y_val.ndim)))
-
+        
+        #phi_lower=ep.sum(beta*ep.exp(ep.maximum(ep.minimum(dual_y_val-lam_lower,dual_c),0.0))-beta,keepdims=True,axis=tuple(range(1, dual_y_val.ndim)))
+        #print(ep.sum(phi_upper,axis=sample_dims))
+        #print(ep.sum(phi_lower,axis=sample_dims))
         mask_set_upper=(ep.logical_and(phi_upper==D,ep.logical_not(mask_lam_null)))
-     
+    
         lam=(lam_lower+lam_upper)/2.0
+        #phi_lower=ep.sum(beta*ep.exp(ep.maximum(ep.minimum(dual_y_val-lam,dual_c),0.0))-beta,keepdims=True,axis=tuple(range(1, dual_y_val.ndim)))
+        #print(ep.sum(phi_lower,axis=sample_dims))
         idx_clip=dual_y_val-lam>=dual_c
-        idx_active=ep.logical_and((dual_y_val-lam)<dual_c , (dual_y_val-lam)>0)
+        idx_active=ep.logical_and(ep.logical_not(idx_clip), (dual_y_val-lam)>0)
+        
+        #print(ep.sum(idx_active,axis=sample_dims,keepdims=True))
         v=ep.where(idx_clip,c,0.0)
+        #print(ep.sum(v,axis=sample_dims,keepdims=True))
+        
         num_active=ep.sum(idx_active,axis=sample_dims,keepdims=True)
 
-
-
         #if num_active!=0:
-        sum_active=D-ep.sum(c*idx_clip,axis=sample_dims,keepdims=True)
-        max_dual_y=ep.max((dual_y_val)*idx_active,keepdims=True,axis=sample_dims)
-        normaliser=(sum_active+beta*num_active)/ep.sum(beta*ep.exp(dual_y_val*idx_active-max_dual_y),keepdims=True,axis=sample_dims)
-
+        sum_active=D-ep.sum(v,axis=sample_dims,keepdims=True)
+         
+        max_dual_y=ep.max(ep.where(idx_active,dual_y_val,0.0),keepdims=True,axis=sample_dims)
+        normaliser=(sum_active+beta*num_active)/ep.sum(beta*ep.exp(dual_y_val-max_dual_y)*idx_active,keepdims=True,axis=sample_dims)
+        #normaliser=ep.log(ep.sum(ep.where(idx_active,beta*ep.exp(dual_y_val),0.0),keepdims=True,axis=sample_dims)/(sum_active+beta*num_active))
+        
+        #print(ep.logical_and(ep.exp(-normaliser- max_dual_y)>=lam_lower,ep.exp(-normaliser- max_dual_y)<=lam_upper))
         new_values = beta * ep.exp(dual_y_val - max_dual_y) * normaliser - beta
+        
         v = ep.where(idx_active, new_values, v)
         v = ep.where(mask_set_upper,beta*ep.exp(ep.maximum(ep.minimum(dual_y_val-lam_upper,dual_c),0.0))-beta,v)
         v=ep.where(mask_lam_null,phi_0,v)
+        
         return v*y_sgn
