@@ -57,7 +57,7 @@ class AdversarialAttacks:
     elif attack_type=='pgd':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         
-        stepsize_madry = 0.025 * self.epsilon
+        stepsize_madry = 2.5 * self.epsilon / self.max_iterations
 
         return ProjectedGradientDescentNumpy(self.art_net,
                                              eps=self.epsilon,
