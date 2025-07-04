@@ -13,7 +13,7 @@ from adversarial_attack.geometric_decision_based_attack import GeoDA
 from adversarial_attack.rs_attacks import RSAttack
 from adversarial_attack.exp_attack import ExpAttack
 from adversarial_attack.exp_attack_l1 import ExpAttackL1
-from adversarial_attack.fb_extension.exp_attack_l1 import L1ExpGradient as ExpAttackL1_FB
+from adversarial_attack.fb_extension.exp_attack_sparse import SparseExpGradient as SparseExpGradient
 from adversarial_attack.exp_attack_l1_linf import ExpAttackL1Linf
 from adversarial_attack.ead import EADAttack
 from adversarial_attack.pgd_l0 import PGDattack_L0
@@ -184,16 +184,14 @@ class AdversarialAttacks:
                       ), max_batchsize
     elif attack_type=='brendel_bethge':
 
-        att = fb.attacks.L1BrendelBethgeAttack(steps=self.max_iterations, 
-                                               init_attack=fb.attacks.SaltAndPepperNoiseAttack(steps=5000, across_channels=False))
+        att = fb.attacks.L0BrendelBethgeAttack(steps=self.max_iterations)
         return att, max_batchsize
     elif attack_type=='L1pgd_fb':
         att = fb.attacks.SparseL1DescentAttack(steps=self.max_iterations, quantile=0.0, random_start=False)
         return att, max_batchsize
-    elif attack_type=='exp_attack_l1_fb':
+    elif attack_type=='exp_attack_sparse':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["beta"]}
-        att = ExpAttackL1_FB(steps=self.max_iterations, 
-                             **relevant_kwargs)
+        att = SparseExpGradient(steps=self.max_iterations, **relevant_kwargs)
         return att, max_batchsize
     elif attack_type=='SLIDE':
         att = fb.attacks.SparseL1DescentAttack(steps=self.max_iterations, 

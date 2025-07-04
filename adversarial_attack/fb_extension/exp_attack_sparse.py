@@ -2,6 +2,7 @@ from typing import Union, Any, Optional, Callable, Tuple
 from abc import ABC, abstractmethod
 import eagerpy as ep
 import math
+import torch as pt
 from foolbox.devutils import flatten
 from foolbox.devutils import atleast_kd
 
@@ -28,7 +29,7 @@ def _best_other_classes(logits: ep.Tensor, exclude: ep.Tensor) -> ep.Tensor:
         #def get_random_start(self, x0: ep.Tensor, epsilon: float) -> ep.Tensor:
         #    ...
 
-class L1ExpGradient(FixedEpsilonAttack, ABC):
+class SparseExpGradient(FixedEpsilonAttack, ABC):
     distance = l1
     def __init__(
         self,
@@ -91,7 +92,7 @@ class L1ExpGradient(FixedEpsilonAttack, ABC):
         verify_input_bounds(x0, model)
 
         # perform a gradient ascent (targeted attack) or descent (untargeted attack)
-        '''
+        
         if isinstance(criterion_, Misclassification):
             gradient_step_sign = 1.0
             classes = criterion_.labels
@@ -103,60 +104,15 @@ class L1ExpGradient(FixedEpsilonAttack, ABC):
 
         loss_fn = self.get_loss_fn(model, classes)
         loss_fn_vec=self.get_loss_fn_vec(model,classes)
-    '''
-        
-        N = len(x0)
 
-        if isinstance(criterion_, Misclassification):
-            targeted = False
-            classes = criterion_.labels
-            #hange_classes_logits = self.confidence
-        elif isinstance(criterion_, TargetedMisclassification):
-            targeted = True
-            classes = criterion_.target_classes
-            #change_classes_logits = -self.confidence
-        else:
-            raise ValueError("unsupported criterion")
+        
 
         #def is_adversarial(perturbed: ep.Tensor, logits: ep.Tensor) -> ep.Tensor:
         #    if change_classes_logits != 0:
         #        logits += ep.onehot_like(logits, classes, value=change_classes_logits)
         #    return criterion_(perturbed, logits)
 
-        if classes.shape != (N,):
-            name = "target_classes" if targeted else "labels"
-            raise ValueError(
-                f"expected {name} to have shape ({N},), got {classes.shape}"
-            )
 
-        min_, max_ = model.bounds
-        rows = range(N)
-        
-        def loss_fun(y_k: ep.Tensor) -> Tuple[ep.Tensor, ep.Tensor]:
-            assert y_k.shape == x0.shape
-            
-            #assert consts.shape == (N,)
-
-            logits = model(y_k)
-            if targeted:
-                c_minimize = _best_other_classes(logits, classes)
-                c_maximize = classes
-            else:
-                c_minimize = classes
-                c_maximize = _best_other_classes(logits, classes)
-
-            is_adv_loss = logits[rows, c_minimize] - logits[rows, c_maximize]
-            assert is_adv_loss.shape == (N,)
-            #is_adv_loss=is_adv_loss+ep.log(1.0+ep.exp(-is_adv_loss))
-            #is_adv_loss = is_adv_loss + self.confidence
-            #is_adv_loss = ep.maximum(0, is_adv_loss)
-            #is_adv_loss = is_adv_loss * consts
-
-            #squared_norms = flatten(y_k - x).square().sum(axis=-1)
-            loss = is_adv_loss.sum()
-            #loss = is_adv_loss.sum() + squared_norms.sum()
-            return loss, is_adv_loss
-        loss_aux_and_grad = ep.value_and_grad_fn(x0, loss_fun, has_aux=True)
 
         optimizer = self.get_optimizer(x0, self.learning_rate)
 
@@ -170,7 +126,7 @@ class L1ExpGradient(FixedEpsilonAttack, ABC):
         lower=0.0-x0
         x=x0+delta
         x_best=x0+delta
-        _,loss_best=loss_fun(x_best)
+        loss_best=loss_fn_vec(x_best)
         loss_best=loss_best[:, ep.newaxis, ep.newaxis, ep.newaxis]
         
         c=ep.where(delta>0,upper,lower)
@@ -178,30 +134,37 @@ class L1ExpGradient(FixedEpsilonAttack, ABC):
 
         eta=ep.zeros(t=x0.T,shape=x0.shape[0])[:, ep.newaxis, ep.newaxis, ep.newaxis]
         for _iter in range(self.steps):
-            _, _, gradient = loss_aux_and_grad(x)
-            #_, gradient = self.value_and_grad(loss_fn, x)
-            #gradient = self.normalize(gradient, x=x, bounds=model.bounds)
-            #gradient=self._get_descent(gradient,delta,lower,upper,epsilon)
-            descent=optimizer(gradient)
-            descent_max= ep.max(ep.abs(descent),axis=[1,2,3])[:, ep.newaxis, ep.newaxis, ep.newaxis]
+            #_, _, gradient = loss_aux_and_grad(x)
+            _, gradient = self.value_and_grad(loss_fn, x)
+            descent_max= ep.max(ep.abs(gradient),axis=[1,2,3])[:, ep.newaxis, ep.newaxis, ep.newaxis]
             #descent=descent/descent_max
             eta+= descent_max**2
-            descent= descent/ep.sqrt(eta)
+            descent= -gradient_step_sign*gradient/ep.sqrt(eta)
             #x = x + gradient_step_sign * optimizer(gradients)
             delta=self.mirror_descent(descent,delta,lower,upper,self.beta,epsilon)
-            topk_val=-ep.sort(-ep.abs(delta).reshape([delta.shape[0],-1]),axis=1)[:,int(epsilon)-1][:, ep.newaxis, ep.newaxis, ep.newaxis]
             
-            delta_topk=ep.where(ep.abs(delta)<topk_val,0.0,delta)
-            #print(delta_topk)
+            delta_raw=delta.raw
+            delta_raw_flat=delta_raw.view([delta.shape[0],-1])
+            topk_vals, topk_idx = pt.topk(pt.abs(delta_raw_flat),int(epsilon), dim=1)
+            flat_masked = pt.zeros_like(delta_raw_flat)
+            flat_masked.scatter_(dim=1, index=topk_idx, value=1)
+            deLta_masked = ep.astensor(flat_masked.view_as(delta_raw))
+            
+
+            #print(topk_val)
+            #topk_val=-ep.sort(-ep.abs(delta).reshape([delta.shape[0],-1]),axis=1)[:,int(epsilon)-1][:, ep.newaxis, ep.newaxis, ep.newaxis]
+            
+            delta_topk=delta*deLta_masked
+            #print(ep.sum(delta_topk>0,axis=[1,2,3]))
             attack=ep.where(delta_topk>0,upper,lower)
             attack=ep.where(delta_topk==0,0.0,attack)
             x=x0+attack
             
-            _,loss_val=loss_fun(x)
+            loss_val=loss_fn_vec(x)
             loss_val=loss_val[:, ep.newaxis, ep.newaxis, ep.newaxis]
             
-            x_best= ep.where(loss_val<loss_best,x,x_best)
-            loss_best= ep.where(loss_val<loss_best,loss_val,loss_best)
+            x_best= ep.where(loss_val>loss_best,x,x_best)
+            loss_best= ep.where(loss_val>loss_best,loss_val,loss_best)
             print(ep.sum(loss_best))
 
         return restore_type(x_best)
@@ -220,7 +183,7 @@ class L1ExpGradient(FixedEpsilonAttack, ABC):
 
 
     def mirror_descent(self,descent: ep.Tensor,x: ep.Tensor,lower: ep.Tensor,upper: ep.Tensor,beta:float,epsilon:float)-> ep.Tensor:
-        #beta=epsilon/x.shape[1]/x.shape[2]/x.shape[3]
+        beta=epsilon/x.shape[1]/x.shape[2]/x.shape[3]
         dual_x=(ep.log(ep.abs(x) / beta + 1.0)) * ep.sign(x)
         z=dual_x -descent
         z_sgn=ep.sign(z)
@@ -271,10 +234,7 @@ class L1ExpGradient(FixedEpsilonAttack, ABC):
                 mask = ep.zeros_like(v).bool()
                 mask = mask.index_update(idx_active, True)
                 new_values = beta * ep.exp(dual_y_val - max_dual_y) * normaliser - beta
-
                 v = ep.where(idx_active, new_values, v)
-
-
                 #v[idx_active]=beta*ep.exp(dual_y_val[idx_active]-max_dual_y)*normaliser-beta
         return v*y_sgn
 

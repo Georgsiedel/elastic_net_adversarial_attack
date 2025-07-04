@@ -1,3 +1,10 @@
+# Copyright (c) 2020-present, Francesco Croce
+# All rights reserved.
+#
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree
+#
+
 import time
 import torch
 import torch.nn as nn
@@ -7,7 +14,154 @@ import random
 
 from autoattack.other_utils import L0_norm, L1_norm, L2_norm
 from autoattack.checks import check_zero_gradients
-from autoattack.autopgd_base import L1_projection
+
+def L1_projection_pixel(x2_full, y2_full, eps1):
+    '''
+    x2: center of the L1 ball (bs x input_dim)
+    y2: current perturbation (x2 + y2 is the point to be projected)
+    eps1: radius of the L1 ball
+
+    output: delta s.th. ||y2 + delta||_1 <= eps1
+    and 0 <= x2 + y2 + delta <= 1
+    '''
+    c_full=torch.where(torch.sign(y2_full)>0,1.0-x2_full,x2_full)
+    y2,_idx_proj=torch.max(torch.minimum(c_full,torch.abs(y2_full)),dim=1)
+    idx_proj=_idx_proj.unsqueeze(1) 
+    x2=torch.gather(x2_full,dim=1,index=idx_proj).squeeze(1)
+
+
+    x = x2.clone().float().view(x2.shape[0], -1)
+    y = y2.clone().float().view(y2.shape[0], -1)
+    sigma = y.clone().sign()
+    u = torch.min(1 - x - y, x + y)
+    #u = torch.min(u, epsinf - torch.clone(y).abs())
+    u = torch.min(torch.zeros_like(y), u)
+    l = -torch.clone(y).abs()
+    d = u.clone()
+    
+    bs, indbs = torch.sort(-torch.cat((u, l), 1), dim=1)
+    bs2 = torch.cat((bs[:, 1:], torch.zeros(bs.shape[0], 1).to(bs.device)), 1)
+    
+    inu = 2*(indbs < u.shape[1]).float() - 1
+    size1 = inu.cumsum(dim=1)
+    
+    s1 = -u.sum(dim=1)
+    
+    c = eps1 - y.clone().abs().sum(dim=1)
+    c5 = s1 + c < 0
+    c2 = c5.nonzero().squeeze(1)
+    
+    s = s1.unsqueeze(-1) + torch.cumsum((bs2 - bs) * size1, dim=1)
+    
+    if c2.nelement != 0:
+    
+      lb = torch.zeros_like(c2).float()
+      ub = torch.ones_like(lb) *(bs.shape[1] - 1)
+      
+      #print(c2.shape, lb.shape)
+      
+      nitermax = torch.ceil(torch.log2(torch.tensor(bs.shape[1]).float()))
+      counter2 = torch.zeros_like(lb).long()
+      counter = 0
+          
+      while counter < nitermax:
+        counter4 = torch.floor((lb + ub) / 2.)
+        counter2 = counter4.type(torch.LongTensor)
+        
+        c8 = s[c2, counter2] + c[c2] < 0
+        ind3 = c8.nonzero().squeeze(1)
+        ind32 = (~c8).nonzero().squeeze(1)
+        #print(ind3.shape)
+        if ind3.nelement != 0:
+            lb[ind3] = counter4[ind3]
+        if ind32.nelement != 0:
+            ub[ind32] = counter4[ind32]
+        
+        #print(lb, ub)
+        counter += 1
+        
+      lb2 = lb.long()
+      alpha = (-s[c2, lb2] -c[c2]) / size1[c2, lb2 + 1] + bs2[c2, lb2]
+      d[c2] = -torch.min(torch.max(-u[c2], alpha.unsqueeze(-1)), -l[c2])
+    
+    _delta=(sigma * d).view(x2.shape)
+    delta=(y2+_delta).unsqueeze(1)
+    delta_full_val=torch.minimum(torch.abs(y2_full),c_full)
+    delta_full_val=torch.minimum(delta_full_val,torch.abs(delta)) 
+    delta_full=delta_full_val*torch.sign(y2_full)
+    #print(torch.sum(torch.max(torch.abs(delta_full_val),dim=1).values, dim=(1,2)) )
+    return delta_full-y2_full
+
+def L1_projection_pixel_channel(x2, y2, eps1):
+    '''
+    x2: center of the L1 ball (bs x input_dim)
+    y2: current perturbation (x2 + y2 is the point to be projected)
+    eps1: radius of the L1 ball
+
+    output: delta s.th. ||y2 + delta||_1 <= eps1
+    and 0 <= x2 + y2 + delta <= 1
+    '''
+    
+    x = x2.clone().float().view(x2.shape[0], -1)
+    y = y2.clone().float().view(y2.shape[0], -1)
+    sigma = y.clone().sign()
+    u = torch.min(1 - x - y, x + y)
+    #u = torch.min(u, epsinf - torch.clone(y).abs())
+    u = torch.min(torch.zeros_like(y), u)
+    l = -torch.clone(y).abs()
+    d = u.clone()
+    
+    bs, indbs = torch.sort(-torch.cat((u, l), 1), dim=1)
+    bs2 = torch.cat((bs[:, 1:], torch.zeros(bs.shape[0], 1).to(bs.device)), 1)
+    
+    inu = 2*(indbs < u.shape[1]).float() - 1
+    size1 = inu.cumsum(dim=1)
+    
+    s1 = -u.sum(dim=1)
+    
+    c = eps1 - y.clone().abs().sum(dim=1)
+    c5 = s1 + c < 0
+    c2 = c5.nonzero().squeeze(1)
+    
+    s = s1.unsqueeze(-1) + torch.cumsum((bs2 - bs) * size1, dim=1)
+    
+    if c2.nelement != 0:
+    
+      lb = torch.zeros_like(c2).float()
+      ub = torch.ones_like(lb) *(bs.shape[1] - 1)
+      
+      #print(c2.shape, lb.shape)
+      
+      nitermax = torch.ceil(torch.log2(torch.tensor(bs.shape[1]).float()))
+      counter2 = torch.zeros_like(lb).long()
+      counter = 0
+          
+      while counter < nitermax:
+        counter4 = torch.floor((lb + ub) / 2.)
+        counter2 = counter4.type(torch.LongTensor)
+        
+        c8 = s[c2, counter2] + c[c2] < 0
+        ind3 = c8.nonzero().squeeze(1)
+        ind32 = (~c8).nonzero().squeeze(1)
+        #print(ind3.shape)
+        if ind3.nelement != 0:
+            lb[ind3] = counter4[ind3]
+        if ind32.nelement != 0:
+            ub[ind32] = counter4[ind32]
+        
+        #print(lb, ub)
+        counter += 1
+        
+      lb2 = lb.long()
+      alpha = (-s[c2, lb2] -c[c2]) / size1[c2, lb2 + 1] + bs2[c2, lb2]
+      d[c2] = -torch.min(torch.max(-u[c2], alpha.unsqueeze(-1)), -l[c2])
+    
+    return (sigma * d).view(x2.shape)
+
+
+
+
+L1_projection=L1_projection_pixel_channel
 
 class APGDAttackCustom():
     """
@@ -135,18 +289,20 @@ class APGDAttackCustom():
             x_adv = x + self.eps * torch.ones_like(x
                 ).detach() * self.normalize(t)
         elif self.norm == 'L1':
+            # without random initiation
             t = torch.zeros(x.shape).to(self.device).detach()
-            x_adv = x + t 
+            delta = L1_projection(x, t, self.eps)
+            x_adv = x + t + delta
             
         
         
         
         
-        #if not x_init is None:
-        #    x_adv = x_init.clone()
-        #    if self.norm == 'L1' and self.verbose:
-        #        print('[custom init] L1 perturbation {:.5f}'.format(
-        #            (x_adv - x).abs().view(x.shape[0], -1).sum(1).max()))
+        if not x_init is None:
+            x_adv = x_init.clone()
+            if self.norm == 'L1' and self.verbose:
+                print('[custom init] L1 perturbation {:.5f}'.format(
+                    (x_adv - x).abs().view(x.shape[0], -1).sum(1).max()))
             
         
         x_adv = x_adv.clamp(0., 1.)
@@ -223,7 +379,6 @@ class APGDAttackCustom():
             k = max(int(.04 * self.n_iter), 1)
             if x_init is None:
                 topk = .2 * torch.ones([x.shape[0]], device=self.device)
-                #topk = 1.0 * torch.ones([x.shape[0]], device=self.device)
                 sp_old =  n_fts * torch.ones_like(topk)
             else:
                 topk = L0_norm(x_adv - x) / n_fts / 1.5
@@ -485,3 +640,126 @@ class APGDAttackCustom():
             x_init, acc, loss, x_adv = self.attack_single_run(x, y, x_init=x_init)
 
         return (x_init, acc, loss, x_adv)
+
+class APGDAttack_targeted(APGDAttackCustom):
+    def __init__(
+            self,
+            predict,
+            n_iter=100,
+            norm='Linf',
+            n_restarts=1,
+            eps=None,
+            seed=0,
+            eot_iter=1,
+            rho=.75,
+            topk=None,
+            n_target_classes=9,
+            verbose=False,
+            device=None,
+            use_largereps=False,
+            is_tf_model=False,
+            logger=None):
+        """
+        AutoPGD on the targeted DLR loss
+        """
+        super(APGDAttack_targeted, self).__init__(predict, n_iter=n_iter, norm=norm,
+            n_restarts=n_restarts, eps=eps, seed=seed, loss='dlr-targeted',
+            eot_iter=eot_iter, rho=rho, topk=topk, verbose=verbose, device=device,
+            use_largereps=use_largereps, is_tf_model=is_tf_model, logger=logger)
+
+        self.y_target = None
+        self.n_target_classes = n_target_classes
+
+    def dlr_loss_targeted(self, x, y):
+        x_sorted, ind_sorted = x.sort(dim=1)
+        u = torch.arange(x.shape[0])
+
+        return -(x[u, y] - x[u, self.y_target]) / (x_sorted[:, -1] - .5 * (
+            x_sorted[:, -3] + x_sorted[:, -4]) + 1e-12)
+
+    def ce_loss_targeted(self, x, y):
+        return -1. * F.cross_entropy(x, self.y_target, reduction='none')
+    
+    
+    def perturb(self, x, y=None, x_init=None):
+        """
+        :param x:           clean images
+        :param y:           clean labels, if None we use the predicted labels
+        """
+
+        assert self.loss in ['dlr-targeted'] #'ce-targeted'
+        if not y is None and len(y.shape) == 0:
+            x.unsqueeze_(0)
+            y.unsqueeze_(0)
+        self.init_hyperparam(x)
+
+        x = x.detach().clone().float().to(self.device)
+        if not self.is_tf_model:
+            y_pred = self.model(x).max(1)[1]
+        else:
+            y_pred = self.model.predict(x).max(1)[1]
+        if y is None:
+            #y_pred = self._get_predicted_label(x)
+            y = y_pred.detach().clone().long().to(self.device)
+        else:
+            y = y.detach().clone().long().to(self.device)
+
+        adv = x.clone()
+        acc = y_pred == y
+        if self.verbose:
+            print('-------------------------- ',
+                'running {}-attack with epsilon {:.5f}'.format(
+                self.norm, self.eps),
+                '--------------------------')
+            print('initial accuracy: {:.2%}'.format(acc.float().mean()))
+
+        startt = time.time()
+
+        torch.random.manual_seed(self.seed)
+        torch.cuda.random.manual_seed(self.seed)
+
+        #
+        
+        if self.use_largereps:
+            epss = [3. * self.eps_orig, 2. * self.eps_orig, 1. * self.eps_orig]
+            iters = [.3 * self.n_iter_orig, .3 * self.n_iter_orig,
+                .4 * self.n_iter_orig]
+            iters = [math.ceil(c) for c in iters]
+            iters[-1] = self.n_iter_orig - sum(iters[:-1])
+            if self.verbose:
+                print('using schedule [{}x{}]'.format('+'.join([str(c
+                    ) for c in epss]), '+'.join([str(c) for c in iters])))
+        
+        for target_class in range(2, self.n_target_classes + 2):
+            for counter in range(self.n_restarts):
+                ind_to_fool = acc.nonzero().squeeze()
+                if len(ind_to_fool.shape) == 0:
+                    ind_to_fool = ind_to_fool.unsqueeze(0)
+                if ind_to_fool.numel() != 0:
+                    x_to_fool = x[ind_to_fool].clone()
+                    y_to_fool = y[ind_to_fool].clone()
+                    
+                    if not self.is_tf_model:
+                        output = self.model(x_to_fool)
+                    else:
+                        output = self.model.predict(x_to_fool)
+                    self.y_target = output.sort(dim=1)[1][:, -target_class]
+
+                    if not self.use_largereps:
+                        res_curr = self.attack_single_run(x_to_fool, y_to_fool)
+                    else:
+                        res_curr = self.decr_eps_pgd(x_to_fool, y_to_fool, epss, iters)
+                    best_curr, acc_curr, loss_curr, adv_curr = res_curr
+                    ind_curr = (acc_curr == 0).nonzero().squeeze()
+
+                    acc[ind_to_fool[ind_curr]] = 0
+                    adv[ind_to_fool[ind_curr]] = adv_curr[ind_curr].clone()
+                    if self.verbose:
+                        print('target class {}'.format(target_class),
+                            '- restart {} - robust accuracy: {:.2%}'.format(
+                            counter, acc.float().mean()),
+                            '- cum. time: {:.1f} s'.format(
+                            time.time() - startt))
+
+        return adv
+
