@@ -5,7 +5,8 @@ import json
 import torch
 import os
 
-def main(dataset, samplesize_accuracy, samplesize_attack, validation_run, dataset_root, model, model_norm, attack_types, epsilon_l0, epsilon_l1, epsilon_l2, 
+def main(dataset, samplesize_accuracy, samplesize_attack, validation_run, dataset_root, model, model_norm, attack_types, 
+         epsilon_l0_feature, epsilon_l0_pixel, epsilon_l1, epsilon_l2, 
          eps_iter, norm, max_iterations, max_batchsize, save_images, track_distance, **kwargs):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -18,11 +19,11 @@ def main(dataset, samplesize_accuracy, samplesize_attack, validation_run, datase
     # calculate accuracy, select a subset from the correctly classified images
     correct_map = utils.test_accuracy(net, xtest, ytest, batch_size=100)
     xtest, ytest = utils.subset(correct_map, xtest, ytest, attack_samples=samplesize_attack, valid=validation_run)
-
     # Experiment setup
     Experiment = attack_utils.Experiment_class(
         art_net, fb_net, net, xtest, ytest, alias,
-        epsilon_l0=epsilon_l0,
+        epsilon_l0_feature=epsilon_l0_feature,
+        epsilon_l0_pixel=epsilon_l0_pixel,
         epsilon_l1=epsilon_l1,
         epsilon_l2=epsilon_l2,
         eps_iter=eps_iter,
@@ -67,6 +68,10 @@ if __name__ == "__main__":
                         choices=['fast_gradient_method',
                                 'pgd',
                                 'pgd_early_stopping',
+                                'pgd_l0',
+                                'pgd_l0_linf',
+                                'GSE_attack',
+                                'sigma_zero',
                                 'apgd_art',
                                 'AutoAttack',
                                 'custom_apgd',
@@ -94,12 +99,14 @@ if __name__ == "__main__":
                                 'exp_attack_l1_fb',
                                 'exp_attack_l1_linf',
                                 'exp_attack_l1_ada',
+                                'exp_attack_l0',
                                 'L1pgd_fb',
                                 'SLIDE',
                                 'ead_fb',
                                 'ead_fb_L1_rule_higher_beta'], 
                         help="List of attack types for comparison (space-separated). ")
-    parser.add_argument('--epsilon_l0', type=float, default=25, help="L0 epsilon, translates to overall number of input features altered")
+    parser.add_argument('--epsilon_l0_feature', type=int, default=25, help="L0 epsilon, translates to overall number of input features altered")
+    parser.add_argument('--epsilon_l0_pixel', type=int, default=10, help="L0 epsilon, translates to overall number of pixels (grouped features along channels) altered")
     parser.add_argument('--epsilon_l1', type=float, default=12, help="L1 norm epsilon (default: 12 for CIFAR10)")
     parser.add_argument('--epsilon_l2', type=float, default=0.5, help="L2 norm epsilon")
     parser.add_argument('--eps_iter', type=float, default=0.1, help="Step size for manual iterative attacks")
@@ -132,6 +139,8 @@ if __name__ == "__main__":
     kwargs = add_argument_to_kwargs(kwargs, "track_c", dir)
 
     main(
-        args.dataset, args.samplesize_accuracy, args.samplesize_attack, args.validation_run, args.dataset_root, args.model, args.model_norm, args.attack_types, args.epsilon_l0,
-        args.epsilon_l1, args.epsilon_l2, args.eps_iter, args.attack_norm, args.max_iterations, args.max_batchsize, args.save_images, args.track_distance, **kwargs
+        args.dataset, args.samplesize_accuracy, args.samplesize_attack, args.validation_run, args.dataset_root, 
+        args.model, args.model_norm, args.attack_types, args.epsilon_l0_feature, args.epsilon_l0_pixel, args.epsilon_l1, 
+        args.epsilon_l2, args.eps_iter, args.attack_norm, args.max_iterations, args.max_batchsize, args.save_images, 
+        args.track_distance, **kwargs
     )

@@ -16,6 +16,9 @@ from adversarial_attack.exp_attack_l1 import ExpAttackL1
 from adversarial_attack.fb_extension.exp_attack_l1 import L1ExpGradient as ExpAttackL1_FB
 from adversarial_attack.exp_attack_l1_linf import ExpAttackL1Linf
 from adversarial_attack.ead import EADAttack
+from adversarial_attack.pgd_l0 import PGDattack_L0
+from adversarial_attack.GSE import GSEAttack
+from adversarial_attack.sigma_zero_attack import Sigma_Zero
 #from adversarial_attack.acc_exp_attack import AccExpAttack
 #from auto_attack import AutoAttack
 
@@ -27,9 +30,12 @@ from adversarial_attack.exp_attack_l0 import ExpAttackL0
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class AdversarialAttacks:
-  def __init__(self, art_net, net, epsilon, eps_iter, norm, max_iterations):
+  def __init__(self, art_net, net, epsilon_l1, epsilon_l0_pixel, 
+                          epsilon_l0_feature, eps_iter, norm, max_iterations):
     self.art_net = art_net
-    self.epsilon = epsilon
+    self.epsilon_l1 = epsilon_l1
+    self.epsilon_l0_pixel=epsilon_l0_pixel
+    self.epsilon_l0_feature=epsilon_l0_feature
     self.eps_iter = eps_iter
     self.norm = norm
     self.max_iterations = max_iterations
@@ -50,28 +56,65 @@ class AdversarialAttacks:
 
     if attack_type=='fast_gradient_method':
         return FastGradientMethod(self.art_net,
-                                eps=self.epsilon,
-                                eps_step=self.epsilon,
+                                eps=self.epsilon_l1,
+                                eps_step=self.epsilon_l1,
                                 norm=self.norm,
                                 batch_size=max_batchsize,
                                 ), max_batchsize
     elif attack_type=='pgd':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         
-        stepsize_madry = 2.5 * self.epsilon / self.max_iterations
+        stepsize_madry = 2.5 * self.epsilon_l1 / self.max_iterations
 
         return ProjectedGradientDescentNumpy(self.art_net,
-                                             eps=self.epsilon,
+                                             eps=self.epsilon_l1,
                                              eps_step=stepsize_madry,
                                              max_iter=self.max_iterations,
                                              norm=self.norm,
                                              batch_size=max_batchsize,
                                              **relevant_kwargs
                                              ), max_batchsize
+    elif attack_type=='pgd_l0':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
+        args = {'type_attack': 'L0',
+                'n_restarts': 1,
+                'num_steps': 100,
+                'step_size': 120000.0/255.0,
+                'kappa': -1,
+                'epsilon': -1,
+                'sparsity': self.epsilon_l0_pixel}
+        return PGDattack_L0(self.net,
+                            args,
+                            **relevant_kwargs), max_batchsize
+    elif attack_type=='pgd_l0_linf':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
+        args = {'type_attack': 'L0+Linf',
+                'n_restarts': 1,
+                'num_steps': 100,
+                'step_size': 120000.0/255.0/2.0,
+                'kappa': 0.8,
+                'epsilon': 8/255,
+                'sparsity': self.epsilon_l0_pixel}
+        return PGDattack_L0(self.net,
+                            args,
+                            **relevant_kwargs), max_batchsize
+    elif attack_type=='GSE_attack':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
+        return GSEAttack(self.net, 
+                         img_range=(0, 1), 
+                         search_steps=10,
+                         iters=self.max_iterations, 
+                         k_hat=10,
+                         **relevant_kwargs), max_batchsize
+    elif attack_type=='sigma_zero':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
+        return Sigma_Zero(model=self.net,
+                          steps=self.max_iterations,
+                          **relevant_kwargs), max_batchsize
     elif attack_type=='pgd_early_stopping':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return ProjectedGradientDescentNumpy(self.art_net,
-                                             eps=self.epsilon,
+                                             eps=self.epsilon_l1,
                                              eps_step=self.eps_iter,
                                              max_iter=1,
                                              norm=self.norm,
@@ -81,7 +124,7 @@ class AdversarialAttacks:
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return AutoAttack(self.net, 
                                    norm='L1', 
-                                   eps=self.epsilon,
+                                   eps=self.epsilon_l1,
                                    device=device,
                                    version='standard',
                                    **relevant_kwargs
@@ -89,8 +132,8 @@ class AdversarialAttacks:
     elif attack_type=='apgd_art':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return AutoProjectedGradientDescent(self.art_net,
-                                             eps=self.epsilon,
-                                             eps_step=self.epsilon,
+                                             eps=self.epsilon_l1,
+                                             eps_step=self.epsilon_l1,
                                              max_iter=self.max_iterations,
                                              norm=self.norm,
                                              batch_size=max_batchsize,
@@ -101,7 +144,7 @@ class AdversarialAttacks:
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         attack= AutoAttack(self.net, 
                                    norm='L1', 
-                                   eps=self.epsilon,
+                                   eps=self.epsilon_l1,
                                    device=device,
                                    version='custom',
                                    attacks_to_run=['apgd-ce'],
@@ -118,7 +161,7 @@ class AdversarialAttacks:
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         attack= AutoAttack(self.net, 
                                    norm='L1', 
-                                   eps=self.epsilon,
+                                   eps=self.epsilon_l1,
                                    device=device,
                                    version='custom',
                                    attacks_to_run=['apgd-ce'],
@@ -149,10 +192,13 @@ class AdversarialAttacks:
         return att, max_batchsize
     elif attack_type=='exp_attack_l1_fb':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["beta"]}
-        att = ExpAttackL1_FB(steps=self.max_iterations, **relevant_kwargs)
+        att = ExpAttackL1_FB(steps=self.max_iterations, 
+                             **relevant_kwargs)
         return att, max_batchsize
     elif attack_type=='SLIDE':
-        att = fb.attacks.SparseL1DescentAttack(steps=self.max_iterations, quantile=0.99, random_start=False)
+        att = fb.attacks.SparseL1DescentAttack(steps=self.max_iterations, 
+                                               quantile=0.99, 
+                                               random_start=False)
         return att, max_batchsize
     elif attack_type=='ead_fb':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["track_c"]}
@@ -168,7 +214,7 @@ class AdversarialAttacks:
             stepsize_madry = 0.025 * self.epsilon
 
             return BlackBoxProjectedGradientDescentNumpy(self.art_net,
-                                                eps=self.epsilon,
+                                                eps=self.epsilon_l1,
                                                 eps_step=stepsize_madry,
                                                 max_iter=self.max_iterations,
                                                 norm=self.norm,
@@ -196,7 +242,7 @@ class AdversarialAttacks:
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         attack= AutoAttack(self.net, 
                                    norm='L1', 
-                                   eps=self.epsilon,
+                                   eps=self.epsilon_l1,
                                    device=device,
                                    version='custom',
                                    attacks_to_run=['square'],
@@ -208,9 +254,10 @@ class AdversarialAttacks:
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return RSAttack(predict=self.net,
                         norm='L0+L1', #'L0+L1' to reject L0 perturbations that are larger than the L1 epsilon. Combine with sensible eps parameter below, otherwise you will reject everything
-                        eps=int(self.epsilon/3*2), # approximating the L0 epsilon that corresponds to the L1 epsilon on 3 channels
-                        eps_L1=self.epsilon,
+                        eps=int(self.epsilon_l1/3*2), # approximating the L0 epsilon that corresponds to the L1 epsilon on 3 channels
+                        eps_L1=self.epsilon_l1,
                         device=device,
+                        #n_queries=self.max_iterations,
                         **relevant_kwargs
                         ), max_batchsize
     elif attack_type=='sparse_rs_blackbox':
@@ -219,9 +266,9 @@ class AdversarialAttacks:
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return RSAttack(predict=self.net,
                         norm='L0', #'L0+L1' to reject L0 perturbations that are larger than the L1 epsilon. Combine with sensible eps parameter below, otherwise you will reject everything
-                        eps=int(self.epsilon), # approximating the L0 epsilon that corresponds to the L1 epsilon on 3 channels
+                        eps=self.epsilon_l0_pixel, # approximating the L0 epsilon that corresponds to the L1 epsilon on 3 channels
                         device=device,
-                        n_queries=self.max_iterations,
+                        #n_queries=self.max_iterations,
                         **relevant_kwargs
                         ), max_batchsize
     elif attack_type=='geoda_blackbox':
@@ -282,7 +329,7 @@ class AdversarialAttacks:
                       perturbation_blackbox=0.001,
                       samples_blackbox=100,
                       final_quantile=0.0,
-                      **kwargs
+                      **relevant_kwargs
                       ), 1
     elif attack_type=='exp_attack_blackbox_L1_rule_higher_beta':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta", "track_c"]}
@@ -292,66 +339,69 @@ class AdversarialAttacks:
                       l1=0.01,
                       perturbation_blackbox=0.001,
                       samples_blackbox=100,
-                      **kwargs
+                      **relevant_kwargs
                       ), max_batchsize
     elif attack_type=='exp_attack_l1':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ExpAttackL1(estimator=self.art_net,
                       max_iter=self.max_iterations,
-                      epsilon=self.epsilon,
+                      epsilon=self.epsilon_l1,
                       **relevant_kwargs
                       ), max_batchsize
     elif attack_type=='exp_attack_l1_linf':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ExpAttackL1Linf(estimator=self.art_net,
                       max_iter=self.max_iterations,
-                      epsilon=self.epsilon,
+                      epsilon=self.epsilon_l1,
                       **relevant_kwargs
                       ), max_batchsize
     elif attack_type=='exp_attack_l1_ada':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ExpAttackL1Ada(estimator=self.art_net,
                       max_iter=self.max_iterations,
-                      epsilon=self.epsilon,
+                      epsilon=self.epsilon_l1,
                       **relevant_kwargs
                       ), max_batchsize
     elif attack_type=='exp_attack_l1_blackbox':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ExpAttackL1(self.art_net,
                       max_iter=self.max_iterations,
-                      epsilon=self.epsilon,
+                      epsilon=self.epsilon_l1,
                       #learning_rate=0.5,
                       estimator_blackbox='gaussian_nes',
                       perturbation_blackbox=0.001,
                       samples_blackbox=50,
-                      **kwargs
+                      **relevant_kwargs
                       ), 1
     elif attack_type=='exp_attack_l1_ada_bb':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ExpAttackL1Ada(self.art_net,
                         max_iter=self.max_iterations,
-                        epsilon=self.epsilon,
+                        epsilon=self.epsilon_l1,
                         perturbation_blackbox=0.001,
                         samples_blackbox=50,
                         quantile=0.0,
-                        **kwargs
+                        **relevant_kwargs
                         ), 1
     elif attack_type=='exp_attack_l0':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ExpAttackL0(self.art_net,
                         max_iter=self.max_iterations,
-                        epsilon=self.epsilon,
+                        epsilon=self.epsilon_l0_pixel,
                         perturbation_blackbox=0.0,
                         samples_blackbox=100,
                         batch_size=max_batchsize,
-                        **kwargs
+                        **relevant_kwargs
                         ), max_batchsize
     elif attack_type=='exp_attack_l0_bb':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose", "learning_rate", "beta"]}
         return ExpAttackL0(self.art_net,
                         max_iter=self.max_iterations,
-                        epsilon=self.epsilon,
+                        epsilon=self.epsilon_l0_pixel,
                         perturbation_blackbox=0.01,
                         samples_blackbox=1,
                         batch_size=max_batchsize,
-                        **kwargs
+                        **relevant_kwargs
                         ), max_batchsize
     else:
         raise ValueError(f'Attack type "{attack_type}" not supported!')
