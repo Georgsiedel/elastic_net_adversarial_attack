@@ -238,7 +238,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
                                                                 attacker=attacker,
                                                                 verbose = verbose)
             x_adversarial = torch.from_numpy(x_adversarial)
-        elif attack_type in ['exp_attack_l1_fb', 'L1pgd_fb', 'SLIDE']:
+        elif attack_type in ['exp_attack_sparse', 'L1pgd_fb', 'SLIDE']:
             _, x_adversarial, _ = attacker(fb_net, x, criterion=y, epsilons=[epsilon_l1])
             x_adversarial = x_adversarial[0].cpu()    
         elif attack_type in ['brendel_bethge', 'pointwise_blackbox', 'boundary_blackbox', 'ead_fb', 'ead_fb_L1_rule_higher_beta']:

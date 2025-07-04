@@ -91,7 +91,7 @@ if __name__ == "__main__":
                                 'exp_attack_blackbox_L1_rule_higher_beta',
                                 'exp_attack_l1_blackbox',
                                 'exp_attack_l1',
-                                'exp_attack_l1_fb',
+                                'exp_attack_sparse',
                                 'exp_attack_l1_linf',
                                 'exp_attack_l1_ada',
                                 'L1pgd_fb',
