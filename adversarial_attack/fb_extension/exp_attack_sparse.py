@@ -124,26 +124,33 @@ class SparseExpGradient(FixedEpsilonAttack, ABC):
         delta=ep.zeros(t=x0.T,shape=x0.shape)
         upper=1.0-x0
         lower=0.0-x0
+        upper_delta=ep.ones(x0,x0.shape)
+        lower_delta=-ep.ones(x0,x0.shape)
         x=x0+delta
         x_best=x0+delta
         loss_best=loss_fn_vec(x_best)
         loss_best=loss_best[:, ep.newaxis, ep.newaxis, ep.newaxis]
         
-        c=ep.where(delta>0,upper,lower)
-        c=ep.where(delta==0,1.0,c)
-
         eta=ep.zeros(t=x0.T,shape=x0.shape[0])[:, ep.newaxis, ep.newaxis, ep.newaxis]
         for _iter in range(self.steps):
             #_, _, gradient = loss_aux_and_grad(x)
+            c=ep.where(delta>0,upper,ep.abs(lower))
+            c=ep.where(delta==0,1.0,c)
+            #_, gradient = self.value_and_grad(loss_fn, x0+delta*c)
             _, gradient = self.value_and_grad(loss_fn, x)
+            #gradient=gradient*c
             descent_max= ep.max(ep.abs(gradient),axis=[1,2,3])[:, ep.newaxis, ep.newaxis, ep.newaxis]
-            #descent=descent/descent_max
+            #gradient=gradient/descent_max
             eta+= descent_max**2
-            descent= -gradient_step_sign*gradient/ep.sqrt(eta)
+            descent= -gradient_step_sign*self.learning_rate*gradient
             #x = x + gradient_step_sign * optimizer(gradients)
-            delta=self.mirror_descent(descent,delta,lower,upper,self.beta,epsilon)
+            delta=self.mirror_descent(descent,delta,lower_delta,upper_delta,self.beta,epsilon)
             
-            delta_raw=delta.raw
+
+            #noise=-ep.log(-ep.log(ep.uniform(delta,delta.shape,low=1e-20,high=1)))
+            score=ep.abs(delta)
+
+            delta_raw=score.raw
             delta_raw_flat=delta_raw.view([delta.shape[0],-1])
             topk_vals, topk_idx = pt.topk(pt.abs(delta_raw_flat),int(epsilon), dim=1)
             flat_masked = pt.zeros_like(delta_raw_flat)
@@ -183,7 +190,7 @@ class SparseExpGradient(FixedEpsilonAttack, ABC):
 
 
     def mirror_descent(self,descent: ep.Tensor,x: ep.Tensor,lower: ep.Tensor,upper: ep.Tensor,beta:float,epsilon:float)-> ep.Tensor:
-        beta=epsilon/x.shape[1]/x.shape[2]/x.shape[3]
+        #beta=epsilon/x.shape[1]/x.shape[2]/x.shape[3]
         dual_x=(ep.log(ep.abs(x) / beta + 1.0)) * ep.sign(x)
         z=dual_x -descent
         z_sgn=ep.sign(z)
