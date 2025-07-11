@@ -7,8 +7,8 @@ import os
 from itertools import product
 
 def main(dataset, samplesize_accuracy, samplesize_attack, validation_run, dataset_root, model, model_norm, hyperparameter1, 
-         hyperparameter2, range1, range2, attack_type, epsilon_l0, epsilon_l1, epsilon_l2, eps_iter, norm, max_iterations, 
-         max_batchsize, save_images, **kwargs):
+         hyperparameter2, range1, range2, attack_type, epsilon_l0_feature, epsilon_l0_pixel, epsilon_l1, epsilon_l2, eps_iter, 
+         norm, max_iterations, max_batchsize, save_images, **kwargs):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Load dataset
@@ -24,7 +24,8 @@ def main(dataset, samplesize_accuracy, samplesize_attack, validation_run, datase
     # Experiment setup
     Experiment = attack_utils.Experiment_class(
         art_net, fb_net, net, xtest, ytest, alias,
-        epsilon_l0=epsilon_l0,
+        epsilon_l0_feature=epsilon_l0_feature,
+        epsilon_l0_pixel=epsilon_l0_pixel,
         epsilon_l1=epsilon_l1,
         epsilon_l2=epsilon_l2,
         eps_iter=eps_iter,
@@ -96,7 +97,8 @@ if __name__ == "__main__":
                         help="Range of hyperparameter values (space-separated)")
     parser.add_argument('--attack_type', type=str, default='exp_attack_l1',
                         help="Type of attack for the hyperparameter sweep")
-    parser.add_argument('--epsilon_l0', type=float, default=25, help="L0 epsilon, translates to overall number of input features altered")
+    parser.add_argument('--epsilon_l0_feature', type=int, default=25, help="L0 epsilon, translates to overall number of input features altered")
+    parser.add_argument('--epsilon_l0_pixel', type=int, default=10, help="L0 epsilon, translates to overall number of pixels (grouped features along channels) altered")
     parser.add_argument('--epsilon_l1', type=float, default=2, help="L1 norm epsilon (default: 12 for CIFAR10, 75 otherwise)")
     parser.add_argument('--epsilon_l2', type=float, default=0.5, help="L2 norm epsilon")
     parser.add_argument('--eps_iter', type=float, default=0.1, help="Step size for manual iterative attacks")
@@ -127,7 +129,8 @@ if __name__ == "__main__":
     kwargs = add_argument_to_kwargs(kwargs, "track_c", dir)
 
     main(
-        args.dataset, args.samplesize_accuracy, args.samplesize_attack, args.validation_run, args.dataset_root, args.model, args.model_norm, 
-        args.hyperparameter1, args.hyperparameter2, args.hyperparameter_range1, args.hyperparameter_range2, args.attack_type, args.epsilon_l0, 
-        args.epsilon_l1, args.epsilon_l2, args.eps_iter, args.attack_norm, args.max_iterations, args.max_batchsize, args.save_images, **kwargs
+        args.dataset, args.samplesize_accuracy, args.samplesize_attack, args.validation_run, args.dataset_root, args.model, 
+        args.model_norm, args.hyperparameter1, args.hyperparameter2, args.hyperparameter_range1, args.hyperparameter_range2, 
+        args.attack_type, args.epsilon_l0_feature, args.epsilon_l0_pixel, args.epsilon_l1, args.epsilon_l2, args.eps_iter, 
+        args.attack_norm, args.max_iterations, args.max_batchsize, args.save_images, **kwargs
     )
