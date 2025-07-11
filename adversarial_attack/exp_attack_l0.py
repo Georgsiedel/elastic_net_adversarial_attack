@@ -41,7 +41,6 @@ class ExpAttackL0(EvasionAttack):
         "batch_size",
         "decision_rule",
         "verbose",
-        "quantile",
         "perturbation_blackbox",
         "samples_blackbox",
         "max_batchsize_blackbox"
@@ -55,10 +54,9 @@ class ExpAttackL0(EvasionAttack):
         targeted: bool = False,
         learning_rate: float =1.0,
         max_iter: int = 100,
-        beta: float =0.1,
+        beta: float =1.0,
         batch_size: int = 1,
         verbose: bool = True,
-        smooth:float=-1.0,
         epsilon:float=12,
         loss_type= "cross_entropy",
         perturbation_blackbox:float=0.0,
@@ -100,9 +98,9 @@ class ExpAttackL0(EvasionAttack):
             class CrossEntropyLossTorch(torch.nn.modules.loss._Loss):
                 """Class defining cross entropy loss with reduction options."""
 
-                def __init__(self, reduction="mean"):
+                def __init__(self, reduction="sum"):
                     super().__init__()
-                    self.ce_loss = torch.nn.CrossEntropyLoss(reduction="none")
+                    self.ce_loss = torch.nn.CrossEntropyLoss(reduction="sum")
                     self.reduction = reduction
 
                 def __call__(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
@@ -227,13 +225,13 @@ class ExpAttackL0(EvasionAttack):
         self.batch_size = batch_size
         self.verbose = verbose
         self.eta=0.0
-        self.smooth=smooth
         self.epsilon=epsilon
         self._check_params()
         self.loss_type=loss_type
         self.perturbation_blackbox = abs(perturbation_blackbox)
         self.samples_blackbox = samples_blackbox
         self.max_batchsize_blackbox = max_batchsize_blackbox
+        self._descr="ExpAttackL0"
 
     def generate(self, x: np.ndarray, y: np.ndarray | None = None, **kwargs) -> np.ndarray:
         """
@@ -264,7 +262,7 @@ class ExpAttackL0(EvasionAttack):
 
         # Compute adversarial examples with implicit batching
         nb_batches = int(np.ceil(x_adv.shape[0] / float(self.batch_size)))
-        for batch_id in trange(nb_batches, desc="ExpAttackL1", disable=not self.verbose):
+        for batch_id in trange(nb_batches, desc=self._descr, disable=not self.verbose):
             batch_index_1, batch_index_2 = batch_id * self.batch_size, (batch_id + 1) * self.batch_size
             x_batch = x_adv[batch_index_1:batch_index_2]
             y_batch = y[batch_index_1:batch_index_2]
@@ -281,42 +279,47 @@ class ExpAttackL0(EvasionAttack):
         )
         return x_adv
 
-    def _mixture_decompose(self,k,w):
-        k=int(k)
-        _w=w.copy()
-        
-        _w_val=np.abs(_w)
-        _w[_w_val<=1e-6]=0.0
-        _w_val[_w_val<=1e-6]=0.0
+    def _mixture_decompose(self,k,w,tol=1e-10):
+        #_w=w.copy()
+        _w_val=np.abs(w)
+        #_w[_w_val<=1e-6]=0.0
+        _w_val[_w_val<=tol]=0.0
         _w_norm=np.sum(_w_val)
+        k=int(np.ceil(_w_norm))
         prob=[]
         arm=[]
-        #while _w_norm>1e-6:
-        if np.count_nonzero(_w_val)>k:
-            idx_corner=np.unravel_index(np.argsort(-_w_val,axis=None)[0:k],_w.shape)
-        else:
+        #decompose
+        #while _w_norm>tol:
+        if np.count_nonzero(_w_val)<=k:
             idx_corner=np.nonzero(_w_val)
-
-        corner=np.zeros(_w.shape)
-        corner[idx_corner]=np.sign(_w)[idx_corner]
-        
-        s=np.min(_w_val[idx_corner])
-        if _w_val[_w_val<s].size>0:
-            l=np.max(_w_val[_w_val<s])
         else:
-            l=0.0
-        p=np.minimum(s, _w_norm-l)
+            #idx_corner=np.unravel_index(np.argsort(-_w_val,axis=None)[0:k],_w_val.shape)
+            idx_corner=np.unravel_index(np.argpartition(-_w_val,k,axis=None)[0:k],_w_val.shape)
+            
+        corner=np.zeros(_w_val.shape)
+        corner[idx_corner]=np.sign(_w_val)[idx_corner]
         
-        
-        _w=_w-p*corner
-        _w_val=np.abs(_w)
-        _w[_w_val<=1e-6]=0.0
-        _w_val[_w_val<=1e-6]=0.0
-        _w_norm=np.sum(_w_val)
+        #s=np.min(_w_val[idx_corner])
+        #if _w_val[_w_val<s].size>0:
+        #    l=np.max(_w_val[_w_val<s])
+        #else:
+        #    l=0.0
+        #p=np.minimum(s, _w_norm-l)
+        #_w_val=_w_val-p*corner
+        #_w_val[_w_val<=tol]=0.0
+        #_w_norm=np.sum(_w_val)
         #print(f"s: {s}, l: {l}, w norm: {_w_norm}, p: {p}")
-        prob.append(p)
-        arm.append(corner)
-        return np.array(arm),np.array(prob)
+        #prob.append(p)
+        #arm.append(corner)
+        #sampling
+        #_sum=np.sum(prob)
+        #rand = np.random.uniform(low=0,high=_sum)
+        #cum_prob=np.cumsum(np.array(prob))
+        #arm_idx=np.argmax(cum_prob>rand)
+        #action=arm[arm_idx]
+        #return action*np.sign(w)
+        corner[idx_corner]=np.sign(w)[idx_corner]
+        return corner
 
     def _generate_bss(self, x_batch: np.ndarray, y_batch: np.ndarray) -> tuple:
         """
@@ -348,7 +351,7 @@ class ExpAttackL0(EvasionAttack):
         #dual_delta=self._reg_prim(delta,self.beta)
         #delta=self._project(np.abs(dual_delta),np.abs(dual_delta),self.beta,self.epsilon,lower,upper)
         x_adv=x_0+delta
-        self.eta=0.0
+        self.eta=np.zeros(shape=x_0.shape[0])
         #self.beta=self.epsilon/x_0.size
         #print(f"initial loss {self.estimator.compute_loss(x_adv.astype(ART_NUMPY_DTYPE),y_batch)}")
         for i_iter in range(self.max_iter):
@@ -360,16 +363,20 @@ class ExpAttackL0(EvasionAttack):
             multiplier= np.where(delta>0,delta_upper, -delta_lower)
             multiplier=np.where(delta==0.0,1.0, multiplier)
             grad*=multiplier
-            prob_delta = self._md(grad,prob_delta, lower,upper)
-            arms,probs=self._mixture_decompose(self.epsilon,prob_delta)
-            if probs.size>0:
-                arm=arms[np.argmax(probs)]
-                delta=np.where(arm>0,delta_upper, delta_lower)
-                delta=np.where(arm==0,0.0, delta)
-            #prob=(abs(delta)+self.beta)/np.sum(np.abs(delta)+self.beta)
+            for i in range(grad.shape[0]):
 
+                prob_delta[i] = self._md(grad[i],prob_delta[i], lower[i],upper[i],i)
+                arm=self._mixture_decompose(self.epsilon,prob_delta[i])
+            
+                delta[i]=np.where(arm>0,delta_upper[i], delta_lower[i])
+                delta[i]=np.where(arm==0,0.0, delta[i])
             logger.debug("Iteration step %i out of %i", i_iter, self.max_iter)
             x_adv=x_0+delta
+            
+            if self.verbose:
+                _loss=self.estimator.compute_loss(x_adv.astype(ART_NUMPY_DTYPE), y_batch)
+                print('[m] iteration: {} - loss: {:.6f}'.format(i_iter,_loss))
+
             (logits, l1dist) = self._loss(x=x_batch, x_adv=x_adv.astype(ART_NUMPY_DTYPE))
             zip_set = zip(l1dist, logits)
             found= True
@@ -426,55 +433,84 @@ class ExpAttackL0(EvasionAttack):
         gradient_estimate /= self.samples_blackbox
 
         return gradient_estimate
-
-    def _md(self,g,x,lower,upper):
-        beta=self.beta
-        dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
-        dim=g.size
-        #first step try 
-        if self.eta==0.0:
-            eta_t=np.max(np.abs(g))/self.learning_rate
-            v=self._md_const(g,x,lower,upper,eta_t)
-            dual_v= (np.log(np.abs(v) / beta + 1.0)) * np.sign(v)
-            dist=(eta_t**2)*np.vdot(x-v,dual_x-dual_v)
-            eta_t=np.sqrt(dist)   
-        else:
-            eta_t=np.sqrt(self.eta)/self.learning_rate
-        #print(f"eta {eta_t}")
-        descent=g/eta_t
-        z=dual_x -descent
-        z_sgn=np.sign(z)
-        z_val=np.abs(z)
-        v=self._project(z_sgn,z_val,beta,self.epsilon,lower,upper)
-        dual_v= (np.log(np.abs(v) / beta + 1.0)) * np.sign(v)
-        dist=(eta_t**2)*np.vdot(x-v,dual_x-dual_v)
-        #print(f"gradient: {np.max(np.abs(g))}")
-        #print(f"generalised gradient: {(dist*(eta_t**2))}")
-        
-        #print(f"descent: {np.sum(np.abs(v-x))}")
-        #print(f"step {dist_prod}")
-        self.eta+=dist
-        #print(f"eta {np.max(np.abs(self.eta))}")
-        eta_t_1=np.sqrt(self.eta)/self.learning_rate
-        if eta_t_1>eta_t:
-            v=(1.0-eta_t/eta_t_1)*x+eta_t/eta_t_1*v 
-        return v
-
+    
+    
+    def _bd(self,x,y,beta):
+        return self._reg(x,beta)-self._reg(y,beta)-np.vdot(self._reg_prim(y,beta),x-y)
+    
     def _reg(self,x,beta):
         return np.sum(np.log(np.abs(x)/beta+1.0)*(np.abs(x)+beta)-abs(x))
     def _reg_prim(self,x,beta):
         return np.log(np.abs(x)/beta+1.0)*np.sign(x)
+    
 
-
-    def _md_const(self,g,x,lower,upper,eta):
-        dim=g.size
+    def _md(self,g,x,lower,upper,i):
         beta=self.beta
         dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
-        descent=g/eta/(self.epsilon+self.beta*dim)
+        #first step try 
+        if self.eta[i]==0.0:   
+            _inf_norm_g=np.max(np.abs(g))
+            self.eta[i]+=_inf_norm_g**2
+            eta_t=np.sqrt(self.eta[i])/self.learning_rate
+            
+            
+            descent=g/eta_t
+            z=dual_x -descent
+            z_sgn=np.sign(z)
+            z_val=np.abs(z)
+            v=self._project(z_sgn,z_val,beta,self.epsilon,lower,upper)  
+            return v          
+        #else:
+        
+        
+        eta_t=np.sqrt(self.eta[i])/self.learning_rate
+
+        descent=g/eta_t
         z=dual_x -descent
         z_sgn=np.sign(z)
         z_val=np.abs(z)
-        v=self._project(z_sgn,z_val,beta,self.epsilon,lower,upper)
+        v=self._project(z_sgn,z_val,beta,self.epsilon,lower,upper)  
+
+
+        divergence=self._bd(v,x,beta)
+        dist=(eta_t**2)*divergence
+        # if dist<0:
+        #     #print(f"instance {i}: restarted")
+        #     _inf_norm_g=np.max(np.abs(g))
+        #     beta=1.0/(np.exp(_inf_norm_g)-1.0)
+        #     dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
+        #     _inf_norm_g=np.max(np.abs(g))
+        #     descent=g
+        #     z=dual_x -descent
+        #     z_sgn=np.sign(z)
+        #     z_val=np.abs(z)
+        #     v=self._project(z_sgn,z_val,beta,self.epsilon,lower,upper)
+        #     self.eta[i]=0.0           
+        #     return v          
+
+        #print(f"instance {i}: gradient 2 norm: {np.sqrt(np.sum(g**2))}")
+        #print(f"generalised gradient: {(dist*(eta_t**2))}")
+        
+        #print(f"step {dist_prod}")
+
+        self.eta[i]+=dist 
+
+        #print(f"eta {np.max(np.abs(self.eta))}")
+        eta_t_1=np.sqrt(self.eta[i])/self.learning_rate
+        gamma=eta_t/eta_t_1
+        #gamma=0.95
+        #if eta_t_1>eta_t:
+        v=(1.0-gamma)*x+gamma*v 
+
+
+    def _md_const(self,g,x,lower,upper,eta):
+        beta=self.beta
+        dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
+        descent=g/eta
+        z=dual_x -descent
+        z_sgn=np.sign(z)
+        z_val=np.abs(z)
+        v=self._project(z_sgn,z_val,beta,self.epsilon_l1,lower,upper)
         
         #dual_v= (np.log(np.abs(v) / beta + 1.0)) * np.sign(v)
         #dist_prod=np.vdot(v-x,dual_v-dual_x)

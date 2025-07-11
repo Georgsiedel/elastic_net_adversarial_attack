@@ -9,7 +9,6 @@ import os
 from PIL import Image
 art.config.ART_NUMPY_DTYPE=numpy.float64
 
-from adversarial_attack.sigma_zero_attack import sigma_zero
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device_cpu = torch.device('cpu')
 

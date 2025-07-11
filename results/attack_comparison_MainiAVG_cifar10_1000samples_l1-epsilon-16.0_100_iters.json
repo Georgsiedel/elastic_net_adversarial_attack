@@ -1,0 +1,14 @@
+{
+    "custom_apgd": {
+        "mean_runtime_per_image": 0.02151794457435608,
+        "attack_success_rate": 52.300000000000004,
+        "attack_success_rate_in_epsilon_l0": 0.0,
+        "attack_success_rate_in_epsilon_l1": 52.300000000000004,
+        "attack_success_rate_in_epsilon_l1_linf": 52.300000000000004,
+        "attack_success_rate_in_epsilon_l2": 0.0,
+        "mean_adv_distance_l1": 16.000000120348957,
+        "mean_adv_distance_l2": 1.6794103885471934,
+        "average_sparsity": 0.9487662573693436,
+        "average_sparsity_l1_linf": 96.61950286806884
+    }
+}
