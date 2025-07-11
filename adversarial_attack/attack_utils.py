@@ -9,6 +9,7 @@ import os
 from PIL import Image
 art.config.ART_NUMPY_DTYPE=numpy.float64
 
+from adversarial_attack.sigma_zero_attack import sigma_zero
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device_cpu = torch.device('cpu')
 
@@ -251,6 +252,8 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0, epsilon_l1, epsi
         elif attack_type in ['custom_apgd', 'custom_apgdg','AutoAttack', 'square_l1_blackbox']:
             x_adversarial = attacker.run_standard_evaluation(x, y)
             x_adversarial = x_adversarial.cpu()
+        elif attack_type in ['sigma_zero']:
+            x_adversarial=sigma_zero(model=net,inputs=x,labels=y,steps=max_iterations).detach().cpu()
         else:             
             x_adversarial = attacker.generate(x.cpu().numpy(), y.cpu().numpy())
             x_adversarial = torch.from_numpy(x_adversarial).float()

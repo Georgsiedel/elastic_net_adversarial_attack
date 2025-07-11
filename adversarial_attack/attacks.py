@@ -147,7 +147,7 @@ class AdversarialAttacks:
         att = fb.attacks.SparseL1DescentAttack(steps=self.max_iterations, quantile=0.0, random_start=False)
         return att, max_batchsize
     elif attack_type=='exp_attack_sparse':
-        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["beta"]}
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["beta","learning_rate"]}
         att = SparseExpGradient(steps=self.max_iterations, **relevant_kwargs)
         return att, max_batchsize
     elif attack_type=='SLIDE':
@@ -351,6 +351,8 @@ class AdversarialAttacks:
                         samples_blackbox=1,
                         batch_size=max_batchsize,
                         **kwargs
-                        ), max_batchsize
+                        ), max_batchsize    
+    elif attack_type=='sigma_zero':
+        return None,max_batchsize
     else:
         raise ValueError(f'Attack type "{attack_type}" not supported!')
