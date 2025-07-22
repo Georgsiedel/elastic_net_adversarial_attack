@@ -20,10 +20,10 @@ from adversarial_attack.pgd_l0 import PGDattack_L0
 from adversarial_attack.GSE import GSEAttack
 from adversarial_attack.sigma_zero_attack import Sigma_Zero
 #from adversarial_attack.acc_exp_attack import AccExpAttack
-#from auto_attack import AutoAttack
+from autoattack import AutoAttack
 
 import adversarial_attack.auto_attack.apgd_custom 
-from adversarial_attack.auto_attack.autoattack_custom import AutoAttack_Custom as AutoAttack
+from adversarial_attack.auto_attack.autoattack_custom import AutoAttack_Custom as AutoAttack_Custom
 from adversarial_attack.exp_attack_l1_ada import ExpAttackL1Ada
 from adversarial_attack.exp_attack_l0 import ExpAttackL0
 #from adversarial_attack.exp_attack_pixel import ExpAttackPixel
@@ -142,7 +142,7 @@ class AdversarialAttacks:
                                             ), max_batchsize
     elif attack_type=='custom_apgd':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
-        attack= AutoAttack(self.net, 
+        attack= AutoAttack_Custom(self.net, 
                                    norm='L1', 
                                    eps=self.epsilon_l1,
                                    device=device,
@@ -159,7 +159,7 @@ class AdversarialAttacks:
         return attack, max_batchsize
     elif attack_type=='custom_apgdg':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
-        attack= AutoAttack(self.net, 
+        attack= AutoAttack_Custom(self.net, 
                                    norm='L1', 
                                    eps=self.epsilon_l1,
                                    device=device,
@@ -174,7 +174,18 @@ class AdversarialAttacks:
         attack.apgd.use_rs = False
         adversarial_attack.auto_attack.apgd_custom.L1_projection=adversarial_attack.auto_attack.apgd_custom.L1_projection_pixel
         return attack, max_batchsize
-    
+    elif attack_type=='FAB':
+        relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
+        attack= AutoAttack(self.net, 
+                                   norm='L1', 
+                                   eps=self.epsilon_l1,
+                                   device=device,
+                                   version='custom',
+                                   attacks_to_run=['fab'],
+                                   **relevant_kwargs)
+        attack.fab.n_restarts = 1
+        attack.fab.n_iter = self.max_iterations
+        return attack, max_batchsize
     elif attack_type=='deep_fool':
         relevant_kwargs = {k: v for k, v in kwargs.items() if k in ["verbose"]}
         return DeepFool(self.art_net,
@@ -182,9 +193,13 @@ class AdversarialAttacks:
                       epsilon=self.eps_iter,
                       **relevant_kwargs
                       ), max_batchsize
-    elif attack_type=='brendel_bethge':
-
-        att = fb.attacks.L0BrendelBethgeAttack(steps=self.max_iterations)
+    elif attack_type=='brendel_bethge_l0':
+        att = fb.attacks.L0BrendelBethgeAttack(init_attack=fb.attacks.SaltAndPepperNoiseAttack(steps=25000, across_channels=False),
+                                               steps=self.max_iterations)
+        return att, max_batchsize
+    elif attack_type=='brendel_bethge_l1':
+        att = fb.attacks.L1BrendelBethgeAttack(init_attack=fb.attacks.SaltAndPepperNoiseAttack(steps=25000, across_channels=False),
+                                               steps=self.max_iterations)
         return att, max_batchsize
     elif attack_type=='L1pgd_fb':
         att = fb.attacks.SparseL1DescentAttack(steps=self.max_iterations, quantile=0.0, random_start=False)
@@ -223,11 +238,11 @@ class AdversarialAttacks:
                                                 ), 1
     elif attack_type=='pointwise_blackbox':
         #https://openreview.net/pdf?id=S1EHOsC9tX
-        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.SaltAndPepperNoiseAttack(steps=20000, across_channels=False))
+        att = fb.attacks.pointwise.PointwiseAttack(init_attack=fb.attacks.SaltAndPepperNoiseAttack(steps=25000, across_channels=False))
         att._distance = fb.distances.l1
         return att, max_batchsize
     elif attack_type=='boundary_blackbox':
-        att = fb.attacks.boundary_attack.BoundaryAttack(steps=25000, init_attack=fb.attacks.blended_noise.LinearSearchBlendedUniformNoiseAttack(distance=fb.distances.l1))
+        att = fb.attacks.boundary_attack.BoundaryAttack(steps=25000, init_attack=fb.attacks.SaltAndPepperNoiseAttack(steps=25000, across_channels=False))
         att._distance = fb.distances.l1
         return att, max_batchsize
     elif attack_type=='hopskipjump_blackbox':
@@ -245,6 +260,8 @@ class AdversarialAttacks:
                                    version='custom',
                                    attacks_to_run=['square'],
                                    **relevant_kwargs)
+        attack.square.n_restarts = 1
+        attack.square.n_queries = 5000
         return attack, max_batchsize
     elif attack_type=='sparse_rs_custom_L1_blackbox':
         #https://ojs.aaai.org/index.php/AAAI/article/view/20595/20354

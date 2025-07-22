@@ -254,13 +254,13 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0_pixel, epsilon_l0
         elif attack_type in ['exp_attack_l1_fb']:
             _, x_adversarial, _ = attacker(fb_net, x, criterion=y, epsilons=[epsilon_l0_pixel])
             x_adversarial = x_adversarial[0].cpu()    
-        elif attack_type in ['brendel_bethge', 'pointwise_blackbox', 'boundary_blackbox', 'ead_fb', 'ead_fb_L1_rule_higher_beta']:
+        elif attack_type in ['brendel_bethge_l0', 'brendel_bethge_l1', 'pointwise_blackbox', 'boundary_blackbox', 'ead_fb', 'ead_fb_L1_rule_higher_beta']:
             _, x_adversarial, _ = attacker(fb_net, x, criterion=y, epsilons=None)
             x_adversarial = x_adversarial.cpu()
         elif attack_type in ['sparse_rs_blackbox', 'sparse_rs_custom_L1_blackbox']:
             _, x_adversarial = attacker.perturb(x, y)
             x_adversarial = x_adversarial.cpu()    
-        elif attack_type in ['custom_apgd', 'custom_apgdg','AutoAttack', 'square_l1_blackbox']:
+        elif attack_type in ['custom_apgd', 'custom_apgdg','AutoAttack', 'square_l1_blackbox', 'FAB']:
             x_adversarial = attacker.run_standard_evaluation(x, y)
             x_adversarial = x_adversarial.cpu()
         elif attack_type in ['pgd_l0', 'pgd_l0_linf']:
@@ -298,7 +298,7 @@ def calculation(art_net, fb_net, net, xtest, ytest, epsilon_l0_pixel, epsilon_l0
                 if 3 * save_images > len(saved_images):  # Save only successful adversarial examples
                     saved_images.append(x.cpu()[j])
                     saved_images.append(x_adversarial.cpu()[j])
-                    inverted_delta = (delta[j] * 10).clamp(0, 1) #perturbations are magnified 10x for better visibility
+                    inverted_delta = (delta[j] + 0.5).clamp(0, 1) #perturbations are magnified 10x and applied on 0.5 (greyscale) so that positive and negative deltas are shown
                     saved_images.append(inverted_delta)
 
                 distance_list_l1.append(distance_l1[j].item())

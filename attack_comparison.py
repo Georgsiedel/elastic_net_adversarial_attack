@@ -77,7 +77,8 @@ if __name__ == "__main__":
                                 'custom_apgd',
                                 'custom_apgdg',
                                 'deep_fool',
-                                'brendel_bethge',
+                                'brendel_bethge_l0',
+                                'brendel_bethge_l1',
                                 'pgd_blackbox',
                                 'pointwise_blackbox',
                                 'boundary_blackbox',
@@ -102,6 +103,7 @@ if __name__ == "__main__":
                                 'exp_attack_l0',
                                 'L1pgd_fb',
                                 'SLIDE',
+                                'FAB',
                                 'ead_fb',
                                 'ead_fb_L1_rule_higher_beta'], 
                         help="List of attack types for comparison (space-separated). ")
