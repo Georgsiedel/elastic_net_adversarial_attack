@@ -90,6 +90,7 @@ if __name__ == "__main__":
                                 'carlini_wagner_l2',
                                 'carlini_wagner_l0',
                                 'ead',
+                                'sigma_zero',
                                 'ead_L1_rule_higher_beta',
                                 'exp_attack', 
                                 'exp_attack_L1_rule_higher_beta',

@@ -1,0 +1,29 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "Python Debugger: Current File with Arguments",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "attack_comparison.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--dataset_root=../datasets",
+                "--dataset=cifar10",
+                "--model=MainiAVG",
+                "--attack_types=exp_attack_l1_fb",
+                "--epsilon_l1=20",
+                "--epsilon_l0=10",
+                "--max_batchsize=50",
+                "--beta=1.0",
+                "--learning_rate=1.0",
+                "--max_iterations=100",
+                "--verbose=True"
+            ]
+        }
+    ]
+}

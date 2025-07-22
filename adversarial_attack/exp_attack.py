@@ -256,16 +256,12 @@ class ExpAttack(ElasticNet):
         lower=0.0-x_0
         x_adv=x_0+delta
 
-
         self.eta=np.zeros(shape=(x_0.shape[0],1,1,1))
-    
         for i_iter in range(self.max_iter):
             logger.debug("Iteration step %i out of %i", i_iter, self.max_iter)
             # updating rule
-            grad = self._gradient_of_loss(target=y_batch, x=x_batch, x_adv=x_adv.astype(ART_NUMPY_DTYPE), c_weight=c_batch)
-             
+            grad = self._gradient_of_loss(target=y_batch, x=x_batch, x_adv=x_adv.astype(ART_NUMPY_DTYPE), c_weight=c_batch)             
             delta = self._md(grad,delta, lower,upper)
-
             x_adv=x_0+delta
             # Adjust the best result
             (logits, l1dist, l2dist, endist) = self._loss(x=x_batch, x_adv=x_adv.astype(ART_NUMPY_DTYPE))

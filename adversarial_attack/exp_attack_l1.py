@@ -56,7 +56,7 @@ class ExpAttackL1(EvasionAttack):
         learning_rate: float = 0.1,
         max_iter: int = 300,
         beta: float = 0.1,
-        batch_size: int = 50,
+        batch_size: int = 250,
         verbose: bool = True,
         epsilon:float=12,
         loss_type= "cross_entropy",
@@ -309,11 +309,6 @@ class ExpAttackL1(EvasionAttack):
             _loss_val=self.estimator.compute_loss(x_adv.astype(ART_NUMPY_DTYPE), y_batch,reduction= "none")
             print('[m] iteration: 0 - loss: {:.6f}'.format(np.sum(_loss_val)))
         self.eta=np.zeros(shape=(x_0.shape[0],1,1,1))
-        if self.perturbation_blackbox > 0:
-            grad = -self._estimate_gradient_blackbox(x_adv.astype(ART_NUMPY_DTYPE), y_batch, estimator=self.estimator_blackbox) * (1 - 2 * int(self.targeted))
-        else:
-            grad = -self.estimator.loss_gradient(x_adv.astype(ART_NUMPY_DTYPE), y_batch,reduction= "sum") * (1 - 2 * int(self.targeted))
-        self.tol=np.max(np.abs(grad),axis=(1,2,3))[:, np.newaxis, np.newaxis, np.newaxis]
         for i_iter in range(self.max_iter):
             beta=self.beta
             if self.perturbation_blackbox > 0:
@@ -412,7 +407,8 @@ class ExpAttackL1(EvasionAttack):
     def _md(self,g: np.ndarray,x: np.ndarray,lower: np.ndarray,upper: np.ndarray,beta:float)-> np.ndarray:
         dual_x=(np.log(np.abs(x) / beta + 1.0)) * np.sign(x)
         self.eta+=np.max(g**2,axis=(1,2,3))[:, np.newaxis, np.newaxis, np.newaxis]
-        eta_t=np.sqrt(self.eta)/self.learning_rate
+        #eta_t=np.sqrt(self.eta)/self.learning_rate
+        eta_t=1.0/self.epsilon
         descent=g/eta_t
         z=dual_x -descent
         z_sgn=np.sign(z)

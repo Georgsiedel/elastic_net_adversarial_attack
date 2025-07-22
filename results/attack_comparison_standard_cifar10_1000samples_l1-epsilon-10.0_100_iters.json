@@ -1,0 +1,14 @@
+{
+    "brendel_bethge": {
+        "mean_runtime_per_image": 0.34171320819854734,
+        "attack_success_rate": 99.9,
+        "attack_success_rate_in_epsilon_l0": 46.400000000000006,
+        "attack_success_rate_in_epsilon_l1": 64.5,
+        "attack_success_rate_in_epsilon_l1_linf": 67.10000000000001,
+        "attack_success_rate_in_epsilon_l2": 4.3,
+        "mean_adv_distance_l1": 9.686763955714616,
+        "mean_adv_distance_l2": 2.3993174573807448,
+        "average_sparsity": 0.994749958291625,
+        "average_sparsity_l1_linf": 14.594594594594595
+    }
+}
